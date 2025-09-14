@@ -1,0 +1,168 @@
+version: "3"
+
+services:
+  - ima_service
+  - tenant_service
+
+tasks:
+  # -------------------------
+  # Development Servers
+  # -------------------------
+  start:
+    desc: "Start a service (default: ima_service)"
+    vars:
+      SERVICE: "ima_service"
+    cmds:
+      - uv run uvicorn {{.SERVICE}}.main:app --reload --port 8000
+
+  start-all:
+    desc: "Start all services in parallel"
+    cmds:
+      - uv run uvicorn ima_service.main:app --reload --port 8000 &
+      - uv run uvicorn tenant_service.main:app --reload --port 8001 &
+
+  start-infra:
+    desc: "Start infrastructure services via docker-compose"
+    cmds:
+      - docker-compose -f infra/docker-compose.yml up -d
+
+  start-docker:
+    desc: "Start local docker-compose services"
+    cmds:
+      - docker-compose -f docker/docker-compose.yml up -d
+
+  # -------------------------
+  # Kill processes
+  # -------------------------
+  kill-server-8000:
+    desc: "Kill any process running on port 8000"
+    cmds:
+      - lsof -ti:8000 | xargs -r kill -9
+
+  kill-server-8001:
+    desc: "Kill any process running on port 8001"
+    cmds:
+      - lsof -ti:8001 | xargs -r kill -9
+
+  kill-postgres:
+    desc: "Kill any process running on port 5432"
+    cmds:
+      - lsof -ti:5432 | xargs -r kill -9
+
+  kill-all:
+    desc: "Kill all relevant processes"
+    deps: [kill-server-8000, kill-server-8001, kill-postgres]
+
+  # -------------------------
+  # Tests
+  # -------------------------
+  test:
+    desc: "Run all tests for a service"
+    vars:
+      SERVICE: "ima_service"
+    cmds:
+      - uv run pytest {{.SERVICE}}
+
+  test-unit:
+    desc: "Run unit tests for a service"
+    vars:
+      SERVICE: "ima_service"
+    cmds:
+      - uv run pytest {{.SERVICE}}/app/tests/unit/
+
+  test-integration:
+    desc: "Run integration tests for a service"
+    vars:
+      SERVICE: "ima_service"
+    cmds:
+      - uv run pytest {{.SERVICE}}/app/tests/integration/
+
+  test-e2e:
+    desc: "Run end-to-end tests for a service"
+    vars:
+      SERVICE: "ima_service"
+    cmds:
+      - uv run pytest {{.SERVICE}}/tests/e2e/
+
+  test-health:
+    desc: "Run health tests for a service"
+    vars:
+      SERVICE: "ima_service"
+    cmds:
+      - uv run pytest {{.SERVICE}}/tests/unit/test_health.py
+
+  coverage:
+    desc: "Run tests with coverage for a service"
+    vars:
+      SERVICE: "ima_service"
+    cmds:
+      - uv run pytest --cov={{.SERVICE}} --cov-report=term-missing
+
+  # -------------------------
+  # Linting & Formatting
+  # -------------------------
+  lint:
+    desc: "Lint a service using ruff"
+    vars:
+      SERVICE: "ima_service"
+    cmds:
+      - uv run ruff check {{.SERVICE}}/app
+  pylint:
+    desc: "Lint a service using pylint"
+    vars:
+      SERVICE: "ima_service"
+    cmds:
+      - uv run pylint {{.SERVICE}}/app
+
+  lint-all:
+    desc: "Run both ruff and pylint"
+    deps: [lint, pylint]
+
+  lint-fix:
+    desc: "Automatically fix lint issues for a service"
+    vars:
+      SERVICE: "ima_service"
+    cmds:
+      - uv run ruff check {{.SERVICE}}/app --fix
+
+  format:
+    desc: "Format a service using black and isort"
+    vars:
+      SERVICE: "ima_service"
+    cmds:
+      - uv run black {{.SERVICE}}/app || (uv add --dev black && uv run black {{.SERVICE}}/app)
+      - uv run isort {{.SERVICE}}/app || (uv add --dev isort && uv run isort {{.SERVICE}}/app)
+
+  fix:
+    desc: "Auto-format and fix lint issues for a service"
+    deps: [format, lint-fix]
+
+  typecheck:
+    desc: "Type check a service with mypy"
+    vars:
+      SERVICE: "ima_service"
+    cmds:
+      - uv run mypy --ignore-missing-imports --follow-imports=skip {{.SERVICE}}/app
+
+  precommit:
+    desc: "Run pre-commit hooks for all services"
+    cmds:
+      - uv run pre-commit run --all-files
+
+  # -------------------------
+  # CI/CD
+  # -------------------------
+  ci:
+    desc: "Run lint-all, typecheck, and tests for a service"
+    vars:
+      SERVICE: "ima_service"
+    deps: [lint-all, typecheck, test]
+
+  # -------------------------
+  # Cleanup
+  # -------------------------
+  clean:
+    desc: "Remove all __pycache__ and .pyc files"
+    cmds:
+      - find . -type d -name "__pycache__" -exec rm -rf {} +
+      - find . -type f -name "*.pyc" -delete

@@ -1,0 +1,61 @@
+[project]
+name = "ima-service"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi[standard]>=0.116.1",
+    "httpx>=0.28.1",
+]
+
+[dependency-groups]
+dev = [
+    "black>=24.10.0",
+    "isort>=5.13.2",
+    "mypy>=1.11.2",
+    "pylint>=3.2.7",
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.14.0",
+    "ruff>=0.6.9",
+]
+
+[tool.black]
+line-length = 80
+target-version = ["py311"]
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 80
+known_first_party = ["ima_service"]
+default_section = "THIRDPARTY"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 80
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "C"]
+ignore = []
+
+[tool.pytest.ini_options]
+testpaths = ["ima_service/app/tests"]
+asyncio_mode = "auto"
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["ima_service"]
+branch = true
+omit = [
+  "ima_service/main.py",        # unused duplicate entrypoint
+  "ima_service/**/tests/**",    # ignore tests inside the package
+]
