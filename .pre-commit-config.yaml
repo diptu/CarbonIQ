@@ -1,0 +1,41 @@
+repos:
+  # Ruff linter
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.346
+    hooks:
+      - id: ruff
+        args: ["--fix"]  # Automatically fix issues where possible
+
+  # Black code formatter
+  - repo: https://github.com/psf/black
+    rev: 24.3
+    hooks:
+      - id: black
+
+  # isort for import sorting
+  - repo: https://github.com/PyCQA/isort
+    rev: 6.0
+    hooks:
+      - id: isort
+
+  # mypy for type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.4
+    hooks:
+      - id: mypy
+
+  # Optional safety checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-yaml
+      - id: check-added-large-files
+
+  # Run tests with pytest via uv
+  - repo: local
+    hooks:
+      - id: run-tests
+        name: Run tests with pytest
+        entry: uv run test
+        language: system
+        types: [python]
