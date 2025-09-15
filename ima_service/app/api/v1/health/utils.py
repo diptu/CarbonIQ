@@ -7,80 +7,73 @@ Utilities for standardized health checks.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
-from typing import Optional, Protocol
+from typing import Awaitable, Callable
 
 from fastapi import status
 
 from .schemas import HealthCheckResponse, HealthPayload
 
-
-class HealthCheckFn(Protocol):  # pylint: disable=too-few-public-methods
-    """Protocol for async health check callables."""
-
-    async def __call__(self) -> bool:  # noqa: D401
-        ...
+CheckFn = Callable[[], Awaitable[bool]]
 
 
-class HealthCheckError(RuntimeError):  # pylint: disable=too-few-public-methods
-    """Raised when a health check fails in an unexpected way."""
+class HealthService:
+    """Run a health check and return a standard response.
 
+    Parameters
+    ----------
+    name : str
+        Display name for the check.
+    check_fn : Callable[[], Awaitable[bool]]
+        Async function that returns True on success.
+    details_key : str | None
+        Optional key to place inside `data.details`.
+    timeout_sec : float
+        Max seconds to wait for the check to complete.
 
-@dataclass(slots=True, frozen=True)
-class HealthService:  # pylint: disable=too-few-public-methods
-    """Encapsulates a single health check."""
+    Examples
+    --------
+    >>> async def ok(): return True
+    >>> svc = HealthService("Server", ok, "server")
+    >>> # await svc()
+    """
 
-    name: str
-    check_fn: HealthCheckFn
-    details_key: Optional[str] = None
-    timeout_sec: float = 3.0
-
-    def __repr__(self) -> str:  # pragma: no cover
-        cls = self.__class__.__name__
-        return f"{cls}(name={self.name!r}, timeout_sec={self.timeout_sec})"
+    def __init__(
+        self,
+        name: str,
+        check_fn: CheckFn,
+        details_key: str | None = None,
+        timeout_sec: float = 3.0,
+    ) -> None:
+        self.name = name
+        self.check_fn = check_fn
+        self.details_key = details_key
+        self.timeout_sec = timeout_sec
 
     async def __call__(self) -> HealthCheckResponse:
-        """Execute the check and return a typed response."""
+        """Execute the check and build a response."""
         try:
-            async with asyncio.timeout(self.timeout_sec):
-                healthy = await self.check_fn()
-        except TimeoutError as exc:  # pragma: no cover
-            return self._error_response("timeout", str(exc))
+            ok = await asyncio.wait_for(self.check_fn(), timeout=self.timeout_sec)
+        except asyncio.TimeoutError:
+            return self._error("timeout", "operation timed out")
         except Exception as exc:  # pylint: disable=broad-except
-            return self._error_response("exception", str(exc))
+            return self._error("exception", str(exc))
 
-        status_val = "ok" if healthy else "fail"
-        details = (
-            {self.details_key: status_val}
-            if self.details_key is not None
-            else None
-        )
-        payload = HealthPayload(status=status_val, details=details)
-
-        code = (
-            status.HTTP_200_OK
-            if healthy
-            else status.HTTP_503_SERVICE_UNAVAILABLE
-        )
-        env = "success" if healthy else "error"
+        status_text = "ok" if ok else "fail"
+        details = {self.details_key: status_text} if self.details_key else None
+        payload = HealthPayload(status=status_text, details=details)
+        code = status.HTTP_200_OK if ok else status.HTTP_503_SERVICE_UNAVAILABLE
+        env = "success" if ok else "error"
         msg = (
             f"{self.name} health check passed"
-            if healthy
+            if ok
             else f"{self.name} health check failed"
         )
-
         return HealthCheckResponse(
-            code=code,
-            status=env,
-            message=msg,
-            data=payload,
-            details=None,
+            code=code, status=env, message=msg, data=payload, details=None
         )
 
-    def _error_response(self, kind: str, err: str) -> HealthCheckResponse:
-        details = (
-            {self.details_key: "fail"} if self.details_key is not None else None
-        )
+    def _error(self, kind: str, err: str) -> HealthCheckResponse:
+        details = {self.details_key: "fail"} if self.details_key else None
         return HealthCheckResponse(
             code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             status="error",

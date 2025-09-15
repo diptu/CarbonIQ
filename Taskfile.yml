@@ -12,8 +12,9 @@ tasks:
     desc: "Start a service (default: ima_service)"
     vars:
       SERVICE: "ima_service"
+      PORT: "8000"
     cmds:
-      - uv run uvicorn {{.SERVICE}}.main:app --reload --port 8000
+      - uv run uvicorn {{.SERVICE}}.main:app --reload --port {{.PORT}}
 
   start-all:
     desc: "Start all services in parallel"
@@ -37,17 +38,17 @@ tasks:
   kill-server-8000:
     desc: "Kill any process running on port 8000"
     cmds:
-      - lsof -ti:8000 | xargs -r kill -9
+      - lsof -ti:8000 | xargs -I{} kill -9 {} 2>/dev/null || true
 
   kill-server-8001:
     desc: "Kill any process running on port 8001"
     cmds:
-      - lsof -ti:8001 | xargs -r kill -9
+      - lsof -ti:8001 | xargs -I{} kill -9 {} 2>/dev/null || true
 
   kill-postgres:
     desc: "Kill any process running on port 5432"
     cmds:
-      - lsof -ti:5432 | xargs -r kill -9
+      - lsof -ti:5432 | xargs -I{} kill -9 {} 2>/dev/null || true
 
   kill-all:
     desc: "Kill all relevant processes"
@@ -99,6 +100,66 @@ tasks:
       - uv run pytest --cov={{.SERVICE}} --cov-report=term-missing
 
   # -------------------------
+  # Sanity checks
+  # -------------------------
+  sanity:
+    desc: "Run sanity script for ima_service (assumes server is up)"
+    vars:
+      SCRIPT: "ima_service/scripts/sanity.sh"
+    preconditions:
+      - sh: test -f {{.SCRIPT}}
+        msg: "Missing {{.SCRIPT}}"
+    cmds:
+      - chmod +x {{.SCRIPT}} || true
+      - bash {{.SCRIPT}}
+
+  sanity-dev:
+    desc: >
+      Start ima_service, wait for /health/server, run sanity script, then
+      cleanly stop the server.
+    vars:
+      SERVICE: "ima_service"
+      PORT: "8000"
+      SCRIPT: "ima_service/scripts/sanity.sh"
+      PIDFILE: ".task.uv.pid"
+      LOGFILE: ".task.uv.log"
+    preconditions:
+      - sh: test -f {{.SCRIPT}}
+        msg: "Missing {{.SCRIPT}}"
+    cmds:
+      - task: kill-server-8000
+      - chmod +x {{.SCRIPT}} || true
+      - |
+        bash -euxo pipefail -c '
+          SERVICE="{{.SERVICE}}"
+          PORT="{{.PORT}}"
+          SCRIPT="{{.SCRIPT}}"
+          PIDFILE="{{.PIDFILE}}"
+          LOGFILE="{{.LOGFILE}}"
+
+          uv run uvicorn "${SERVICE}.main:app" \
+            --port "${PORT}" > "${LOGFILE}" 2>&1 &
+          PID=$!
+          echo "${PID}" > "${PIDFILE}"
+
+          cleanup() {
+            kill "${PID}" 2>/dev/null || true
+            rm -f "${PIDFILE}"
+          }
+          trap cleanup EXIT
+
+          for i in $(seq 1 60); do
+            if curl -sf "http://127.0.0.1:${PORT}/health/server" \
+                 >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          bash "${SCRIPT}"
+        '
+
+  # -------------------------
   # Linting & Formatting
   # -------------------------
   lint:
@@ -107,6 +168,7 @@ tasks:
       SERVICE: "ima_service"
     cmds:
       - uv run ruff check {{.SERVICE}}/app
+
   pylint:
     desc: "Lint a service using pylint"
     vars:
@@ -130,8 +192,10 @@ tasks:
     vars:
       SERVICE: "ima_service"
     cmds:
-      - uv run black {{.SERVICE}}/app || (uv add --dev black && uv run black {{.SERVICE}}/app)
-      - uv run isort {{.SERVICE}}/app || (uv add --dev isort && uv run isort {{.SERVICE}}/app)
+      - uv run black {{.SERVICE}}/app \
+        || (uv add --dev black && uv run black {{.SERVICE}}/app)
+      - uv run isort {{.SERVICE}}/app \
+        || (uv add --dev isort && uv run isort {{.SERVICE}}/app)
 
   fix:
     desc: "Auto-format and fix lint issues for a service"
@@ -142,7 +206,8 @@ tasks:
     vars:
       SERVICE: "ima_service"
     cmds:
-      - uv run mypy --ignore-missing-imports --follow-imports=skip {{.SERVICE}}/app
+      - uv run mypy --ignore-missing-imports --follow-imports=skip \
+        {{.SERVICE}}/app
 
   precommit:
     desc: "Run pre-commit hooks for all services"
@@ -153,10 +218,10 @@ tasks:
   # CI/CD
   # -------------------------
   ci:
-    desc: "Run lint-all, typecheck, and tests for a service"
+    desc: "Run lint, typecheck, tests, and sanity"
     vars:
       SERVICE: "ima_service"
-    deps: [lint-all, typecheck, test]
+    deps: [lint-all, typecheck, test, sanity]
 
   # -------------------------
   # Cleanup
