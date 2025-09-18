@@ -1,3 +1,4 @@
+# .github/workflows/ci.yml
 name: CI (Lint • Typecheck • Test)
 
 on:
@@ -18,8 +19,8 @@ jobs:
       matrix:
         include:
           - service: ima_service
-            app_path: app          # path that tools should check inside this service
-            cov_target: ima_service  # module/package name used for coverage
+            app_path: app            # path checked within service
+            cov_target: ima_service  # package for coverage
           # - service: tenant_service
           #   app_path: app
           #   cov_target: tenant_service
@@ -27,10 +28,6 @@ jobs:
           # - service: another_service
           #   app_path: src
           #   cov_target: another_service
-
-    defaults:
-      run:
-        working-directory: ${{ matrix.service }}
 
     steps:
       - name: Checkout
@@ -46,39 +43,41 @@ jobs:
           python -m pip install --upgrade pip
           pip install uv
 
-      # Cache per-service .venv using its uv.lock
+      # Cache a single workspace venv at repo root
       - name: Cache virtualenv
-        id: cache-venv
         uses: actions/cache@v4
         with:
-          path: ${{ matrix.service }}/.venv
-          key: ${{ runner.os }}-uv-${{ matrix.service }}-${{ hashFiles(format('{0}/uv.lock', matrix.service)) }}
+          path: .venv
+          key: ${{ runner.os }}-uv-venv-${{ hashFiles('uv.lock', 'ima_service/uv.lock', 'tenant_service/uv.lock') }}
           restore-keys: |
-            ${{ runner.os }}-uv-${{ matrix.service }}-
+            ${{ runner.os }}-uv-venv-
 
-      - name: Install dependencies (dev)
+      - name: Install dependencies (workspace dev)
         run: uv sync --frozen --group dev
 
       # -------- Lint --------
       - name: Ruff (lint)
-        run: uv run ruff check ${{ matrix.app_path }}
+        run: uv run ruff check ${{ matrix.service }}/{{ matrix.app_path }}
 
       - name: Pylint
-        run: uv run pylint ${{ matrix.app_path }}
+        run: uv run pylint ${{ matrix.service }}/{{ matrix.app_path }}
 
       # -------- Typecheck --------
+      # Running from repo root so mypy sees root pyproject.toml.
+      # (We pass the path explicitly to the service/app tree.)
       - name: Mypy (typecheck)
-        run: uv run mypy ${{ matrix.app_path }}
+        run: uv run mypy ${{ matrix.service }}/{{ matrix.app_path }}
 
       # -------- Tests + Coverage --------
       - name: Pytest (with coverage)
         run: |
           uv run pytest \
+            ${{ matrix.service }} \
             --maxfail=1 \
             --cov=${{ matrix.cov_target }} \
-            --cov-report=xml:coverage.xml \
+            --cov-report=xml:${{ matrix.service }}/coverage.xml \
             --cov-report=term-missing \
-            --junitxml=test-results.xml
+            --junitxml=${{ matrix.service }}/test-results.xml
 
       - name: Upload test/coverage artifacts
         uses: actions/upload-artifact@v4
@@ -90,7 +89,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  # Optional: repo-wide pre-commit hooks after all services pass
+  # Optional: repo-wide pre-commit after all services pass
   pre-commit:
     name: Pre-commit (repo-wide)
     runs-on: ubuntu-latest
@@ -108,6 +107,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install uv pre-commit
+
+      - name: Install dev deps for hooks
+        run: uv sync --group dev
 
       - name: Run pre-commit hooks
         run: uv run pre-commit run --all-files
