@@ -1,5 +1,7 @@
-# ruff: noqa: D401
-"""Server liveness health service."""
+# FILE: ima_service/app/api/v1/health/services/server.py
+"""
+Server liveness health service.
+"""
 
 from __future__ import annotations
 
@@ -9,12 +11,12 @@ from ..schemas import HealthCheckResponse
 from .base import run_check
 
 
-async def server_health_service() -> HealthCheckResponse:
-    """Return server liveness status."""
-    async def _check() -> bool:
-        await asyncio.sleep(0)
-        return True
+async def _check_server() -> bool:
+    """True if the event loop is alive (async no-op)."""
+    await asyncio.sleep(0)
+    return True
 
-    return await run_check(
-        "Server", _check, details_key="server", timeout=2.0
-    )
+
+async def server_health_service() -> HealthCheckResponse:
+    """Liveness check for the API server."""
+    return await run_check("Server", _check_server, timeout=1.0)

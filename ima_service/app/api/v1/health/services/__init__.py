@@ -1,5 +1,7 @@
-# ruff: noqa: D401
-"""Public facade for health services (imported by router)."""
+# FILE: ima_service/app/api/v1/health/services/__init__.py
+"""
+Health service façade.
+"""
 
 from __future__ import annotations
 

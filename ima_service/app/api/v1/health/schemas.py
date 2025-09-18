@@ -1,7 +1,6 @@
-# ruff: noqa: D401
+# FILE: ima_service/app/api/v1/health/schemas.py
 """
-FILE: app/api/v1/health/schemas.py
-Schemas for Health API endpoints.
+Pydantic schemas for health endpoints (compact & frozen).
 """
 
 from __future__ import annotations
@@ -14,33 +13,28 @@ from pydantic.config import ConfigDict
 
 
 def _utc_now_iso() -> str:
-    """Return an ISO-8601 UTC timestamp with 'Z' suffix."""
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 class HealthPayload(BaseModel):
-    """Data payload for a health response."""
+    """Primary health payload."""
 
-    status: str = Field(..., description="Service status: 'ok' or 'fail'.")
+    status: str = Field(..., description="'ok' or 'fail'")
     details: dict[str, Any] | None = Field(
-        default=None, description="Optional service details."
+        None, description="Per-service details"
     )
 
 
 class HealthCheckResponse(BaseModel):
-    """Standard response schema for health endpoints."""
+    """Standard envelope for health responses."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    code: int = Field(..., description="HTTP status code.")
-    status: str = Field(..., description="Envelope status.")
-    message: str = Field(..., description="Human-readable message.")
-    timestamp: str = Field(
-        default_factory=_utc_now_iso, description="UTC timestamp (ISO-8601)."
-    )
+    code: int = Field(..., description="HTTP status code")
+    status: str = Field(..., description="'success' or 'error'")
+    message: str = Field(..., description="Human-readable message")
+    timestamp: str = Field(default_factory=_utc_now_iso, description="UTC time")
     data: HealthPayload | None = Field(
-        default=None, description="Primary data payload."
+        None, description="Payload on success/fail"
     )
-    details: dict[str, Any] | None = Field(
-        default=None, description="Envelope-level error details."
-    )
+    details: dict[str, Any] | None = Field(None, description="Error details")

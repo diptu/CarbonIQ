@@ -1,0 +1,33 @@
+[tool.uv.workspace]
+# Explicitly list all services (and shared libs if you add any)
+members = [
+  "ima_service",
+  "tenant_service",
+  # add more services here, e.g. "billing_service", "report_service"
+]
+
+# -------------------------
+# Shared tooling defaults
+# -------------------------
+[tool.ruff]
+line-length = 80
+target-version = "py311"
+
+
+[build-system]
+requires = ["uv_build>=0.8.18,<0.9.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "isort>=6.0.1",
+    "mypy>=1.18.1",
+    "pylint>=3.3.8",
+    "ruff>=0.13.0",
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]

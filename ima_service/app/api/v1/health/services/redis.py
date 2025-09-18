@@ -1,26 +1,26 @@
-# ruff: noqa: D401
-"""Redis connectivity health service (500 on failure by design)."""
+# FILE: ima_service/app/api/v1/health/services/redis.py
+"""
+Redis connectivity health service.
+"""
 
 from __future__ import annotations
 
 from ima_service.app.core.redis_cache import get_redis_client
 
 from ..schemas import HealthCheckResponse
-from .base import run_check
+from .base import LOG, RESET, YELLOW, run_check
+
+
+async def _check_redis() -> bool:
+    """Return True if a Redis PING succeeds."""
+    try:
+        pong = await get_redis_client().ping()
+        return bool(pong)
+    except Exception as exc:  # pylint: disable=broad-except
+        LOG.warning("%sRedis%s PING failed: %s", YELLOW, RESET, exc)
+        return False
 
 
 async def redis_health_service() -> HealthCheckResponse:
-    """Return Redis connectivity.
-
-    Notes
-    -----
-    - On failure, raises to HealthService -> HTTP 500.
-    """
-    async def _check() -> bool:
-        client = get_redis_client()
-        pong = await client.ping()
-        if not pong:
-            raise RuntimeError("Redis ping returned falsy")
-        return True
-
-    return await run_check("Redis", _check, details_key="redis")
+    """Public service wrapper for Redis health."""
+    return await run_check("Redis", _check_redis, timeout=1.5, key="redis")

@@ -13,47 +13,47 @@ from ima_service.app.main import app
 async def test_server_health_endpoint_ok() -> None:
     """Server health endpoint should return 200 and ok payload."""
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/health/server")
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.get("/v1/health/server")
 
     body = resp.json()
     assert resp.status_code == 200
     assert body["code"] == 200
     assert body["status"] == "success"
     assert body["data"]["status"] == "ok"
-    assert body["data"]["details"]["server"] == "ok"
+    # details may be None in minimal payload
 
 
 @pytest.mark.asyncio
 async def test_database_health_missing_config_returns_fail(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Database route returns fail when settings are missing/invalid."""
-    # Ensure modules are imported (router defines the route, service holds logic)
-    import importlib
+    """Database health returns 503 when session manager cannot be created."""
+    # Ensure route module is imported (registers the route)
     import ima_service.app.api.v1.health.router  # noqa: F401
 
-    # Patch where get_settings() is actually used now
+    # Patch where it's used now: services.database.get_session_manager
     svc_db_mod = importlib.import_module(
         "ima_service.app.api.v1.health.services.database"
     )
 
-    def _raise():
+    def _boom() -> None:
         raise RuntimeError("no env")
 
-    monkeypatch.setattr(svc_db_mod, "get_settings", _raise, raising=True)
-
-    from httpx import ASGITransport, AsyncClient
-    from ima_service.app.main import app
+    monkeypatch.setattr(svc_db_mod, "get_session_manager", _boom, raising=True)
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/health/database")
+    async with AsyncClient(
+        transport=transport, base_url="http://test"
+    ) as client:
+        resp = await client.get("/v1/health/database")
 
     body = resp.json()
-    # HTTP stays 200; envelope carries the failure code/status.
-    assert resp.status_code == 200
+    # HTTP status now matches payload code
+    assert resp.status_code == 503
     assert body["code"] == 503
     assert body["status"] == "error"
     assert body["data"]["status"] == "fail"
-    assert body["data"]["details"]["database"] == "fail"
+    # details may be None in minimal payload

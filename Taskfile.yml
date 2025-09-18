@@ -1,29 +1,41 @@
 version: "3"
 
-services:
-  - ima_service
-  - tenant_service
+vars:
+  SERVICE: "ima_service"
+  PORT: "8000"
+  SERVICE_APP: "{{.SERVICE}}/app"
+  COV_TARGET: "{{.SERVICE}}"
 
 tasks:
   # -------------------------
-  # Development Servers
+  # Guards
+  # -------------------------
+  ensure-service:
+    desc: "Verify {{.SERVICE}} looks like a valid service (has {{.SERVICE}}/app)"
+    preconditions:
+      - sh: test -d {{.SERVICE_APP}}
+        msg: |
+          Service '{{.SERVICE}}' not found (missing '{{.SERVICE}}/app').
+          Try one of: 'ima_service', 'tenant_service'.
+          Example: task all SERVICE=ima_service
+
+  # -------------------------
+  # Dev servers
   # -------------------------
   start:
-    desc: "Start a service (default: ima_service)"
-    vars:
-      SERVICE: "ima_service"
-      PORT: "8000"
+    desc: "Start a service (default: ima_service:8000)"
+    deps: [ensure-service]
     cmds:
       - uv run uvicorn {{.SERVICE}}.main:app --reload --port {{.PORT}}
 
   start-all:
-    desc: "Start all services in parallel"
+    desc: "Start all known services in parallel"
     cmds:
       - uv run uvicorn ima_service.main:app --reload --port 8000 &
       - uv run uvicorn tenant_service.main:app --reload --port 8001 &
 
   start-infra:
-    desc: "Start infrastructure services via docker-compose"
+    desc: "Start infrastructure via docker-compose"
     cmds:
       - docker-compose -f infra/docker-compose.yml up -d
 
@@ -35,199 +47,189 @@ tasks:
   # -------------------------
   # Kill processes
   # -------------------------
-  kill-server-8000:
-    desc: "Kill any process running on port 8000"
+  kill-port:
+    desc: "Kill process on a given port (default: 8000)"
+    vars:
+      PORT: "8000"
     cmds:
-      - lsof -ti:8000 | xargs -I{} kill -9 {} 2>/dev/null || true
-
-  kill-server-8001:
-    desc: "Kill any process running on port 8001"
-    cmds:
-      - lsof -ti:8001 | xargs -I{} kill -9 {} 2>/dev/null || true
+      - lsof -ti:{{.PORT}} | xargs -r kill -9 || true
 
   kill-postgres:
     desc: "Kill any process running on port 5432"
     cmds:
-      - lsof -ti:5432 | xargs -I{} kill -9 {} 2>/dev/null || true
+      - lsof -ti:5432 | xargs -r kill -9 || true
 
   kill-all:
     desc: "Kill all relevant processes"
-    deps: [kill-server-8000, kill-server-8001, kill-postgres]
+    cmds:
+      - task: kill-port PORT=8000
+      - task: kill-port PORT=8001
+      - task: kill-postgres
 
   # -------------------------
   # Tests
   # -------------------------
   test:
     desc: "Run all tests for a service"
-    vars:
-      SERVICE: "ima_service"
+    deps: [ensure-service]
     cmds:
       - uv run pytest {{.SERVICE}}
 
   test-unit:
     desc: "Run unit tests for a service"
-    vars:
-      SERVICE: "ima_service"
+    deps: [ensure-service]
     cmds:
       - uv run pytest {{.SERVICE}}/app/tests/unit/
 
   test-integration:
     desc: "Run integration tests for a service"
-    vars:
-      SERVICE: "ima_service"
+    deps: [ensure-service]
     cmds:
       - uv run pytest {{.SERVICE}}/app/tests/integration/
 
   test-e2e:
     desc: "Run end-to-end tests for a service"
-    vars:
-      SERVICE: "ima_service"
+    deps: [ensure-service]
     cmds:
       - uv run pytest {{.SERVICE}}/tests/e2e/
 
   test-health:
     desc: "Run health tests for a service"
-    vars:
-      SERVICE: "ima_service"
+    deps: [ensure-service]
     cmds:
-      - uv run pytest {{.SERVICE}}/tests/unit/test_health.py
+      - uv run pytest {{.SERVICE}}/app/tests/unit/test_health.py
 
   coverage:
     desc: "Run tests with coverage for a service"
-    vars:
-      SERVICE: "ima_service"
+    deps: [ensure-service]
     cmds:
-      - uv run pytest --cov={{.SERVICE}} --cov-report=term-missing
-
-  # -------------------------
-  # Sanity checks
-  # -------------------------
-  sanity:
-    desc: "Run sanity script for ima_service (assumes server is up)"
-    vars:
-      SCRIPT: "ima_service/scripts/sanity.sh"
-    preconditions:
-      - sh: test -f {{.SCRIPT}}
-        msg: "Missing {{.SCRIPT}}"
-    cmds:
-      - chmod +x {{.SCRIPT}} || true
-      - bash {{.SCRIPT}}
-
-  sanity-dev:
-    desc: >
-      Start ima_service, wait for /health/server, run sanity script, then
-      cleanly stop the server.
-    vars:
-      SERVICE: "ima_service"
-      PORT: "8000"
-      SCRIPT: "ima_service/scripts/sanity.sh"
-      PIDFILE: ".task.uv.pid"
-      LOGFILE: ".task.uv.log"
-    preconditions:
-      - sh: test -f {{.SCRIPT}}
-        msg: "Missing {{.SCRIPT}}"
-    cmds:
-      - task: kill-server-8000
-      - chmod +x {{.SCRIPT}} || true
-      - |
-        bash -euxo pipefail -c '
-          SERVICE="{{.SERVICE}}"
-          PORT="{{.PORT}}"
-          SCRIPT="{{.SCRIPT}}"
-          PIDFILE="{{.PIDFILE}}"
-          LOGFILE="{{.LOGFILE}}"
-
-          uv run uvicorn "${SERVICE}.main:app" \
-            --port "${PORT}" > "${LOGFILE}" 2>&1 &
-          PID=$!
-          echo "${PID}" > "${PIDFILE}"
-
-          cleanup() {
-            kill "${PID}" 2>/dev/null || true
-            rm -f "${PIDFILE}"
-          }
-          trap cleanup EXIT
-
-          for i in $(seq 1 60); do
-            if curl -sf "http://127.0.0.1:${PORT}/health/server" \
-                 >/dev/null; then
-              break
-            fi
-            sleep 1
-          done
-
-          bash "${SCRIPT}"
-        '
+      - uv run pytest --cov={{.COV_TARGET}} --cov-report=term-missing
 
   # -------------------------
   # Linting & Formatting
   # -------------------------
   lint:
-    desc: "Lint a service using ruff"
-    vars:
-      SERVICE: "ima_service"
+    desc: "Lint with ruff (service)"
+    deps: [ensure-service]
     cmds:
-      - uv run ruff check {{.SERVICE}}/app
+      - uv run ruff check {{.SERVICE_APP}}
 
   pylint:
-    desc: "Lint a service using pylint"
-    vars:
-      SERVICE: "ima_service"
+    desc: "Lint with pylint (service)"
+    deps: [ensure-service]
     cmds:
-      - uv run pylint {{.SERVICE}}/app
-
-  lint-all:
-    desc: "Run both ruff and pylint"
-    deps: [lint, pylint]
+      - uv run pylint {{.SERVICE_APP}}
 
   lint-fix:
-    desc: "Automatically fix lint issues for a service"
-    vars:
-      SERVICE: "ima_service"
+    desc: "Automatically fix lint issues with ruff (service)"
+    deps: [ensure-service]
     cmds:
-      - uv run ruff check {{.SERVICE}}/app --fix
+      - uv run ruff check {{.SERVICE_APP}} --fix
 
   format:
-    desc: "Format a service using black and isort"
-    vars:
-      SERVICE: "ima_service"
+    desc: "Format code with black + isort (service)"
+    deps: [ensure-service]
     cmds:
-      - uv run black {{.SERVICE}}/app \
-        || (uv add --dev black && uv run black {{.SERVICE}}/app)
-      - uv run isort {{.SERVICE}}/app \
-        || (uv add --dev isort && uv run isort {{.SERVICE}}/app)
+      - uv run black {{.SERVICE_APP}}
+      - uv run isort {{.SERVICE_APP}}
 
   fix:
-    desc: "Auto-format and fix lint issues for a service"
-    deps: [format, lint-fix]
+    desc: "Format + lint fix (service)"
+    deps: [ensure-service]
+    cmds:
+      - uv run black {{.SERVICE_APP}}
+      - uv run isort {{.SERVICE_APP}}
+      - uv run ruff check {{.SERVICE_APP}} --fix
 
   typecheck:
-    desc: "Type check a service with mypy"
-    vars:
-      SERVICE: "ima_service"
+    desc: "Type check with mypy (service)"
+    deps: [ensure-service]
     cmds:
-      - uv run mypy --ignore-missing-imports --follow-imports=skip \
-        {{.SERVICE}}/app
+      - uv run mypy {{.SERVICE_APP}}
 
-  precommit:
-    desc: "Run pre-commit hooks for all services"
+  # -------------------------
+  # Repo-wide runners
+  # -------------------------
+  check-all:
+    desc: "Run ruff, pylint, mypy on the whole repo"
+    cmds:
+      - uv run ruff check .
+      - uv run pylint ima_service/app tenant_service/app || true
+      - uv run mypy ima_service tenant_service
+
+  test-all:
+    desc: "Run all tests across repo"
+    cmds:
+      - uv run pytest
+
+  qa:
+    desc: "Full quality gate: format, lint, typecheck, tests"
+    deps: [fix, check-all, test-all]
+
+  # -------------------------
+  # Pre-commit
+  # -------------------------
+  precommit-install:
+    desc: "Install pre-commit git hooks"
+    cmds:
+      - uv run pre-commit install
+      - uv run pre-commit install -t pre-push
+
+  precommit-run:
+    desc: "Run all pre-commit hooks on entire repo"
     cmds:
       - uv run pre-commit run --all-files
 
+  precommit-ci:
+    desc: "CI-style: run hooks, then full QA"
+    deps: [precommit-run, qa]
+
   # -------------------------
-  # CI/CD
+  # Sanity checks
   # -------------------------
-  ci:
-    desc: "Run lint, typecheck, tests, and sanity"
+  sanity:
+    desc: "Run service sanity script if present (assumes server is up)"
+    deps: [ensure-service]
     vars:
-      SERVICE: "ima_service"
-    deps: [lint-all, typecheck, test, sanity]
+      SCRIPT: "{{.SERVICE}}/scripts/sanity.sh"
+    cmds:
+      - |
+        if [ -f "{{.SCRIPT}}" ]; then
+          chmod +x "{{.SCRIPT}}" || true
+          bash "{{.SCRIPT}}"
+        else
+          echo "No sanity script at {{.SCRIPT}} — skipping."
+        fi
 
   # -------------------------
   # Cleanup
   # -------------------------
   clean:
-    desc: "Remove all __pycache__ and .pyc files"
+    desc: "Remove caches and .pyc"
     cmds:
-      - find . -type d -name "__pycache__" -exec rm -rf {} +
-      - find . -type f -name "*.pyc" -delete
+      - rm -rf .mypy_cache .pytest_cache .ruff_cache || true
+      - find . -type d -name "__pycache__" -prune -exec rm -rf {} + || true
+      - find . -type f -name "*.py[co]" -delete || true
+
+  clean-hard:
+    desc: "Aggressive clean (also node_modules, build, dist)"
+    cmds:
+      - task: clean
+      - rm -rf build dist node_modules .coverage htmlcov || true
+
+  # -------------------------
+  # One-button: run EVERYTHING (service)
+  # -------------------------
+  all:
+    desc: "Run format→fix→lint→pylint→typecheck→tests→coverage→pre-commit→sanity"
+    deps: [ensure-service]
+    cmds:
+      - task: clean
+      - task: fix
+      - task: lint
+      - task: pylint
+      - task: typecheck
+      - task: test
+      - task: coverage
+      - task: precommit-run
+      - task: sanity

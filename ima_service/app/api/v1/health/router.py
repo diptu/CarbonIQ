@@ -1,23 +1,18 @@
-# ruff: noqa: D401
+# FILE: ima_service/app/api/v1/health/router.py
 """
-FILE: app/api/v1/health/router.py
-Route declarations for API v1 health endpoints (no business logic here).
+API v1 health routes (thin handlers delegating to services).
 """
 
 from __future__ import annotations
 
-from typing import Final
-
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from ima_service.app.db.session import get_db
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 from .docs import (
     DATABASE_HEALTH_DOCS,
     FULL_HEALTH_DOCS,
-    HEALTH_DOCS,
     REDIS_HEALTH_DOCS,
+    SERVER_HEALTH_DOCS,
 )
 from .schemas import HealthCheckResponse
 from .services import (
@@ -27,44 +22,35 @@ from .services import (
     server_health_service,
 )
 
-router: Final = APIRouter(prefix="/health", tags=["health"])
+# FastAPI convention is a module-level `router` object (not a constant).
+router = APIRouter(prefix="/health", tags=["health"])
 
 
-@router.get(
-    "/server",
-    response_model=HealthCheckResponse,
-    **dict(HEALTH_DOCS.server),
-)
-async def server_health() -> HealthCheckResponse:
-    """Liveness check for the API server."""
-    return await server_health_service()
+def _json(payload: HealthCheckResponse) -> JSONResponse:
+    """Serialize a HealthCheckResponse to a JSONResponse
+    with its status code."""
+    return JSONResponse(status_code=payload.code, content=payload.model_dump())
 
 
-@router.get(
-    "/database",
-    response_model=HealthCheckResponse,
-    **dict(DATABASE_HEALTH_DOCS),
-)
-async def database_health() -> HealthCheckResponse:
-    """Connectivity check for the PostgreSQL database."""
-    return await database_health_service()
+@router.get("/server", **SERVER_HEALTH_DOCS)
+async def server_health() -> JSONResponse:
+    """Liveness: verify the API process/event loop is responsive."""
+    return _json(await server_health_service())
 
 
-@router.get(
-    "/redis",
-    response_model=HealthCheckResponse,
-    **dict(REDIS_HEALTH_DOCS),
-)
-async def redis_health() -> HealthCheckResponse:
-    """Connectivity check for Redis (returns 500 on failure)."""
-    return await redis_health_service()
+@router.get("/database", **DATABASE_HEALTH_DOCS)
+async def database_health() -> JSONResponse:
+    """Readiness: verify PostgreSQL `SELECT 1` works."""
+    return _json(await database_health_service())
 
 
-@router.get(
-    "/",
-    response_model=HealthCheckResponse,
-    **dict(FULL_HEALTH_DOCS),
-)
-async def full_health(db: AsyncSession = Depends(get_db)) -> HealthCheckResponse:
-    """Combined health: server, database, redis."""
-    return await full_health_service(db)
+@router.get("/redis", **REDIS_HEALTH_DOCS)
+async def redis_health() -> JSONResponse:
+    """Readiness: verify Redis `PING` works."""
+    return _json(await redis_health_service())
+
+
+@router.get("/", **FULL_HEALTH_DOCS)
+async def full_health() -> JSONResponse:
+    """Aggregate health: server + database + redis."""
+    return _json(await full_health_service())

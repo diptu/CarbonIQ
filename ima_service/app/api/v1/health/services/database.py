@@ -1,47 +1,35 @@
-# ruff: noqa: D401
-"""Database connectivity health service."""
+# FILE: ima_service/app/api/v1/health/services/database.py
+"""
+Database connectivity health service (SELECT 1).
+"""
 
 from __future__ import annotations
 
-import logging
+from sqlalchemy import text
 
-from ima_service.app.core.config import get_settings
+from ima_service.app.db.session import get_session_manager
 
 from ..schemas import HealthCheckResponse
-from .base import run_check
-from .helpers import parse_pg_uri, ssl_enabled
+from .base import LOG, RESET, YELLOW, run_check
 
-LOG = logging.getLogger(__name__)
+
+async def _check_database() -> bool:
+    """Return True if `SELECT 1` succeeds; exceptions bubble to the runner."""
+    try:
+        manager = get_session_manager()
+        async with manager.engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return True
+    except Exception as exc:  # pylint: disable=broad-except
+        # warning for transient, error for hard issues can be tuned here
+        LOG.warning(
+            "%sDatabase%s connectivity check failed: %s", YELLOW, RESET, exc
+        )
+        return False
 
 
 async def database_health_service() -> HealthCheckResponse:
-    """Return database connectivity status (503 on failure)."""
-    async def _check() -> bool:
-        try:
-            settings = get_settings()
-        except Exception as exc:  # pragma: no cover
-            LOG.warning("DB settings unavailable: %s", exc)
-            return False
-
-        try:
-            import asyncpg  # type: ignore[import-not-found]
-        except Exception as exc:  # pragma: no cover
-            LOG.warning("asyncpg import failed: %s", exc)
-            return False
-
-        try:
-            params = parse_pg_uri(settings.database.uri)
-            params["ssl"] = ssl_enabled(settings.database.ssl_mode)
-            conn = await asyncpg.connect(**params)
-            try:
-                await conn.execute("SELECT 1")
-            finally:
-                await conn.close()
-            return True
-        except Exception as exc:
-            LOG.warning("DB health error: %s", exc)
-            return False
-
+    """Public service wrapper for database health."""
     return await run_check(
-        "Database", _check, details_key="database", timeout=2.5
+        "Database", _check_database, timeout=2.0, key="database"
     )

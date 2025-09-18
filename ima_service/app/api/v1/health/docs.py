@@ -1,41 +1,38 @@
+# FILE: ima_service/app/api/v1/health/docs.py
 """
-FILE: app/api/v1/health/docs.py
-Simple OpenAPI kwargs for health routes.
+OpenAPI docs metadata for health endpoints (minimal + consistent).
 """
 
 from __future__ import annotations
 
-from types import SimpleNamespace
+from typing import Any, Final, Mapping
 
-HEALTH_DOCS = SimpleNamespace(
-    server={
-        "summary": "Server Health Check",
-        "description": "Check if the API server is reachable.",
+
+def _doc(summary: str, desc: str, op_id: str) -> Mapping[str, Any]:
+    return {
+        "summary": summary,
+        "description": desc,
         "tags": ["health"],
-        "openapi_extra": {"operationId": "healthServer"},
-    },
-    database={
-        "summary": "Database Health Check",
-        "description": "Check connectivity to the PostgreSQL database.",
-        "tags": ["health"],
-        "openapi_extra": {"operationId": "healthDatabase"},
-    },
-    redis={
-        "summary": "Redis Health Check",
-        "description": "Check connectivity to the Redis cache.",
-        "tags": ["health"],
-        "openapi_extra": {"operationId": "healthRedis"},
-    },
-    full={
-        "summary": "Full System Health Check",
-        "description": "Run server + database + redis checks.",
-        "tags": ["health"],
-        "openapi_extra": {"operationId": "healthFull"},
-    },
+        "openapi_extra": {"operationId": op_id},
+    }
+
+
+SERVER_HEALTH_DOCS: Final = _doc(
+    "Server Health", "Is the API reachable?", "healthServer"
+)
+DATABASE_HEALTH_DOCS: Final = _doc(
+    "Database Health", "PostgreSQL connectivity.", "healthDatabase"
+)
+REDIS_HEALTH_DOCS: Final = _doc(
+    "Redis Health", "Redis connectivity.", "healthRedis"
+)
+FULL_HEALTH_DOCS: Final = _doc(
+    "Full Health", "Server + DB + Redis checks.", "healthFull"
 )
 
-# Back-compat names used by router
-SERVER_HEALTH_DOCS = HEALTH_DOCS.server
-DATABASE_HEALTH_DOCS = HEALTH_DOCS.database
-REDIS_HEALTH_DOCS = HEALTH_DOCS.redis
-FULL_HEALTH_DOCS = HEALTH_DOCS.full
+__all__ = [
+    "SERVER_HEALTH_DOCS",
+    "DATABASE_HEALTH_DOCS",
+    "REDIS_HEALTH_DOCS",
+    "FULL_HEALTH_DOCS",
+]
