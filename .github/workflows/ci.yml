@@ -110,4 +110,4 @@ jobs:
           pip install uv pre-commit
 
       - name: Run pre-commit hooks
-        run: pre-commit run --all-files
+        run: uv run pre-commit run --all-files
