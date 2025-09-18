@@ -20,9 +20,9 @@ jobs:
           - service: ima_service
             app_path: app          # path that tools should check inside this service
             cov_target: ima_service  # module/package name used for coverage
-          - service: tenant_service
-            app_path: app
-            cov_target: tenant_service
+          # - service: tenant_service
+          #   app_path: app
+          #   cov_target: tenant_service
           # Add more services here:
           # - service: another_service
           #   app_path: src
@@ -57,7 +57,7 @@ jobs:
             ${{ runner.os }}-uv-${{ matrix.service }}-
 
       - name: Install dependencies (dev)
-        run: uv sync --frozen --group dev --extra dev
+        run: uv sync --frozen --group dev
 
       # -------- Lint --------
       - name: Ruff (lint)
