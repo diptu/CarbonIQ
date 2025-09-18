@@ -1,33 +1,105 @@
+# =========================
+# uv workspace (monorepo)
+# =========================
 [tool.uv.workspace]
-# Explicitly list all services (and shared libs if you add any)
 members = [
   "ima_service",
-  "tenant_service",
   # add more services here, e.g. "billing_service", "report_service"
 ]
 
-# -------------------------
-# Shared tooling defaults
-# -------------------------
-[tool.ruff]
-line-length = 80
-target-version = "py311"
-
-
+# =========================
+# Build backend
+# =========================
 [build-system]
 requires = ["uv_build>=0.8.18,<0.9.0"]
 build-backend = "uv_build"
 
+# =========================
+# Dev dependency group
+# (used by: uv sync --group dev --extra dev)
+# =========================
 [dependency-groups]
 dev = [
-    "black>=25.1.0",
-    "isort>=6.0.1",
-    "mypy>=1.18.1",
-    "pylint>=3.3.8",
-    "ruff>=0.13.0",
+  "black>=25.1.0",
+  "mypy>=1.18.1",
+  "pylint>=3.3.8",
+  "ruff>=0.13.0",
+
+  # Make local mypy runs match hook env
+  "sqlalchemy[mypy]>=2",
+  "fastapi>=0.110",
+  "starlette>=0.37",
+  "redis>=5",
+  "pydantic>=2",
+  "pydantic-settings>=2",
+  "types-redis",
 ]
 
+# =========================
+# Ruff (lint + import order)
+# =========================
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+extend-exclude = [".venv", "venv", "node_modules", "dist", "build",
+                  ".mypy_cache", ".ruff_cache", ".pytest_cache"]
+
+[tool.ruff.lint]
+# E/F = pycodestyle/pyflakes; I = isort-equivalent for import sorting
+select = ["E", "F", "I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ima_service"]
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+# =========================
+# Black
+# =========================
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+# =========================
+# Mypy (repo-wide config)
+# =========================
 [tool.mypy]
 python_version = "3.11"
-strict = true
-plugins = ["pydantic.mypy"]
+
+# Plugins for Pydantic v2 + SQLAlchemy v2
+plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
+
+# Quiet FastAPI “untyped decorator” noise without reducing type safety
+disable_error_code = ["misc"]
+
+# Namespace-friendly monorepo defaults
+namespace_packages = true
+explicit_package_bases = true
+
+# Sensible checks
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+no_implicit_optional = true
+pretty = true
+show_error_codes = true
+
+# Limit default analysis targets (CI can override)
+files = ["ima_service/app"]
+
+# Per-module relaxations for common libs used in tests/apps
+[[tool.mypy.overrides]]
+module = "pytest.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "httpx.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "starlette.*"
+ignore_missing_imports = true

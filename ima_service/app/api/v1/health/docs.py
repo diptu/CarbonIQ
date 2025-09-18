@@ -23,9 +23,7 @@ SERVER_HEALTH_DOCS: Final = _doc(
 DATABASE_HEALTH_DOCS: Final = _doc(
     "Database Health", "PostgreSQL connectivity.", "healthDatabase"
 )
-REDIS_HEALTH_DOCS: Final = _doc(
-    "Redis Health", "Redis connectivity.", "healthRedis"
-)
+REDIS_HEALTH_DOCS: Final = _doc("Redis Health", "Redis connectivity.", "healthRedis")
 FULL_HEALTH_DOCS: Final = _doc(
     "Full Health", "Server + DB + Redis checks.", "healthFull"
 )

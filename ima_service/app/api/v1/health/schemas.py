@@ -20,9 +20,7 @@ class HealthPayload(BaseModel):
     """Primary health payload."""
 
     status: str = Field(..., description="'ok' or 'fail'")
-    details: dict[str, Any] | None = Field(
-        None, description="Per-service details"
-    )
+    details: dict[str, Any] | None = Field(None, description="Per-service details")
 
 
 class HealthCheckResponse(BaseModel):
@@ -34,7 +32,5 @@ class HealthCheckResponse(BaseModel):
     status: str = Field(..., description="'success' or 'error'")
     message: str = Field(..., description="Human-readable message")
     timestamp: str = Field(default_factory=_utc_now_iso, description="UTC time")
-    data: HealthPayload | None = Field(
-        None, description="Payload on success/fail"
-    )
+    data: HealthPayload | None = Field(None, description="Payload on success/fail")
     details: dict[str, Any] | None = Field(None, description="Error details")

@@ -44,9 +44,7 @@ def _is_local_host(host: str) -> bool:
         return host in {"localhost", "ip6-localhost"}
 
 
-def _ssl_connect_args(
-    ssl_mode: str | None, uri: str | None
-) -> dict[str, object]:
+def _ssl_connect_args(ssl_mode: str | None, uri: str | None) -> dict[str, object]:
     """
     Translate env to asyncpg 'ssl' arg.
 
@@ -98,9 +96,7 @@ class AsyncSessionManager:
         args = _ssl_connect_args(self.ssl_mode, self.uri)
         if self.debug:
             host = urlparse(self.uri).hostname or "?"
-            LOG.info(
-                "DB engine init host=%s ssl=%s", host, bool(args.get("ssl"))
-            )
+            LOG.info("DB engine init host=%s ssl=%s", host, bool(args.get("ssl")))
         return create_async_engine(
             self.uri,
             echo=self.debug,
@@ -123,9 +119,7 @@ class AsyncSessionManager:
             yield session
 
     @classmethod
-    def from_settings(
-        cls, settings: Settings | None = None
-    ) -> "AsyncSessionManager":
+    def from_settings(cls, settings: Settings | None = None) -> "AsyncSessionManager":
         """Build from Pydantic settings with friendly error messages."""
         try:
             cfg = settings or get_settings()

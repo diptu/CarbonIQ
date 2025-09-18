@@ -5,7 +5,8 @@ Tiny launcher for any ASGI service.
 Usage
 -----
   # Typical (from repo root)
-  python main.py --service ima_service.app --factory create_app --host 0.0.0.0 --port 8000
+  python main.py --service ima_service.app
+  --factory create_app --host 0.0.0.0 --port 8000
 
 Notes
 -----

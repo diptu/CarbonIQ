@@ -22,14 +22,10 @@ async def _check_database() -> bool:
         return True
     except Exception as exc:  # pylint: disable=broad-except
         # warning for transient, error for hard issues can be tuned here
-        LOG.warning(
-            "%sDatabase%s connectivity check failed: %s", YELLOW, RESET, exc
-        )
+        LOG.warning("%sDatabase%s connectivity check failed: %s", YELLOW, RESET, exc)
         return False
 
 
 async def database_health_service() -> HealthCheckResponse:
     """Public service wrapper for database health."""
-    return await run_check(
-        "Database", _check_database, timeout=2.0, key="database"
-    )
+    return await run_check("Database", _check_database, timeout=2.0, key="database")

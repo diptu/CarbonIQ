@@ -1,8 +1,8 @@
 # 📌 Pull Request
 
 ## 📝 Description
-<!-- 
-Provide a clear and concise description of the changes made. 
+<!--
+Provide a clear and concise description of the changes made.
 Why are these changes necessary?
 -->
 
@@ -15,18 +15,18 @@ Closes #
 ---
 
 ## ✅ Type of Change
-- [ ] 🐞 Bug fix  
-- [ ] 🚀 New feature  
-- [ ] 📖 Documentation update  
-- [ ] ♻️ Refactor / code cleanup  
-- [ ] 🔒 Security fix  
+- [ ] 🐞 Bug fix
+- [ ] 🚀 New feature
+- [ ] 📖 Documentation update
+- [ ] ♻️ Refactor / code cleanup
+- [ ] 🔒 Security fix
 
 ---
 
 ## 🧪 How Has This Been Tested?
-- [ ] Unit tests  
-- [ ] Integration tests  
-- [ ] Manual testing  
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] Manual testing
 
 Steps:
 1. Run `uv run pytest`
@@ -36,11 +36,11 @@ Steps:
 ---
 
 ## 📋 Checklist
-- [ ] My code follows the project’s style guidelines  
-- [ ] I have run **pre-commit hooks** locally (`pre-commit run --all-files`)  
-- [ ] I have added tests that prove my fix/feature works  
-- [ ] I have updated documentation if needed  
-- [ ] All CI checks pass  
+- [ ] My code follows the project’s style guidelines
+- [ ] I have run **pre-commit hooks** locally (`pre-commit run --all-files`)
+- [ ] I have added tests that prove my fix/feature works
+- [ ] I have updated documentation if needed
+- [ ] All CI checks pass
 
 ---
 

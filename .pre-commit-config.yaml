@@ -1,41 +1,50 @@
+# .pre-commit-config.yaml
 repos:
-  # Ruff linter
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.346
+  - repo: "https://github.com/pre-commit/pre-commit-hooks"
+    rev: "v4.6.0"
+    hooks:
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+
+  - repo: "https://github.com/astral-sh/ruff-pre-commit"
+    rev: "v0.6.8"
     hooks:
       - id: ruff
-        args: ["--fix"]  # Automatically fix issues where possible
+        args: [--fix]
+      - id: ruff-format
 
-  # Black code formatter
-  - repo: https://github.com/psf/black
-    rev: 24.3
+  - repo: "https://github.com/psf/black"
+    rev: "24.8.0"
     hooks:
       - id: black
 
-  # isort for import sorting
-  - repo: https://github.com/PyCQA/isort
-    rev: 6.0
-    hooks:
-      - id: isort
-
-  # mypy for type checking
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.4
+  - repo: "https://github.com/pre-commit/mirrors-mypy"
+    rev: "v1.11.2"
     hooks:
       - id: mypy
+        files: ^(ima_service/app)/
+        additional_dependencies:
+          - fastapi>=0.110
+          - starlette>=0.37
+          - sqlalchemy[mypy]>=2
+          - redis>=5
+          - pydantic>=2
+          - pydantic-settings>=2
+          - types-redis
+        # mypy reads [tool.mypy] from pyproject.toml
 
-  # Optional safety checks
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
-    hooks:
-      - id: check-yaml
-      - id: check-added-large-files
-
-  # Run tests with pytest via uv
   - repo: local
     hooks:
-      - id: run-tests
-        name: Run tests with pytest
-        entry: uv run test
+      - id: pylint
+        name: pylint
+        entry: uv run pylint
         language: system
         types: [python]
+        args:
+          - ima_service/app
+        pass_filenames: false

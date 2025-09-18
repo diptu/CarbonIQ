@@ -38,8 +38,6 @@ async def full_health_service() -> HealthCheckResponse:
         code=200 if overall_ok else 503,
         status="success" if overall_ok else "error",
         message="Full system health check completed",
-        data=HealthPayload(
-            status="ok" if overall_ok else "fail", details=results
-        ),
+        data=HealthPayload(status="ok" if overall_ok else "fail", details=results),
         details=None,
     )

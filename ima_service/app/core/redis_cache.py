@@ -71,9 +71,7 @@ def get_redis_client() -> _RedisClient:
 
     try:
         if url:
-            tmp_any: Any = REDIS_ASYNC.from_url(
-                effective_url, decode_responses=True
-            )
+            tmp_any: Any = REDIS_ASYNC.from_url(effective_url, decode_responses=True)
             return tmp_any  # type: ignore[no-any-return]
 
         tmp_any = REDIS_ASYNC.Redis(

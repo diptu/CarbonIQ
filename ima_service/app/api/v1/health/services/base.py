@@ -31,14 +31,8 @@ async def run_check(
     key: str | None = None,
 ) -> HealthCheckResponse:
     """Run a single health check with standardized formatting."""
-    resp = await HealthService(
-        name=name, check_fn=check_fn, key=key, timeout=timeout
-    )()
-    color = (
-        GREEN
-        if resp.status == "success"
-        else (YELLOW if resp.code == 503 else RED)
-    )
+    resp = await HealthService(name=name, check_fn=check_fn, key=key, timeout=timeout)()
+    color = GREEN if resp.status == "success" else (YELLOW if resp.code == 503 else RED)
     LOG.info("%s%s%s: %s", color, name, RESET, resp.message)
     if resp.details:
         LOG.debug("%s%s details%s: %s", CYAN, name, RESET, resp.details)

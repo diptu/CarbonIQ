@@ -126,9 +126,7 @@ class _JSONFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False)
 
 
-def _build_handlers(
-    *, debug: bool, json_file: str | None
-) -> list[logging.Handler]:
+def _build_handlers(*, debug: bool, json_file: str | None) -> list[logging.Handler]:
     console = logging.StreamHandler(stream=sys.stderr)
     console.setLevel(logging.DEBUG if debug else logging.INFO)
     console.setFormatter(_JSONFormatter(color=debug, is_access=False))
@@ -196,9 +194,7 @@ def setup_logging(
         if file_path:
             access_file = logging.FileHandler(file_path, encoding="utf-8")
             access_file.setLevel(logging.INFO)
-            access_file.setFormatter(
-                _JSONFormatter(color=False, is_access=True)
-            )
+            access_file.setFormatter(_JSONFormatter(color=False, is_access=True))
             access_handlers.append(access_file)
 
         uvicorn_access = logging.getLogger("uvicorn.access")

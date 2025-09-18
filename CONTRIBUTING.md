@@ -1,17 +1,17 @@
 # 🤝 Contributing Guide
 
-Thanks for taking the time to contribute!  
-This project follows a **production-ready workflow** with `uv` for dependency management.  
+Thanks for taking the time to contribute!
+This project follows a **production-ready workflow** with `uv` for dependency management.
 Please read the following steps carefully before submitting changes.
 
 ---
 
 ## 📂 Branching Strategy
-- **`main`** → Stable, production-ready code  
-- **`develop`** → Integration branch (default target for PRs)  
-- **Feature branches** → `feat/<short-description>`  
-- **Bugfix branches** → `fix/<short-description>`  
-- **Hotfix branches** → `hotfix/<version>`  
+- **`main`** → Stable, production-ready code
+- **`develop`** → Integration branch (default target for PRs)
+- **Feature branches** → `feat/<short-description>`
+- **Bugfix branches** → `fix/<short-description>`
+- **Hotfix branches** → `hotfix/<version>`
 
 👉 Never commit directly to `main` or `develop`. Always open a Pull Request.
 
@@ -94,7 +94,7 @@ git push -u origin feat/add-login
 - refactor: → code change that neither fixes a bug nor adds a feature
 
 - test: → adding missing tests or refactoring tests
-  
+
 #### Example:
 ```bash
 feat(auth): add JWT-based login system
@@ -112,7 +112,7 @@ feat(auth): add JWT-based login system
 - Use the [Feature Request template](.github/ISSUE_TEMPLATE/feature_request.md)
 
 - Explain the motivation and possible solutions.
-  
+
 ## ❤️ Code of Conduct
 
 - Please be respectful, collaborative, and constructive.

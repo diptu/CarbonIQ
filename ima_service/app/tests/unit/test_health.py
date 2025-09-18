@@ -13,9 +13,7 @@ from ima_service.app.main import app
 async def test_server_health_endpoint_ok() -> None:
     """Server health endpoint should return 200 and ok payload."""
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport, base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/v1/health/server")
 
     body = resp.json()
@@ -45,9 +43,7 @@ async def test_database_health_missing_config_returns_fail(
     monkeypatch.setattr(svc_db_mod, "get_session_manager", _boom, raising=True)
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport, base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/v1/health/database")
 
     body = resp.json()

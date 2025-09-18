@@ -10,11 +10,7 @@ from __future__ import annotations
 
 from .config import get_settings  # lightweight
 from .logging import setup_logging  # call in startup
-from .redis_cache import (
-    RedisClientError,
-    close_redis_client,
-    get_redis_client,
-)
+from .redis_cache import RedisClientError, close_redis_client, get_redis_client
 
 __all__ = [
     "get_settings",
