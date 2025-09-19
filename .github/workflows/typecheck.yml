@@ -1,27 +1,27 @@
-name: Lint (Ruff • Pylint)
+name: Typecheck (mypy)
 
 on:
   push:
     paths:
-      - ".github/workflows/lint.yml"
+      - ".github/workflows/typecheck.yml"
       - "pyproject.toml"
       - "uv.lock"
       - "ima_service/**"
   pull_request:
     paths:
-      - ".github/workflows/lint.yml"
+      - ".github/workflows/typecheck.yml"
       - "pyproject.toml"
       - "uv.lock"
       - "ima_service/**"
   workflow_dispatch:
 
 concurrency:
-  group: lint-${{ github.ref }}
+  group: typecheck-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: "${{ matrix.service }} • lint"
+  typecheck:
+    name: "${{ matrix.service }} • typecheck"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -58,8 +58,10 @@ jobs:
           uv sync --frozen --group dev || \
           uv sync --frozen --group dev --project "${{ matrix.service }}"
 
-      - name: Ruff
-        run: uv run ruff check "${{ matrix.service }}/${{ matrix.app_path }}"
-
-      - name: Pylint
-        run: uv run pylint "${{ matrix.service }}/${{ matrix.app_path }}"
+      - name: Mypy
+        run: |
+          uv run mypy "${{ matrix.service }}/${{ matrix.app_path }}"
+          # If each service has its own mypy config inside its pyproject.toml,
+          # use:
+          # uv run mypy --config-file "${{ matrix.service }}/pyproject.toml" \
+          #             "${{ matrix.service }}/${{ matrix.app_path }}"
