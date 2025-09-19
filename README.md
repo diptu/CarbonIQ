@@ -3,6 +3,10 @@
 > **AI-powered Scope 2 carbon accounting & reporting**  
 > Transparent, audit-ready, and aligned with **Climate Active** & **ASRS** standards.
 
+<!-- Tech Stack Badges -->
+![Python](https://img.shields.io/badge/Python-3.11-blue.svg)![FastAPI](https://img.shields.io/badge/API-FastAPI-green.svg)![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-blue.svg)![Redis](https://img.shields.io/badge/Queue/Cache-Redis-red.svg)![AWS S3](https://img.shields.io/badge/Storage-S3%2FBlob-orange.svg)![OCR](https://img.shields.io/badge/AI/Tesseract-OCR-lightgrey.svg)![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg)![TailwindCSS](https://img.shields.io/badge/UI-TailwindCSS-38B2AC.svg)![Docker](https://img.shields.io/badge/DevOps-Docker-2496ED.svg)![Compose](https://img.shields.io/badge/DevOps-Docker--Compose-2496ED.svg)
+
+
 
 ## 💡 Tagline
 CarbonIQ – Automated Scope 2 carbon reporting with ≥95% accuracy.
