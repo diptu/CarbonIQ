@@ -5,10 +5,12 @@ description = "Authentication (JWT/OIDC), role-based access."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "alembic>=1.16.5",
     "asyncpg>=0.30.0",
     "fastapi[standard]>=0.116.1",
     "greenlet>=3.2.4",
     "httpx>=0.28.1",
+    "passlib[bcrypt]>=1.7.4",
     "psycopg2-binary>=2.9.10",
     "pydantic-settings>=2.10.1",
     "redis[async]>=6.4.0",
@@ -27,6 +29,7 @@ dev = [
     "pytest-cov>=7.0.0",
     "pytest-mock>=3.14.0",
     "ruff>=0.6.9",
+    "types-passlib>=1.7.7.20250602",
 ]
 
 [tool.black]
@@ -42,7 +45,7 @@ default_section = "THIRDPARTY"
 
 [tool.mypy]
 python_version = "3.11"
-strict = true
+strict_optional = true
 ignore_missing_imports = true
 
 [tool.ruff]

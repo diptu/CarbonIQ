@@ -5,6 +5,8 @@ vars:
   PORT: "8000"
   SERVICE_APP: "{{.SERVICE}}/app"
   COV_TARGET: "{{.SERVICE}}"
+  ALEMBIC_INI: "{{.SERVICE}}/alembic.ini"
+  MIGRATIONS_DIR: "{{.SERVICE}}/migrations"
 
 tasks:
   # -------------------------
@@ -18,6 +20,19 @@ tasks:
           Service '{{.SERVICE}}' not found (missing '{{.SERVICE}}/app').
           Try one of: 'ima_service', 'tenant_service'.
           Example: task all SERVICE=ima_service
+
+  ensure-alembic:
+    desc: "Verify Alembic layout for the service"
+    deps: [ensure-service]
+    preconditions:
+      - sh: test -f {{.ALEMBIC_INI}}
+        msg: |
+          Missing '{{.ALEMBIC_INI}}'.
+          Create it under the service root (service-root Alembic is recommended).
+      - sh: test -d {{.MIGRATIONS_DIR}}
+        msg: |
+          Missing '{{.MIGRATIONS_DIR}}' directory.
+          Ensure your Alembic script_location points here and the folder exists (env.py, script.py.mako, versions/).
 
   # -------------------------
   # Dev servers
@@ -202,6 +217,68 @@ tasks:
         fi
 
   # -------------------------
+  # Alembic migrations (service-root)
+  # -------------------------
+  migrate:
+    desc: "Apply all pending migrations (upgrade head)"
+    deps: [ensure-alembic]
+    cmds:
+      - uv run --active alembic -c {{.ALEMBIC_INI}} upgrade head
+
+  migrate:new:
+    desc: "Create a new autogen revision AFTER upgrading to head (prevents 'Target DB not up to date')"
+    deps: [ensure-alembic]
+    vars:
+      MSG: "{{.MSG | default \"auto\"}}"
+    cmds:
+      - uv run --active alembic -c {{.ALEMBIC_INI}} upgrade head
+      - uv run --active alembic -c {{.ALEMBIC_INI}} revision --autogenerate -m "{{.MSG}}"
+
+  migrate:up:
+    desc: "Upgrade by one revision (or to given REV=…) — default: head"
+    deps: [ensure-alembic]
+    vars:
+      REV: "{{.REV | default \"head\"}}"
+    cmds:
+      - uv run --active alembic -c {{.ALEMBIC_INI}} upgrade {{.REV}}
+
+  migrate:down:
+    desc: "Downgrade by one (or to given REV=…) — default: -1"
+    deps: [ensure-alembic]
+    vars:
+      REV: "{{.REV | default \"-1\"}}"
+    cmds:
+      - uv run --active alembic -c {{.ALEMBIC_INI}} downgrade {{.REV}}
+
+  migrate:stamp:
+    desc: "Stamp DB to head (or REV=…) without running migrations — use with care"
+    deps: [ensure-alembic]
+    vars:
+      REV: "{{.REV | default \"head\"}}"
+    cmds:
+      - uv run --active alembic -c {{.ALEMBIC_INI}} stamp {{.REV}}
+
+  migrate:current:
+    desc: "Show current DB revision"
+    deps: [ensure-alembic]
+    cmds:
+      - uv run --active alembic -c {{.ALEMBIC_INI}} current
+
+  migrate:heads:
+    desc: "Show migration heads"
+    deps: [ensure-alembic]
+    cmds:
+      - uv run --active alembic -c {{.ALEMBIC_INI}} heads
+
+  migrate:history:
+    desc: "Show migration history (use RANGE='-5:' or REV for range)"
+    deps: [ensure-alembic]
+    vars:
+      RANGE: "{{.RANGE | default \":\"}}"
+    cmds:
+      - uv run --active alembic -c {{.ALEMBIC_INI}} history -r{{.RANGE}}
+
+  # -------------------------
   # Cleanup
   # -------------------------
   clean:
@@ -233,7 +310,6 @@ tasks:
       - task: coverage
       - task: precommit-run
       - task: sanity
-
 
   # -------------------------
   # Docker / Compose

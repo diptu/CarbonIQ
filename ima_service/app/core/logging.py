@@ -20,7 +20,8 @@ import logging
 import os
 import sys
 from datetime import datetime, timezone
-from typing import Any, Final, Mapping, MutableMapping
+from logging import LogRecord
+from typing import Any, Final, Mapping, MutableMapping, Optional
 
 # -----------------------------
 # ANSI colors
@@ -68,11 +69,10 @@ def _coerce(obj: Any) -> Any:
         json.dumps(obj)
         return obj
     except (TypeError, ValueError):  # pragma: no cover
-        # Narrow exceptions to avoid broad-exception-caught (W0718)
         return repr(obj)
 
 
-def _extras(record: logging.LogRecord) -> dict[str, Any]:
+def _extras(record: LogRecord) -> dict[str, Any]:
     """Collect non-standard LogRecord attributes into a dict."""
     out: dict[str, Any] = {}
     for k, v in record.__dict__.items():
@@ -89,13 +89,18 @@ class _JSONFormatter(logging.Formatter):
         self.color = color
         self.is_access = is_access  # uvicorn.access flavor
 
-    def format(self, record: logging.LogRecord) -> str:  # noqa: D401
+    def format(self, record: LogRecord) -> str:  # noqa: D401
         payload: MutableMapping[str, Any] = {
             "ts": _iso_utc_now(),
             "level": record.levelname,
             "logger": record.name if not self.is_access else "uvicorn.access",
             "message": record.getMessage(),
         }
+
+        # Optional correlation IDs if attached via logger.extra
+        for key in ("request_id", "trace_id", "span_id", "user_id"):
+            if hasattr(record, key):
+                payload[key] = getattr(record, key)
 
         if not self.is_access:
             payload.update(
@@ -126,7 +131,8 @@ class _JSONFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False)
 
 
-def _build_handlers(*, debug: bool, json_file: str | None) -> list[logging.Handler]:
+def _build_handlers(*, debug: bool, json_file: Optional[str]) -> list[logging.Handler]:
+    """Create console (and optional file) handlers with JSON formatter."""
     console = logging.StreamHandler(stream=sys.stderr)
     console.setLevel(logging.DEBUG if debug else logging.INFO)
     console.setFormatter(_JSONFormatter(color=debug, is_access=False))

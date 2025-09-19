@@ -30,10 +30,10 @@ def create_app() -> FastAPI:
     # Routers
     application.include_router(v1_router, prefix="")
 
-    # Simple root route for quick sanity checks
-    @application.get("/", tags=["meta"])
-    async def root() -> dict[str, str]:
-        return {"status": "ok", "service": settings.app_name}
+    # # Simple root route for quick sanity checks
+    # @application.get("/", tags=["meta"])
+    # async def root() -> dict[str, str]:
+    #     return {"status": "ok", "service": settings.app_name}
 
     return application
 

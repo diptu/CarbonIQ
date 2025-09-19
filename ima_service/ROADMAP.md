@@ -16,14 +16,14 @@
 ---
 
 ## ✅ 2. Core Auth & Users
-- [] User model (`User`)
-- [] Fields: id, email, hashed_password, role, is_active, is_superuser,
+- [x] User model (`User`)
+- [x] Fields: id, email, hashed_password, role, is_active, is_superuser,
       created_at, updated_at
-- [] CRUD operations (`get_user_by_email`, `create_user`, etc.)
+- [x] CRUD operations (`get_user_by_email`, `create_user`, etc.)
 - [] Email verification flow for new users as a background task 🚧
 - [] Password reset workflow (token + email) as a background task🚧
 - [] Unique constraints on email and username
-- [] Pydantic schemas (`UserCreate`, `UserLogin`, etc.)
+- [x] Pydantic schemas (`UserCreate`, `UserLogin`, etc.)
 - [] Account deactivation / deletion endpoints  🚧
 
 ---

@@ -1,17 +1,16 @@
 # FILE: ima_service/app/db/base.py
-"""
-Declarative base for ORM models.
-"""
+"""Declarative base and model registry import side-effects."""
+# pylint: disable=too-few-public-methods, wrong-import-position
+# ruff: noqa: E402  # allow late imports below to avoid circulars
 
 from __future__ import annotations
 
 from sqlalchemy.orm import DeclarativeBase
 
-__all__ = ["Base"]
 
-
-# pylint: disable=too-few-public-methods
 class Base(DeclarativeBase):
-    """Base class for all ORM models."""
+    """Declarative base for all ORM models."""
 
-    # Add shared metadata / mixins if needed.
+
+# Import models so Alembic/autodiscovery sees them (keep at bottom).
+from ima_service.app.db.models.user import User as _User  # noqa: E402,F401

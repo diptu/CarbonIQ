@@ -38,7 +38,7 @@ fi
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
 
-# NEW: API prefix (default /v1). Set API_PREFIX="" if mounted at root.
+# API prefix (default /v1). Set API_PREFIX="" if mounted at root.
 API_PREFIX="${API_PREFIX:-/v1}"
 [[ -n "$API_PREFIX" && "${API_PREFIX:0:1}" != "/" ]] && API_PREFIX="/$API_PREFIX"
 
@@ -51,7 +51,7 @@ has_jq() { command -v jq >/dev/null 2>&1; }
 JQ_AVAILABLE="true"
 if ! has_jq; then
   JQ_AVAILABLE="false"
-  echo 'WARN: jq not found; JSON assertions skipped.' >&2
+  echo 'WARN: jq not found; JSON assertions skipped and User API tests disabled.' >&2
 fi
 
 ok()   { printf '✅ %s\n' "$*"; }
@@ -66,6 +66,21 @@ curl_request() {
        --connect-timeout "$TIMEOUT" \
        --retry "$RETRIES" --retry-all-errors \
        -X "$method" "$url" \
+       -D "$hdr_file" \
+       --output "$body_file" \
+       --write-out '%{http_code}'
+}
+
+# JSON request helper (adds content-type + raw JSON string body)
+curl_request_json() {
+  local method="$1" url="$2" json_str="$3" body_file="$4" hdr_file="$5"
+  curl -sS \
+       --max-time "$TIMEOUT" \
+       --connect-timeout "$TIMEOUT" \
+       --retry "$RETRIES" --retry-all-errors \
+       -X "$method" "$url" \
+       -H 'Content-Type: application/json' \
+       --data "$json_str" \
        -D "$hdr_file" \
        --output "$body_file" \
        --write-out '%{http_code}'
@@ -163,6 +178,96 @@ build_checks() {
   fi
 }
 
+# ------------------------------
+# User API sanity flow (requires jq)
+# ------------------------------
+run_user_flow() {
+  [[ "$JQ_AVAILABLE" != "true" ]] && { warn "Skipping User API tests (jq not available)"; return 0; }
+
+  local url body hdr http uid email pass uname1 uname2
+  body="$(mktemp)"; hdr="$(mktemp)"
+
+  # Generate unique credentials (sanitize to ^[a-zA-Z0-9_.]{3,32}$)
+  local nonce raw_uname
+  nonce="$(date +%s)$$"                # numeric-only, no hyphen
+  raw_uname="sanity_${nonce}"
+  sanitize_uname() { echo "$1" | tr -cd '[:alnum:]_.' | cut -c1-32; }
+
+  email="${SANITY_USER_EMAIL:-sanity-${nonce}@example.com}"
+  pass="${SANITY_USER_PASSWORD:-S@nityP4ssw0rd!}"
+  uname1="${SANITY_USER_USERNAME:-$(sanitize_uname "$raw_uname")}"
+  uname2="${SANITY_USER_USERNAME2:-$(sanitize_uname "${raw_uname}_v2")}"
+
+  # 1) Create user: POST /users
+  url="${BASE_URL%/}${API_PREFIX%/}/users"
+  local create_json
+  create_json="$(jq -nc --arg e "$email" --arg p "$pass" --arg u "$uname1" \
+      '{email:$e, password:$p, username:$u}')"
+
+  http="$(curl_request_json POST "$url" "$create_json" "$body" "$hdr" || true)"
+  if [[ "$SANITY_TRACE" == "1" ]]; then
+    echo "--- TRACE POST $url ---" >&2
+    echo "[HTTP $http]" >&2
+    sed -n '1,20p' "$hdr" >&2
+    echo "--- BODY ---" >&2; cat "$body" >&2; echo >&2
+    echo "------------" >&2
+  fi
+  if [[ "$http" != "201" ]]; then
+    bad "POST /users -> $http (expected 201)"
+    [[ -s "$body" ]] && log "Body: $(head -c 400 "$body")"
+    rm -f "$body" "$hdr"; return 2
+  fi
+
+  uid="$(jq -r '.id // empty' <"$body")"
+  if [[ -z "$uid" || "$uid" == "null" ]]; then
+    bad "POST /users did not return .id"
+    log "Body: $(head -c 400 "$body")"
+    rm -f "$body" "$hdr"; return 2
+  fi
+  ok "POST /users -> 201 (id=$uid)"
+
+  # 2) Get user: GET /users/{id}
+  : >"$body"; : >"$hdr"
+  url="${BASE_URL%/}${API_PREFIX%/}/users/${uid}"
+  http="$(curl_request GET "$url" "$body" "$hdr" || true)"
+  if [[ "$http" != "200" ]]; then
+    bad "GET /users/${uid} -> $http (expected 200)"; rm -f "$body" "$hdr"; return 2
+  fi
+  if ! assert_json "$body" "email" "$email"; then
+    bad "GET /users/${uid} JSON mismatch: email"
+    log "Body: $(head -c 400 "$body")"; rm -f "$body" "$hdr"; return 2
+  fi
+  ok "GET /users/${uid} -> 200"
+
+  # 3) Patch username: PATCH /users/{id}
+  : >"$body"; : >"$hdr"
+  url="${BASE_URL%/}${API_PREFIX%/}/users/${uid}"
+  local patch_json
+  patch_json="$(jq -nc --arg u "$uname2" '{username:$u}')"
+  http="$(curl_request_json PATCH "$url" "$patch_json" "$body" "$hdr" || true)"
+  if [[ "$http" != "200" ]]; then
+    bad "PATCH /users/${uid} -> $http (expected 200)"; rm -f "$body" "$hdr"; return 2
+  fi
+  if ! assert_json "$body" "username" "$uname2"; then
+    bad "PATCH /users/${uid} JSON mismatch: username"
+    log "Body: $(head -c 400 "$body")"; rm -f "$body" "$hdr"; return 2
+  fi
+  ok "PATCH /users/${uid} -> 200"
+
+  # 4) Deactivate: POST /users/{id}/deactivate  (204 no body)
+  : >"$body"; : >"$hdr"
+  url="${BASE_URL%/}${API_PREFIX%/}/users/${uid}/deactivate"
+  http="$(curl_request POST "$url" "$body" "$hdr" || true)"
+  if [[ "$http" != "204" ]]; then
+    bad "POST /users/${uid}/deactivate -> $http (expected 204)"
+    [[ -s "$body" ]] && log "Body: $(head -c 400 "$body")"
+    rm -f "$body" "$hdr"; return 2
+  fi
+  ok "POST /users/${uid}/deactivate -> 204"
+
+  rm -f "$body" "$hdr"; return 0
+}
+
 main() {
   build_checks
   printf 'Running sanity checks against %s%s (strict=%s)\n' \
@@ -185,6 +290,13 @@ main() {
       fails=$((fails + 1))
     fi
   done
+
+  # Run user API flow (if jq present)
+  if run_user_flow; then
+    passes=$((passes + 4))  # create, get, patch, deactivate
+  else
+    fails=$((fails + 1))
+  fi
 
   printf '\nSummary: %d pass, %d warn, %d fail\n' "$passes" "$warns" "$fails"
 

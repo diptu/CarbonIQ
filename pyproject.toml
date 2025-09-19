@@ -24,7 +24,6 @@ dev = [
   "mypy>=1.18.1",
   "pylint>=3.3.8",
   "ruff>=0.13.0",
-
   # Make local mypy runs match hook env
   "sqlalchemy[mypy]>=2",
   "fastapi>=0.110",
@@ -33,6 +32,7 @@ dev = [
   "pydantic>=2",
   "pydantic-settings>=2",
   "types-redis",
+  "types-passlib>=1.7.7.20250602",
 ]
 
 # =========================
