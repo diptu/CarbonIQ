@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  app:
+    container_name: carboniq-app
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    env_file:
+      - ../.env
+    environment:
+      # Force in-network hostname even if .env has something else
+      REDIS_HOST: redis
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: carboniq-redis
+    # IMPORTANT: escape $ -> $$ so Compose doesn't substitute on the host
+    command: >
+      sh -c '
+      if [ -n "$$REDIS_PASSWORD" ]; then
+        exec redis-server --appendonly no --requirepass "$$REDIS_PASSWORD";
+      else
+        exec redis-server --appendonly no;
+      fi
+      '
+    env_file:
+      - ../.env
+    healthcheck:
+      test: >
+        sh -c '
+        if [ -n "$$REDIS_PASSWORD" ]; then
+          redis-cli -a "$$REDIS_PASSWORD" ping;
+        else
+          redis-cli ping;
+        fi
+        '
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    ports:
+      - "6379:6379"
+    restart: unless-stopped

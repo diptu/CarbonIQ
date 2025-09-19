@@ -233,3 +233,42 @@ tasks:
       - task: coverage
       - task: precommit-run
       - task: sanity
+
+
+  # -------------------------
+  # Docker / Compose
+  # -------------------------
+  docker-build:
+    desc: "Build Docker image for a service (default: ima_service)"
+    deps: [ensure-service]
+    cmds:
+      - |
+        echo "Building Docker image for {{.SERVICE}}..."
+        docker build \
+          -f {{.SERVICE}}/infra/Dockerfile \
+          -t {{.SERVICE}}:latest \
+          {{.SERVICE}}
+
+  docker-up:
+    desc: "Start service + infra via docker-compose (uses {{.SERVICE}}/infra/docker-compose.yml)"
+    deps: [ensure-service]
+    cmds:
+      - |
+        echo "Starting {{.SERVICE}} via docker-compose..."
+        docker compose -f {{.SERVICE}}/infra/docker-compose.yml up -d
+
+  docker-down:
+    desc: "Stop service + infra (docker-compose down)"
+    deps: [ensure-service]
+    cmds:
+      - docker compose -f {{.SERVICE}}/infra/docker-compose.yml down
+
+  docker-logs:
+    desc: "Tail logs for the service container"
+    deps: [ensure-service]
+    cmds:
+      - docker logs -f {{.SERVICE}}-app || true
+
+  docker-restart:
+    desc: "Restart service container"
+    deps: [docker-down, docker-up]
