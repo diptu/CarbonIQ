@@ -1,38 +1,46 @@
-name: Typecheck (mypy)
+name: Tests (Pytest + Coverage)
 
 on:
   push:
     paths:
-      - ".github/workflows/typecheck.yml"
+      - ".github/workflows/test.yml"
       - "pyproject.toml"
       - "uv.lock"
       - "ima_service/**"
   pull_request:
     paths:
-      - ".github/workflows/typecheck.yml"
+      - ".github/workflows/test.yml"
       - "pyproject.toml"
       - "uv.lock"
       - "ima_service/**"
   workflow_dispatch:
 
 concurrency:
-  group: typecheck-${{ github.ref }}
+  group: test-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  typecheck:
-    name: "${{ matrix.service }} • typecheck"
+  test:
+    name: "${{ matrix.service }} • tests"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - service: ima_service
-            app_path: app
+            cov_target: ima_service  # Python package to measure coverage
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Debug — where am I?
+        run: |
+          set -euxo pipefail
+          echo "== pwd ==" && pwd
+          echo "== ls -la (repo root) ==" && ls -la
+          echo "== ls -la service dir ==" && ls -la "${{ matrix.service }}"
+          echo "== tests under service ==" && ls -la "${{ matrix.service }}/app/tests" || true
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -58,10 +66,24 @@ jobs:
           uv sync --frozen --group dev || \
           uv sync --frozen --group dev --project "${{ matrix.service }}"
 
-      - name: Mypy
+      - name: Pytest (with coverage)
         run: |
-          uv run mypy "${{ matrix.service }}/${{ matrix.app_path }}"
-          # If each service has its own mypy config inside its pyproject.toml,
-          # use:
-          # uv run mypy --config-file "${{ matrix.service }}/pyproject.toml" \
-          #             "${{ matrix.service }}/${{ matrix.app_path }}"
+          set -euxo pipefail
+          uv run pytest \
+            "${{ matrix.service }}" \
+            --maxfail=1 \
+            --cov="${{ matrix.cov_target }}" \
+            --cov-report=xml:"${{ matrix.service }}/coverage.xml" \
+            --cov-report=term-missing \
+            --junitxml="${{ matrix.service }}/test-results.xml"
+
+      - name: Upload test/coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.service }}
+          path: |
+            ${{ matrix.service }}/coverage.xml
+            ${{ matrix.service }}/test-results.xml
+          if-no-files-found: warn
+          retention-days: 7
