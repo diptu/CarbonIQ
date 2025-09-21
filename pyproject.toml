@@ -1,7 +1,77 @@
 [project]
-name = "carboniq"
+name = "ima-service"
 version = "0.1.0"
-description = "Add your description here"
+description = "Authentication (JWT/OIDC), role-based access."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "alembic>=1.16.5",
+    "asyncpg>=0.30.0",
+    "bcrypt>=4.3.0",
+    "fastapi[standard]>=0.116.1",
+    "greenlet>=3.2.4",
+    "httpx>=0.28.1",
+    "passlib[bcrypt]>=1.7.4",
+    "psycopg>=3.2.10",
+    "psycopg2-binary>=2.9.10",
+    "pydantic>=2.11.9",
+    "pydantic-settings>=2.10.1",
+    "redis[async]>=6.4.0",
+    "sqlalchemy>=2.0.43",
+    "sqlmodel>=0.0.24",
+]
+
+[dependency-groups]
+dev = [
+    "black>=24.10.0",
+    "isort>=5.13.2",
+    "mypy>=1.11.2",
+    "pylint>=3.2.7",
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.14.0",
+    "ruff>=0.6.9",
+    "types-passlib>=1.7.7.20250602",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["ima_service"]
+default_section = "THIRDPARTY"
+
+[tool.mypy]
+python_version = "3.11"
+strict_optional = true
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "C"]
+ignore = []
+
+[tool.pytest.ini_options]
+testpaths = ["ima_service/app/tests"]
+asyncio_mode = "auto"
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["ima_service"]
+branch = true
+omit = [
+  "ima_service/main.py",        # unused duplicate entrypoint
+  "ima_service/**/tests/**",    # ignore tests inside the package
+]
+
+[tool.uv.workspace]
+members = ["services/ima_service"]
