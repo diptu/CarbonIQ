@@ -1,6 +1,4 @@
-# ruff: noqa: D100
-# pylint: disable=missing-function-docstring
-"""Tiny logging: color/JSON, uvicorn parity."""
+"""Color console logging + optional JSON file sink (failsafe, no deps)."""
 
 from __future__ import annotations
 
@@ -8,98 +6,123 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timezone
-from typing import Any
+from datetime import datetime
+from typing import Any, Mapping
 
-from .settings import Settings, get_settings
-
-_COLORS = {
-    logging.DEBUG: "\033[36m",
-    logging.INFO: "\033[32m",
-    logging.WARNING: "\033[33m",
-    logging.ERROR: "\033[31m",
-    logging.CRITICAL: "\033[41m",
-}
-_RESET = "\033[0m"
+from .settings import get_settings
 
 
-def _is_tty() -> bool:
-    if os.getenv("NO_COLOR"):
-        return False
-    try:
-        return sys.stdout.isatty()
-    except OSError:  # pragma: no cover
-        return False
+# ----------------------------- JSON formatter -------------------------------
 
 
-class _ColorFmt(logging.Formatter):
-    def format(self, record: logging.LogRecord) -> str:
-        color = _COLORS.get(record.levelno, "")
-        if color:
-            record.levelname = f"{color}{record.levelname}{_RESET}"  # type: ignore
-        return super().format(record)
-
-
-class _JsonFmt(logging.Formatter):
-    def format(self, record: logging.LogRecord) -> str:
-        body = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+class _JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:  # noqa: D401
+        base: dict[str, Any] = {
+            "ts": datetime.utcfromtimestamp(record.created).isoformat(
+                timespec="milliseconds"
+            )
+            + "Z",
             "level": record.levelname,
-            "name": record.name,
+            "logger": record.name,
             "msg": record.getMessage(),
-            "module": record.module,
-            "func": record.funcName,
-            "line": record.lineno,
-            "pid": os.getpid(),
         }
-        known = set(vars(logging.makeLogRecord({})).keys())
-        extra = {k: v for k, v in record.__dict__.items() if k not in known}
-        if extra:
-            body["extra"] = extra
-        return json.dumps(body, ensure_ascii=False)
+        if record.exc_info:
+            base["exc"] = self.formatException(record.exc_info)
+        extra = getattr(record, "extra", None)
+        if isinstance(extra, Mapping):
+            base["extra"] = dict(extra)
+        return json.dumps(base, ensure_ascii=False)
 
 
-def _handler(level: int, json_mode: bool, color: bool) -> logging.Handler:
-    fmt = "%(asctime)s %(levelname)s %(name)s - %(message)s [%(module)s:%(lineno)d]"
-    datefmt = "%Y-%m-%dT%H:%M:%S%z"
-    h = logging.StreamHandler(sys.stdout)
-    h.setLevel(level)
-    if json_mode:
-        h.setFormatter(_JsonFmt())
-    elif color:
-        h.setFormatter(_ColorFmt(fmt=fmt, datefmt=datefmt))
-    else:
-        h.setFormatter(logging.Formatter(fmt=fmt, datefmt=datefmt))
-    return h
+# ---------------------------- Console formatter -----------------------------
 
 
-def _wire_uvicorn(level: int) -> None:
-    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
-        logging.getLogger(name).setLevel(level)
+class _ConsoleFormatter(logging.Formatter):
+    _DIM = "\x1b[90m"
+    _RESET = "\x1b[0m"
+    _LEVEL = {
+        "DEBUG": "\x1b[36m",
+        "INFO": "\x1b[32m",
+        "WARNING": "\x1b[33m",
+        "ERROR": "\x1b[31m",
+        "CRITICAL": "\x1b[35m",
+    }
+
+    def __init__(self, use_color: bool) -> None:
+        super().__init__(datefmt="%H:%M:%S")
+        self.use_color = bool(use_color and sys.stderr.isatty())
+
+    def format(self, r: logging.LogRecord) -> str:  # noqa: D401
+        ts = datetime.fromtimestamp(r.created).strftime("%H:%M:%S")
+        level, name, msg = r.levelname, r.name, r.getMessage()
+        suffix = "\n" + self.formatException(r.exc_info) if r.exc_info else ""
+        if not self.use_color:
+            return f"{ts} {level:8} {name}: {msg}{suffix}"
+        lc = self._LEVEL.get(level, "")
+        dim = self._DIM
+        rst = self._RESET
+        return f"{dim}{ts}{rst} {lc}{level:8}{rst} {dim}{name}{rst}: {msg}{suffix}"
 
 
-def configure_logging(settings: Settings | None = None) -> None:
-    st = settings or get_settings()
-    level = getattr(logging, st.log.level.value)
-    json_mode = bool(getattr(st.log, "json_file", None))
-    color = bool(st.log.color and not json_mode and _is_tty())
+# ------------------------------- Configurator --------------------------------
+
+_configured = False
+
+
+def _safe_file_handler(path: str, level: int) -> logging.Handler | None:
+    """Try to create a JSON file handler; fall back to console on failure."""
+    try:
+        d = os.path.dirname(path)
+        if d and not os.path.exists(d):
+            os.makedirs(d, exist_ok=True)
+        fh = logging.FileHandler(path, encoding="utf-8")
+        fh.setLevel(level)
+        fh.setFormatter(_JsonFormatter())
+        return fh
+    except OSError as e:
+        sys.stderr.write(
+            f"[logging] WARN cannot write to '{path}' ({e.__class__.__name__}: {e}). "
+            "Falling back to console.\n"
+        )
+        return None
+
+
+def configure_logging(*, force: bool = False) -> None:
+    """Configure root logger once from settings; safe fallbacks for file sink."""
+    global _configured  # noqa: PLW0603
+    if _configured and not force:
+        return
+
+    st = get_settings()
+    level = getattr(logging, str(st.log.level).upper(), logging.INFO)
 
     root = logging.getLogger()
-    if not root.handlers:
-        root.addHandler(_handler(level, json_mode, color))
     root.setLevel(level)
-    for h in root.handlers:
-        h.setLevel(level)
-    _wire_uvicorn(level)
+    for h in list(root.handlers):
+        root.removeHandler(h)
+
+    handler: logging.Handler | None = None
+    if st.log.json_file:
+        handler = _safe_file_handler(st.log.json_file, level)
+
+    if handler is None:
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setLevel(level)
+        handler.setFormatter(_ConsoleFormatter(use_color=bool(st.log.color)))
+
+    root.addHandler(handler)
+
+    # Align noisy libs
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "sqlalchemy"):
+        logging.getLogger(name).setLevel(level)
+
+    _configured = True
 
 
 def get_logger(name: str) -> logging.Logger:
+    if not _configured:
+        configure_logging()
     return logging.getLogger(name)
 
 
-def log_success(detail: str, **extra: Any) -> None:
-    get_logger("event").info("success: %s", detail, extra=extra)
-
-
-def log_failure(detail: str, **extra: Any) -> None:
-    get_logger("event").error("failure: %s", detail, extra=extra)
+__all__ = ["configure_logging", "get_logger"]

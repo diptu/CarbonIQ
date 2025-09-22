@@ -30,6 +30,16 @@ jobs:
           - service: ima_service
             cov_target: ima_service  # Python package to measure coverage
 
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: [ "6379:6379" ]
+        options: >-
+          --health-cmd "redis-cli ping || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,6 +77,11 @@ jobs:
           uv sync --frozen --group dev --project "${{ matrix.service }}"
 
       - name: Pytest (with coverage)
+        env:
+          IMA_ENV: test
+          IMA_JWT__SECRET_KEY: test-secret
+          IMA_REDIS_DSN: redis://localhost:6379/0
+          IMA_DB__URL: sqlite://
         run: |
           set -euxo pipefail
           uv run pytest \

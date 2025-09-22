@@ -1,11 +1,16 @@
-# ima_service/app/api/v1/routes.py
-from app.api.v1 import health
-from app.api.v1 import users as users_module  # <-- no try/except
-from app.core.logging import get_logger
+"""API v1 aggregator: health, auth, users, secure."""
+
+from __future__ import annotations
 from fastapi import APIRouter
+from .health import router as health_router
+from .auth import router as auth_router
+from .users.routes import router as users_router
+from .secure import router as secure_router
 
-router = APIRouter()
-log = get_logger(__name__)
+router = APIRouter(prefix="/api/v1")
+router.include_router(health_router)
+router.include_router(auth_router)
+router.include_router(users_router)
+router.include_router(secure_router)
 
-router.include_router(health.router)
-router.include_router(users_module.router)  # -> /api/v1/users/...
+__all__ = ["router"]

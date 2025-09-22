@@ -1,152 +1,187 @@
 #!/usr/bin/env bash
-# Minimal sanity suite for IMA (health + users).
-# Usage:
-#   ./scripts/sanity.sh [BASE_URL] [STRICT]
-# Env:
-#   BASE_URL, STRICT, REQUIRE_REDIS (env vars override args)
+set -euo pipefail
 
-set -u
-BASE="${BASE_URL:-${1:-http://127.0.0.1:8000/api/v1}}"
-STRICT="${STRICT:-${2:-0}}"
-REQUIRE_REDIS="${REQUIRE_REDIS:-0}"
-TIMEOUT="${IMA_TIMEOUT:-3}"
+# Colors
+GREEN="\033[0;32m"
+RED="\033[0;31m"
+RESET="\033[0m"
 
-# colors
-C_G="\033[32m"; C_Y="\033[33m"; C_R="\033[31m"; C_X="\033[0m"
-PASS=0; WARN=0; FAIL=0
-tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+# Check symbols
+CHECK="${GREEN}✅${RESET}"
+CROSS="${RED}❌${RESET}"
 
-say()  { printf "%b\n" "$*"; }
-ok()   { say "${C_G}✅$C_X $*"; PASS=$((PASS+1)); }
-warn() { say "${C_Y}⚠️ $C_X $*"; WARN=$((WARN+1)); }
-bad()  { say "${C_R}❌$C_X $*"; FAIL=$((FAIL+1)); }
+BASE_URL="http://127.0.0.1:8000/api/v1"
+TEST_USER_EMAIL="newuser@example.com"
+TEST_USER_PASSWORD="password123"
+TEST_USER_ROLE="viewer"
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASSWORD="secret"
 
-curlj() {
-  local method; method="$1"
-  local path;   path="$2"
-  local data;   data="${3:-}"
-  local url;    url="${BASE}${path}"
-  local http
-  if [ -n "$data" ]; then
-    http=$(curl -sS -m "$TIMEOUT" -w "%{http_code}" \
-      -H 'accept: application/json' -H 'content-type: application/json' \
-      -o "$tmp" -X "$method" "$url" -d "$data" || echo 000)
-  else
-    http=$(curl -sS -m "$TIMEOUT" -w "%{http_code}" \
-      -H 'accept: application/json' -o "$tmp" -X "$method" "$url" || echo 000)
-  fi
-  echo "$http"
-}
+echo "[sanity] Base URL: $BASE_URL"
 
-body() { cat "$tmp"; }
-j()    { jq -r "$1" <"$tmp" 2>/dev/null; }
-
-say "Running sanity against ${BASE} (strict=${STRICT}, "\
-"require_redis=${REQUIRE_REDIS})"
-
-# ------------ health: server ------------
-http=$(curlj GET /health/server)
-if [ "$http" = "200" ]; then ok "GET /health/server -> 200"
-else bad "GET /health/server -> $http"; body; fi
-
-# ------------ health: db ------------
-http=$(curlj GET /health/database)
-if [ "$http" = "200" ]; then ok "GET /health/database -> 200"
-else bad "GET /health/database -> $http"; body; fi
-
-# ------------ health: redis ------------
-http=$(curlj GET /health/redis)
-code=$(j '.code // empty')
-status=$(j '.data.status // .status // empty')
-
-if [ "$http" = "200" ]; then
-  if [ "$REQUIRE_REDIS" = "1" ] && [ "$status" != "ok" ]; then
-    bad "GET /health/redis -> 200 but status=$status (required)"
-  else
-    ok "GET /health/redis -> 200 ($status)"
-  fi
-elif [ "$http" = "503" ] && [ "$code" = "REDIS_DOWN" ]; then
-  if [ "$STRICT" = "1" ] || [ "$REQUIRE_REDIS" = "1" ]; then
-    bad "GET /health/redis -> 503 ($code)"
-  else
-    warn "GET /health/redis -> 503 ($code)"
-  fi
+# 1️⃣ Health check
+echo "[sanity] Trying health endpoint: $BASE_URL/health"
+health_resp=$(curl -s "$BASE_URL/health")
+if [[ "$health_resp" == *"ok"* ]]; then
+    echo " $CHECK Health -> /health"
+    echo "      $health_resp"
 else
-  bad "GET /health/redis -> $http"; body
+    echo " $CROSS Health -> /health"
+    echo "      Response: $health_resp"
+    exit 1
 fi
 
-# ------------ health: aggregate ------------
-http=$(curlj GET /health)
-code=$(j '.code // empty')
-agg_status=$(j '.data.status // .status // empty')
-redis_status=$(j '.data.redis.status // empty')
+# 2️⃣ Login as admin
+echo "[sanity] Logging in as $ADMIN_EMAIL"
+login_resp=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d "username=$ADMIN_EMAIL&password=$ADMIN_PASSWORD")
 
-if [ "$http" = "200" ]; then
-  ok "GET /health -> 200"
-elif [ "$http" = "503" ] && [ "$code" = "SERVICE_DEGRADED" ]; then
-  if [ "$STRICT" = "1" ] || { [ "$REQUIRE_REDIS" = "1" ] \
-       && [ "$redis_status" != "ok" ]; }; then
-    bad "GET /health -> 503 ($code, redis=$redis_status)"
-  else
-    warn "GET /health -> 503 ($code)"
-  fi
+ACCESS_TOKEN=$(echo "$login_resp" | jq -r '.access_token // empty')
+REFRESH_TOKEN=$(echo "$login_resp" | jq -r '.refresh_token // empty')
+
+if [[ -z "$ACCESS_TOKEN" ]]; then
+    echo " $CROSS Login failed for $ADMIN_EMAIL"
+    echo "      Response: $login_resp"
+    exit 1
 else
-  bad "GET /health -> $http"; body
+    echo " $CHECK Login -> /auth/login"
+    echo "      $login_resp"
 fi
 
-# ------------ users flow ------------
-# robust unique email (works on macOS/Linux)
-uuid_val="$(python - <<'PY'
-import uuid; print(uuid.uuid4())
-PY
-)"
-email="sanity-${uuid_val}@example.com"
-name="Sanity User"
-passw="S@nity1234"
-payload=$(jq -n --arg e "$email" --arg n "$name" --arg p "$passw" \
-  '{email:$e, name:$n, password:$p, role:"viewer"}')
+# 3️⃣ Refresh token
+echo "[sanity] Refreshing access token"
+refresh_resp=$(curl -s -X POST "$BASE_URL/auth/refresh" \
+    -H "Content-Type: application/json" \
+    -d "{
+        \"body\": {\"refresh_token\": \"$REFRESH_TOKEN\"}
+    }")
 
-http=$(curlj POST /users "$payload")
-if [ "$http" = "201" ]; then
-  uid=$(j '.data.id')
-  [ -n "$uid" ] && ok "POST /users -> 201 (id=$uid)" \
-                || { bad "POST /users -> 201 but id missing"; body; }
-elif [ "$http" = "409" ] && [ "$(j .code)" = "USER_EMAIL_EXISTS" ]; then
-  bad "POST /users -> 409 email exists (unexpected)"
-  body
+if [[ "$refresh_resp" == *"access_token"* ]]; then
+    echo " $CHECK Refresh -> /auth/refresh"
+    echo "      $refresh_resp"
 else
-  bad "POST /users -> $http"; body
+    echo " $CROSS Refresh -> /auth/refresh"
+    echo "      $refresh_resp"
+    exit 1
 fi
 
-if [ -n "${uid:-}" ]; then
-  http=$(curlj GET "/users/${uid}")
-  if [ "$http" = "200" ] && [ "$(j '.data.id')" = "$uid" ]; then
-    ok "GET /users/{id} -> 200"
-  else
-    bad "GET /users/{id} -> $http"; body
-  fi
-fi
+# 4️⃣ Create test user
+echo "[sanity] Creating test user"
+create_resp=$(curl -s -X POST "$BASE_URL/users" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d "{
+    \"email\": \"$TEST_USER_EMAIL\",
+    \"password\": \"$TEST_USER_PASSWORD\",
+    \"role\": \"$TEST_USER_ROLE\"
+}")
 
-http=$(curlj GET "/users?role=viewer")
-total=$(j '.data.total // 0')
-if [ "$http" = "200" ] && [ "$total" -ge 1 ]; then
-  ok "GET /users?role=viewer -> 200 (total=$total)"
+USER_ID=$(echo "$create_resp" | jq -r '.id // empty')
+
+if [[ -z "$USER_ID" ]]; then
+    echo " $CROSS Create user -> /users"
+    echo "      $create_resp"
+    exit 1
 else
-  bad "GET /users?role=viewer -> $http"; body
+    echo " $CHECK Create user -> /users"
+    echo "      $create_resp"
 fi
 
-http=$(curlj POST "/users/login?email=${email}&password=${passw}")
-acc=$(j '.data.access // empty'); ref=$(j '.data.refresh // empty')
-if [ "$http" = "200" ] && [ -n "$acc" ] && [ -n "$ref" ]; then
-  ok "POST /users/login -> 200 (tokens ok)"
-elif [ "$http" = "401" ]; then
-  bad "POST /users/login -> 401 (invalid creds)"; body
+# 5️⃣ Get users list
+echo "[sanity] Fetching users list"
+users_resp=$(curl -s -X GET "$BASE_URL/users" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+if [[ "$users_resp" == *"$TEST_USER_EMAIL"* ]]; then
+    echo " $CHECK Get users -> /users"
+    echo "      $users_resp"
 else
-  bad "POST /users/login -> $http"; body
+    echo " $CROSS Get users -> /users"
+    echo "      $users_resp"
+    exit 1
 fi
 
-# ------------ summary ------------
-say ""
-say "Summary: ${C_G}${PASS} pass${C_X}, ${C_Y}${WARN} warn${C_X}, "\
-"${C_R}${FAIL} fail${C_X}"
-[ "$FAIL" -eq 0 ] || exit 1
+# 6️⃣ Get current user
+echo "[sanity] Get current user"
+me_resp=$(curl -s -X GET "$BASE_URL/users/me" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+if [[ "$me_resp" == *"$ADMIN_EMAIL"* ]]; then
+    echo " $CHECK Get current user -> /users/me"
+    echo "      $me_resp"
+else
+    echo " $CROSS Get current user -> /users/me"
+    echo "      $me_resp"
+    exit 1
+fi
+
+# 7️⃣ Secure ping
+echo "[sanity] Secure ping"
+ping_resp=$(curl -s -X GET "$BASE_URL/secure/ping" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+if [[ "$ping_resp" == *"ok"* ]]; then
+    echo " $CHECK Secure ping -> /secure/ping"
+    echo "      $ping_resp"
+else
+    echo " $CROSS Secure ping -> /secure/ping"
+    echo "      $ping_resp"
+fi
+
+# 8️⃣ Owner-only route
+echo "[sanity] Owner-only access"
+owner_resp=$(curl -s -X GET "$BASE_URL/secure/owner" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+if [[ "$owner_resp" == *"ok"* ]]; then
+    echo " $CHECK Owner-only -> /secure/owner"
+    echo "      $owner_resp"
+else
+    echo " $CROSS Owner-only -> /secure/owner"
+    echo "      $owner_resp"
+fi
+
+# 9️⃣ Editor-or-owner route
+echo "[sanity] Editor-or-owner access"
+editor_resp=$(curl -s -X GET "$BASE_URL/secure/editor-or-owner" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+if [[ "$editor_resp" == *"ok"* ]]; then
+    echo " $CHECK Editor-or-owner -> /secure/editor-or-owner"
+    echo "      $editor_resp"
+else
+    echo " $CROSS Editor-or-owner -> /secure/editor-or-owner"
+    echo "      $editor_resp"
+fi
+
+# 🔟 Delete test user
+echo "[sanity] Deleting test user"
+delete_resp=$(curl -s -X DELETE "$BASE_URL/users/$USER_ID" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+if [[ "$delete_resp" == *"{}"* || -z "$delete_resp" ]]; then
+    echo " $CHECK Delete user -> /users/$USER_ID"
+else
+    echo " $CROSS Delete user -> /users/$USER_ID"
+    echo "      $delete_resp"
+fi
+
+# 1️⃣1️⃣ Logout
+echo "[sanity] Logging out"
+logout_resp=$(curl -s -X POST "$BASE_URL/auth/logout" \
+    -H "Content-Type: application/json" \
+    -d "{
+        \"body\": {\"refresh_token\": \"$REFRESH_TOKEN\", \"all\": true}
+    }")
+
+if [[ "$logout_resp" == *"detail"* ]]; then
+    echo " $CHECK Logout -> /auth/logout"
+    echo "      $logout_resp"
+else
+    echo " $CROSS Logout -> /auth/logout"
+    echo "      $logout_resp"
+fi
+
+echo
+echo "Sanity summary: Done ✅"

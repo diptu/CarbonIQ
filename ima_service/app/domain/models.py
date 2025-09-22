@@ -1,34 +1,29 @@
-# ruff: noqa: D100
-"""Domain entities (users only)."""
+"""Domain models (storage-agnostic, compact, prod-ready)."""
 
 from __future__ import annotations
+from dataclasses import dataclass
+from typing import NewType, Optional
+from .schemas import UserRole  # single source of truth for role enum
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
-from uuid import UUID, uuid4
-
-
-class UserRole(str, Enum):
-    """String-valued user roles for auth/claims."""
-
-    ADMIN = "admin"
-    MANAGER = "manager"
-    VIEWER = "viewer"
+UserId = NewType("UserId", str)
 
 
-def _now() -> datetime:
-    """UTC timestamp helper."""
-    return datetime.now(timezone.utc)
+def normalize_role(v: str | UserRole) -> UserRole:
+    """Coerce arbitrary input to a valid UserRole (default: VIEWER)."""
+    if isinstance(v, UserRole):
+        return v
+    try:
+        return UserRole(str(v))
+    except Exception:
+        return UserRole.VIEWER
 
 
-@dataclass
-class User:
-    """User aggregate persisted by IMA."""
+@dataclass(slots=True, frozen=True)
+class UserEntity:
+    id: UserId
+    role: UserRole
+    email: Optional[str] = None
+    active: bool = True
 
-    email: str
-    name: str
-    role: UserRole = UserRole.VIEWER
-    is_active: bool = True
-    id: UUID = field(default_factory=uuid4)
-    created_at: datetime = field(default_factory=_now)
+
+__all__ = ["UserId", "UserRole", "normalize_role", "UserEntity"]

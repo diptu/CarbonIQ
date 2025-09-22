@@ -1,48 +1,32 @@
-"""Pydantic I/O schemas (users only)."""
+"""Domain-level DTOs (independent of API/persistence)."""
 
 from __future__ import annotations
-
-from datetime import datetime
-from uuid import UUID
-
+from enum import Enum
+from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
-from typing_extensions import Annotated
 
-from app.domain.models import UserRole
 
-ShortName = Annotated[str, Field(min_length=1, max_length=80, strip_whitespace=True)]
-Password = Annotated[str, Field(min_length=8, max_length=128)]
+class UserRole(str, Enum):
+    Owner = "owner"
+    Editor = "editor"
+    VIEWER = "viewer"
 
 
 class UserCreate(BaseModel):
-    """Create User Schema"""
-
     email: EmailStr
-    name: ShortName
-    password: Password
-    role: UserRole = UserRole.VIEWER
+    password: str = Field(min_length=6, max_length=128)
+    role: UserRole = Field(default=UserRole.VIEWER)
 
 
-class UserRead(BaseModel):
-    """Get User Schema"""
-
-    id: UUID
-    email: EmailStr
-    name: str
+class User(BaseModel):
+    id: str
+    email: Optional[EmailStr] = None
     role: UserRole
-    is_active: bool
-    created_at: datetime
 
 
 class UserFilter(BaseModel):
-    """Search User Schema"""
-
-    role: UserRole | None = None
+    role: Optional[UserRole] = None
     active_only: bool = True
 
 
-class TokenPair(BaseModel):
-    """Token Obtain Schema"""
-
-    access: str
-    refresh: str
+__all__ = ["UserRole", "UserCreate", "User", "UserFilter"]

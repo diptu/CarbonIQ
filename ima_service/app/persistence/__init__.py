@@ -1,16 +1,25 @@
-# ima_service/app/persistence/__init__.py
-# ruff: noqa: D100
-"""IMA persistence exports (users + db helpers)."""
+"""Persistence layer exports (engine/session + user repo)."""
 
-from .db import configure_engine, get_engine, get_session, init_db, session_scope
-from .repositories import SqlUserRepo, UserSQL
+from .db import get_engine, get_session, init_db
+from .repositories import (
+    UserSQL,
+    get_user_by_email,
+    get_user_by_id,
+    list_users,
+    create_user,
+    delete_user,
+    update_user,
+)
 
-__all__ = (
-    "configure_engine",
+__all__ = [
     "get_engine",
     "get_session",
     "init_db",
-    "session_scope",
-    "SqlUserRepo",
     "UserSQL",
-)
+    "get_user_by_email",
+    "get_user_by_id",
+    "list_users",
+    "create_user",
+    "delete_user",
+    "update_user",
+]

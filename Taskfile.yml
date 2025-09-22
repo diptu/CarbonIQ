@@ -3,251 +3,78 @@ version: "3"
 vars:
   SERVICE: "ima_service"
   PORT: "8000"
-  SERVICE_APP: "{{.SERVICE}}/app"
-  ALEMBIC_INI: "{{.SERVICE}}/alembic.ini"
-  MIGRATIONS_DIR: "{{.SERVICE}}/migrations"
-
-env:
-  # Neutralize any pre-activated venv so uv uses the service env only.
-  VIRTUAL_ENV: ""
 
 tasks:
-  ensure-uv:
-    desc: "Ensure uv is installed and on PATH"
-    preconditions:
-      - sh: command -v uv >/dev/null 2>&1
-        msg: |
-          'uv' not found on PATH.
-          Install: brew install uv
-          Or:      curl -LsSf https://astral.sh/uv/install.sh | sh
-
-  ensure-service:
-    desc: "Assert {{.SERVICE}} looks valid (has {{.SERVICE}}/app)"
-    preconditions:
-      - sh: test -d {{.SERVICE_APP}}
-        msg: |
-          Service '{{.SERVICE}}' not found (missing '{{.SERVICE}}/app').
-          Try SERVICE=ima_service or SERVICE=tenant_service.
-
-  ensure-alembic:
-    desc: "Assert Alembic layout"
-    deps: [ensure-service]
-    preconditions:
-      - sh: test -f {{.ALEMBIC_INI}}
-        msg: "Missing '{{.ALEMBIC_INI}}'."
-      - sh: test -d {{.MIGRATIONS_DIR}}
-        msg: "Missing '{{.MIGRATIONS_DIR}}' (env.py, versions/, etc.)."
-
-  # -------------------------
-  # Env
-  # -------------------------
-  env:clean:
-    desc: "Remove stale envs (root + service)"
+  setup:
+    desc: "Install Python 3.11 + sync deps (workspace first, fallback service)"
     cmds:
-      - rm -rf .venv {{.SERVICE}}/.venv || true
+      - cmd: uv python install 3.11
+      - cmd: |
+          set -euxo pipefail
+          uv sync --dev || uv sync --dev --project "{{.SERVICE}}"
 
-  env:setup:
-    desc: "Install Python & sync env (inside service dir)"
-    deps: [ensure-uv, ensure-service]
-    cmds:
-      - cd "{{.SERVICE}}" && VIRTUAL_ENV= uv python install 3.11
-      - cd "{{.SERVICE}}" && VIRTUAL_ENV= uv sync --dev
-
-  # -------------------------
-  # Dev servers
-  # -------------------------
   start:
-    desc: "Start (cd into service) → uv run uvicorn main:app"
-    deps: [ensure-uv, ensure-service, env:setup]
+    desc: "Run dev server (reload)"
+    deps: [setup]
     cmds:
-      - cd "{{.SERVICE}}" && uv run uvicorn main:app --reload --port {{.PORT}}
+      - cmd: uv run uvicorn "{{.SERVICE}}".main:app --reload --port "{{.PORT}}"
 
-  start:inside:
-    desc: "Start (explicit inside service) → same as start"
-    deps: [start]
-    cmds: []
-
-  start-all:
-    desc: "Start both services in parallel (cd into each)"
-    deps: [ensure-uv]
-    cmds:
-      - (cd ima_service && uv run uvicorn main:app --reload --port 8000) &
-      - (cd tenant_service && uv run uvicorn main:app --reload --port 8001) &
-      - wait
-
-  # -------------------------
-  # Tests
-  # -------------------------
-  test:
-    desc: "Run all tests (inside service)"
-    deps: [ensure-uv, ensure-service, env:setup]
-    cmds:
-      - cd "{{.SERVICE}}" && uv run pytest -q
-
-  test-unit:
-    desc: "Unit tests"
-    deps: [ensure-uv, ensure-service, env:setup]
-    cmds:
-      - cd "{{.SERVICE}}" && uv run pytest app/tests/unit/ -q
-
-  test-integration:
-    desc: "Integration tests"
-    deps: [ensure-uv, ensure-service, env:setup]
-    cmds:
-      - cd "{{.SERVICE}}" && uv run pytest app/tests/integration/ -q
-
-  test-e2e:
-    desc: "E2E tests"
-    deps: [ensure-uv, ensure-service, env:setup]
-    cmds:
-      - cd "{{.SERVICE}}" && uv run pytest tests/e2e/ -q
-
-  coverage:
-    desc: "Coverage (for service 'app' pkg)"
-    deps: [ensure-uv, ensure-service, env:setup]
-    cmds:
-      - cd "{{.SERVICE}}" && uv run pytest --cov=app --cov-report=term-missing
-
-  # -------------------------
-  # Lint & Format
-  # -------------------------
   lint:
-    desc: "Ruff"
-    deps: [ensure-uv, ensure-service, env:setup]
+    desc: "Ruff + Pylint (service)"
+    deps: [setup]
     cmds:
-      - cd "{{.SERVICE}}" && uv run ruff check app
-
-  pylint:
-    desc: "Pylint"
-    deps: [ensure-uv, ensure-service, env:setup]
-    cmds:
-      - cd "{{.SERVICE}}" && uv run pylint app
-
-  lint-fix:
-    desc: "Ruff --fix"
-    deps: [ensure-uv, ensure-service, env:setup]
-    cmds:
-      - cd "{{.SERVICE}}" && uv run ruff check app --fix
-
-  format:
-    desc: "Black + isort"
-    deps: [ensure-uv, ensure-service, env:setup]
-    cmds:
-      - cd "{{.SERVICE}}" && uv run black app
-      - cd "{{.SERVICE}}" && uv run isort app
-
-  fix:
-    desc: "Black + isort + ruff --fix"
-    deps: [format, lint-fix]
-    cmds: []
+      - cmd: uv run ruff check "{{.SERVICE}}/app"
+      - cmd: uv run pylint "{{.SERVICE}}/app"
 
   typecheck:
-    desc: "Mypy"
-    deps: [ensure-uv, ensure-service, env:setup]
+    desc: "Mypy (service)"
+    deps: [setup]
     cmds:
-      - cd "{{.SERVICE}}" && uv run mypy app
+      - cmd: uv run mypy "{{.SERVICE}}/app"
 
-  # -------------------------
-  # Repo-wide runners
-  # -------------------------
-  check-all:
-    desc: "Ruff, pylint, mypy per service (cd into each)"
-    deps: [ensure-uv]
+  test:
+    desc: "Pytest (service)"
+    deps: [setup]
+    env:
+      IMA_ENV: test
+      IMA_JWT__SECRET_KEY: test-secret
+      IMA_REDIS_DSN: redis://localhost:6379/0
+      IMA_DB__URL: sqlite://
     cmds:
-      - cd ima_service && uv run ruff check app
-      - cd ima_service && uv run pylint app || true
-      - cd ima_service && uv run mypy app
-      - cd tenant_service && uv run ruff check app
-      - cd tenant_service && uv run pylint app || true
-      - cd tenant_service && uv run mypy app
-
-  test-all:
-    desc: "Run tests across services (cd into each)"
-    deps: [ensure-uv]
-    cmds:
-      - cd ima_service && uv run pytest -q
-      - cd tenant_service && uv run pytest -q
+      - cmd: uv run pytest "{{.SERVICE}}" -q
 
   qa:
-    desc: "Format, lint, typecheck, tests, coverage for SERVICE"
-    deps: [fix, lint, pylint, typecheck, test, coverage]
-    cmds: []
+    desc: "Lint + typecheck + tests"
+    deps: [lint, typecheck, test]
 
-  # -------------------------
-  # Alembic (service-root)
-  # -------------------------
-  migrate:
-    desc: "Upgrade head"
-    deps: [ensure-uv, ensure-alembic, env:setup]
+  sanity:
+    desc: "Endpoint sanity script"
+    deps: [setup]
+    dir: "{{.SERVICE}}"
     cmds:
-      - cd "{{.SERVICE}}" && uv run alembic -c alembic.ini upgrade head
+      - cmd: bash scripts/sanity.sh
 
-  migrate:new:
-    desc: "Autogenerate new revision after upgrade head"
-    deps: [ensure-uv, ensure-alembic, env:setup]
+  fix:
+    desc: "Auto-fix with ruff + format with black/isort"
+    deps: [setup]
+    cmds:
+      - cmd: uv run ruff check "{{.SERVICE}}/app" --fix
+      - cmd: uv run black "{{.SERVICE}}/app"
+      - cmd: uv run isort "{{.SERVICE}}/app"
+
+  kill-port:
+    desc: "Kill process on PORT (default: 8000)"
     vars:
-      MSG: "{{.MSG | default \"auto\"}}"
+      PORT: "{{.PORT}}"
     cmds:
-      - cd "{{.SERVICE}}" && uv run alembic -c alembic.ini upgrade head
-      - cd "{{.SERVICE}}" && uv run alembic -c alembic.ini \
-        revision --autogenerate -m "{{.MSG}}"
+      - cmd: |
+          lsof -ti:"{{.PORT}}" | xargs -r kill -9 || true
 
-  migrate:up:
-    desc: "Upgrade to REV (default: head)"
-    deps: [ensure-uv, ensure-alembic, env:setup]
-    vars:
-      REV: "{{.REV | default \"head\"}}"
-    cmds:
-      - cd "{{.SERVICE}}" && uv run alembic -c alembic.ini upgrade {{.REV}}
-
-  migrate:down:
-    desc: "Downgrade to REV (default: -1)"
-    deps: [ensure-uv, ensure-alembic, env:setup]
-    vars:
-      REV: "{{.REV | default \"-1\"}}"
-    cmds:
-      - cd "{{.SERVICE}}" && uv run alembic -c alembic.ini downgrade {{.REV}}
-
-  migrate:stamp:
-    desc: "Stamp to REV without running migrations (careful)"
-    deps: [ensure-uv, ensure-alembic, env:setup]
-    vars:
-      REV: "{{.REV | default \"head\"}}"
-    cmds:
-      - cd "{{.SERVICE}}" && uv run alembic -c alembic.ini stamp {{.REV}}
-
-  migrate:current:
-    desc: "Show current DB revision"
-    deps: [ensure-uv, ensure-alembic, env:setup]
-    cmds:
-      - cd "{{.SERVICE}}" && uv run alembic -c alembic.ini current
-
-  migrate:heads:
-    desc: "Show migration heads"
-    deps: [ensure-uv, ensure-alembic, env:setup]
-    cmds:
-      - cd "{{.SERVICE}}" && uv run alembic -c alembic.ini heads
-
-  migrate:history:
-    desc: "Show migration history (RANGE like '-5:' or REV)"
-    deps: [ensure-uv, ensure-alembic, env:setup]
-    vars:
-      RANGE: "{{.RANGE | default \":\"}}"
-    cmds:
-      - cd "{{.SERVICE}}" && uv run alembic -c alembic.ini history -r{{.RANGE}}
-
-  # -------------------------
-  # Cleanup
-  # -------------------------
   clean:
-    desc: "Remove caches and .pyc"
+    desc: "Remove caches"
     cmds:
-      - rm -rf .mypy_cache .pytest_cache .ruff_cache || true
-      - find . -type d -name "__pycache__" -prune -exec rm -rf {} + || true
-      - find . -type f -name "*.py[co]" -delete || true
-
-  clean-hard:
-    desc: "Aggressive clean (also node_modules, build, dist)"
-    cmds:
-      - task: clean
-      - rm -rf build dist node_modules .coverage htmlcov || true
+      - cmd: rm -rf .mypy_cache .pytest_cache .ruff_cache "{{.SERVICE}}/.pytest_cache" || true
+      - cmd: |
+          find . -type d -name "__pycache__" -prune -exec rm -rf {} + || true
+      - cmd: |
+          find . -type f -name "*.py[co]" -delete || true

@@ -1,111 +1,89 @@
 # ima_service/app/core/errors.py
-"""Minimal typed errors + FastAPI handlers with uniform JSON shape."""
+"""Typed errors for consistent JSON responses (production-ready)."""
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, cast
-
-from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from pydantic import ValidationError
-
-from .logging import get_logger
-
-log = get_logger(__name__)
+from typing import Any, Mapping, Optional
 
 
 class AppError(Exception):
-    """Domain error with HTTP status and stable code."""
+    """Domain/HTTP error that serializes cleanly in API responses.
+
+    Attributes:
+        status_code: HTTP status code to return.
+        code: Short, machine-readable error code (e.g., "FORBIDDEN").
+        message: Human-readable description.
+        details: Optional structured context for debugging/clients.
+    """
+
+    __slots__ = ("status_code", "code", "message", "details")
 
     def __init__(
         self,
         *,
-        status_code: int = status.HTTP_400_BAD_REQUEST,
+        status_code: int,
         code: str,
         message: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: Optional[Mapping[str, Any]] = None,
     ) -> None:
-        super().__init__(message)
-        self.status_code = status_code
-        self.code = code
-        self.message = message
-        self.details = details or {}
+        super().__init__(f"{code}: {message}")
+        self.status_code = int(status_code)
+        self.code = str(code)
+        self.message = str(message)
+        self.details = dict(details) if details else None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe dict payload for the error body."""
+        out: dict[str, Any] = {"code": self.code, "message": self.message}
+        if self.details is not None:
+            out["details"] = self.details
+        return out
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return (
+            "AppError("
+            f"status_code={self.status_code}, code={self.code!r}, "
+            f"message={self.message!r})"
+        )
 
 
-def _body(
+# ---- Convenience constructors -------------------------------------------------
+
+
+def bad_request(
+    msg: str,
     *,
-    status_str: str,
-    code: str,
-    message: str,
-    details: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    """Uniform JSON body for all errors."""
-    body: Dict[str, Any] = {"status": status_str, "code": code, "message": message}
-    if details:
-        body["details"] = details
-    return body
+    code: str = "BAD_REQUEST",
+    details: Optional[Mapping[str, Any]] = None,
+) -> AppError:
+    return AppError(status_code=400, code=code, message=msg, details=details)
 
 
-async def _on_app_error(_: Request, exc: Exception) -> JSONResponse:
-    """Handle AppError uniformly."""
-    err = cast(AppError, exc)
-    log.warning("app error: %s (%s)", err.message, err.code, extra=err.details)
-    return JSONResponse(
-        status_code=err.status_code,
-        content=_body(
-            status_str="error",
-            code=err.code,
-            message=err.message,
-            details=err.details,
-        ),
-    )
+def unauthorized(
+    msg: str = "Unauthorized",
+    *,
+    code: str = "UNAUTHORIZED",
+    details: Optional[Mapping[str, Any]] = None,
+) -> AppError:
+    return AppError(status_code=401, code=code, message=msg, details=details)
 
 
-async def _on_http(_: Request, exc: Exception) -> JSONResponse:
-    """Normalize FastAPI HTTPException to our JSON shape."""
-    http_exc = cast(HTTPException, exc)
-    msg = str(http_exc.detail) if http_exc.detail else "HTTP error"
-    log.info("http error: %s", msg, extra={"code": "http.error"})
-    return JSONResponse(
-        status_code=http_exc.status_code,
-        content=_body(status_str="error", code="http.error", message=msg),
-    )
+def forbidden(
+    msg: str = "Forbidden",
+    *,
+    code: str = "FORBIDDEN",
+    details: Optional[Mapping[str, Any]] = None,
+) -> AppError:
+    return AppError(status_code=403, code=code, message=msg, details=details)
 
 
-async def _on_validation(_: Request, exc: Exception) -> JSONResponse:
-    """Handle FastAPI/Pydantic validation errors."""
-    val_exc = cast(RequestValidationError | ValidationError, exc)
-    errs = val_exc.errors()
-    log.debug("validation error", extra={"errors": errs})
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content=_body(
-            status_str="fail",
-            code="validation.error",
-            message="Validation failed.",
-            details={"errors": errs},
-        ),
-    )
+def not_found(
+    msg: str = "Not found",
+    *,
+    code: str = "NOT_FOUND",
+    details: Optional[Mapping[str, Any]] = None,
+) -> AppError:
+    return AppError(status_code=404, code=code, message=msg, details=details)
 
 
-async def _on_unexpected(_: Request, exc: Exception) -> JSONResponse:
-    """Catch-all handler for unexpected exceptions."""
-    log.exception("unexpected error: %s", exc)
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=_body(
-            status_str="error",
-            code="internal.error",
-            message="Internal server error.",
-        ),
-    )
-
-
-def register_exception_handlers(app: FastAPI) -> None:
-    """Attach exception handlers to the FastAPI app."""
-    app.add_exception_handler(AppError, _on_app_error)
-    app.add_exception_handler(HTTPException, _on_http)
-    app.add_exception_handler(RequestValidationError, _on_validation)
-    app.add_exception_handler(ValidationError, _on_validation)
-    app.add_exception_handler(Exception, _on_unexpected)
+__all__ = ["AppError", "bad_request", "unauthorized", "forbidden", "not_found"]
