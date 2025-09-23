@@ -217,3 +217,32 @@ CarbonIQ is released under the MIT License.
 - Logging: no sensitive payloads; structured JSON; OTel traces with IDs only
 
 - Uploads: virus scan PDFs/CSVs (ClamAV container optional in dev)
+
+
+---
+
+## **Mono-Repo Structure**
+
+```
+carboniq_mono_repo/
+├── iam_service/             # Authentication & RBAC (JWT, tenant-aware)
+├── tenant_service/          # Tenant, org, memberships, subscription tiers
+├── ingestion_service/       # File uploads (CSV/PDF), raw storage in S3
+├── ocr_service/             # OCR for PDF bills (Tesseract)
+├── normalization_service/   # Standardize kWh, billing period, meter ID, data quality checks
+├── factor_service/          # Versioned Scope 2 intensity factors (AEMO/OpenNEM)
+├── calculation_service/     # Interval-based calculations & backcasting
+├── ai_service/              # AI estimation: bill-to-kWh & load profiles
+├── renewables_service/      # REC, GreenPower, PPA attribution
+├── offset_service/          # Offset catalog & residual matching
+├── reporting_service/       # PDF/CSV Climate Active reports
+├── explainability_service/  # Anomaly explanations (e.g., why June higher?)
+├── onboarding_service/      # Multi-step tenant onboarding
+├── notification_service/    # Alerts: email/webpush via event triggers
+├── gateway_service/         # Tenant-aware routing, JWT validation, BFF for frontend
+├── audit_observability/     # Logs, metrics, traces (OTel/ELK)
+├── shared_libs/             # Shared JWT, RBAC, DB models, logging, event bus
+└── pyproject.toml
+```
+
+---
