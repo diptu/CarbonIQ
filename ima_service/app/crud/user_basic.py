@@ -1,0 +1,138 @@
+"""Basic User CRUD operations with UUID and role preloading."""
+
+from typing import List, Optional, cast
+from uuid import UUID
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy import func
+from sqlalchemy.orm import selectinload
+
+from app.models.user import User
+from app.schemas.user import UserCreate
+from app.utils.security import get_password_hash
+from app.models.role import Role
+from app.crud.user_roles import assign_role_to_user
+
+# -------------------------
+# User CRUD
+# -------------------------
+from sqlalchemy import update
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.user_roles import user_roles
+from app.models.user import User
+from app.models.role import Role
+
+
+async def update_user_role(
+    db: AsyncSession,
+    user: User,
+    existing_role: Role,
+    new_role: Role,
+    tenant_id: str | None = None,
+):
+    """
+    Update a user's role for a given tenant in the user_roles table.
+    """
+    stmt = (
+        update(user_roles)
+        .where(user_roles.c.user_id == user.id)
+        .where(user_roles.c.role_id == existing_role.id)
+    )
+    if tenant_id:
+        stmt = stmt.where(user_roles.c.tenant_id == tenant_id)
+    else:
+        stmt = stmt.where(user_roles.c.tenant_id.is_(None))
+
+    stmt = stmt.values(role_id=new_role.id)
+    await db.execute(stmt)
+    await db.commit()
+
+
+async def update_user(db: AsyncSession, user: User, user_in: UserCreate) -> User:
+    """Update a user’s email, password, and superuser status."""
+    user.email = user_in.email
+    user.is_superuser = user_in.is_superuser
+    if hasattr(user_in, "password") and user_in.password:
+        user.hashed_password = get_password_hash(user_in.password)
+
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
+    result = await db.execute(
+        select(User).options(selectinload(User.roles)).where(User.email == email)
+    )
+    return result.scalars().first()
+
+
+async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
+    db_user = User(
+        email=user_in.email,
+        hashed_password=get_password_hash(user_in.password),
+        is_active=user_in.is_active,
+        is_superuser=user_in.is_superuser,
+    )
+    db.add(db_user)
+    await db.commit()
+    await db.refresh(db_user)
+    return db_user
+
+
+async def get_user(db: AsyncSession, user_id: UUID) -> User | None:
+    """Get a user by ID."""
+    result = await db.execute(select(User).where(User.id == user_id))
+    return result.scalar_one_or_none()
+
+
+# async def list_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[User]:
+#     """List users with pagination."""
+#     result = await db.execute(select(User).offset(skip).limit(limit))
+#     return result.scalars().all()
+
+
+async def list_users(
+    db: AsyncSession, skip: int = 0, limit: int = 100
+) -> tuple[int, list[User]]:
+    """List users with pagination, returns total count and user list."""
+
+    # Total count query
+    total_result = await db.execute(select(func.count(User.id)))
+    total = total_result.scalar_one()
+
+    # Users query with offset & limit
+    result = await db.execute(select(User).offset(skip).limit(limit))
+    users = result.scalars().all()
+
+    return total, users
+
+
+async def deactivate_user(db: AsyncSession, user_id: UUID) -> Optional[User]:
+    user = await get_user(db, user_id)
+    if user:
+        user.is_active = False
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    return user
+
+
+async def reactivate_user(db: AsyncSession, user_id: UUID) -> Optional[User]:
+    user = await get_user(db, user_id)
+    if user:
+        user.is_active = True
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    return user
+
+
+async def delete_user(db: AsyncSession, user_id: UUID) -> bool:
+    user = await get_user(db, user_id)
+    if not user:
+        return False
+    await db.delete(user)
+    await db.commit()
+    return True

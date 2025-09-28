@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/bash
+export PYTHONPATH=$(pwd)
 # Start dev server (reload). Usage: PORT=8000 ./dev.sh
 set -Eeuo pipefail
 

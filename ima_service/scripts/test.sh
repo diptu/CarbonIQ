@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/bash
+export PYTHONPATH=$(pwd)
 # Test runner. Set COVERAGE=1 for coverage. Args passed to pytest.
 set -Eeuo pipefail
 

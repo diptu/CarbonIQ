@@ -267,3 +267,49 @@ Endpoints:
 [Notification Service] <-- triggered events from ingestion, calculation, AI, reporting
 
 ```
+
+
+```bash
+ima_service/
+├─ app/
+│  ├─ __init__.py
+│  ├─ main.py
+│  ├─ core/
+│  │  └─ config.py
+│  ├─ db/
+│  │  ├─ base_class.py
+│  │  ├─ base.py
+│  │  └─ session.py
+│  ├─ models/
+│  │  ├─ __init__.py
+│  │  ├─ user.py
+│  │  ├─ role.py
+│  │  └─ user_roles.py
+│  ├─ schemas/
+│  │  ├─ __init__.py
+│  │  ├─ user.py
+│  │  ├─ role.py
+│  │  └─ auth.py
+│  ├─ crud/
+│  │  ├─ __init__.py
+│  │  ├─ user_basic.py
+│  │  ├─ user_queries.py
+│  │  ├─ role.py
+│  │  └─ user_roles.py
+│  ├─ api/
+│  │  ├─ __init__.py
+│  │  └─ v1/
+│  │     ├─ __init__.py
+│  │     └─ routes/
+│  │        ├─ __init__.py
+│  │        ├─ user.py
+│  │        ├─ role.py
+│  │        ├─ auth.py
+│  │        └─ health.py
+│  └─ utils/
+│     ├─ __init__.py
+│     ├─ security.py
+│     └─ token.py
+└─ .env
+
+```

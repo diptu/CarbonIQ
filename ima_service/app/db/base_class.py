@@ -1,13 +1,12 @@
-# app/db/base_class
-"""Base class for SQLAlchemy models."""
+from sqlalchemy.orm import declarative_base
 
-from sqlalchemy.orm import DeclarativeBase, declared_attr
+Base = declarative_base()
 
 
-class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
-    """Custom declarative base class for all SQLAlchemy models."""
+class TimestampMixin:
+    from sqlalchemy import Column, DateTime, func
 
-    @declared_attr  # type: ignore[arg-type]
-    def __tablename__(cls) -> str:  # pylint: disable=no-self-argument
-        """Generate __tablename__ automatically from class name."""
-        return cls.__name__.lower()
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

@@ -1,10 +1,9 @@
-# app/db/base
-"""
-Base import hub for SQLAlchemy models.
+# app/db/base.py
+from .base_class import Base
 
-This module ensures that all models are imported so that Alembic's
-autogenerate feature can detect them.
-"""
+# Import models only once to register them
+import app.models.user  # noqa: F401
+import app.models.role  # noqa: F401
+import app.models.user_roles  # noqa: F401
 
-from ima_service.app.db.base_class import Base  # pylint: disable=unused-import
-from ima_service.app.models.user import User  # pylint: disable=unused-import
+__all__ = ["Base"]

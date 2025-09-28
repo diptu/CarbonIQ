@@ -4,8 +4,8 @@
 - [x] Scaffold FastAPI project
 - [x] PostgreSQL config + session
 - [] Structured JSON logging
-- [] Health check API
-- [ ] Alembic migrations
+- [x] Health check API
+- [x] Alembic migrations
 - [ ] Dockerfile + docker-compose
 - [ ] CI/CD with lint/typecheck/tests
 
@@ -15,20 +15,20 @@
 - [x] User model: id, email, hashed_password, is_active, is_superuser, timestamps
 - [x] CRUD ops (`get_user_by_email`, `create_user`, etc.)
 - [x] Unique constraints (email)
-- [ ] Account deactivation / deletion
+- [x] Account deactivation / deletion
 - [ ] Email verification workflow 🚧
 - [ ] Password reset workflow 🚧
 
 ---
 
 ## 3. Authentication (JWT)
-- [ ] Endpoints:
+- [x] Endpoints:
   - POST `/auth/login`
   - POST `/auth/refresh`
   - POST `/auth/logout`
-- [ ] Access + refresh tokens
+- [x] Access + refresh tokens
   - `create_access_token`, `create_refresh_token`, `decode_token`
-- [ ] Token expiration (short-lived access, long-lived refresh)
+- [x] Token expiration (short-lived access, long-lived refresh)
 - [ ] Rotate refresh tokens 🚧
 - [ ] Blacklist revoked refresh tokens (Redis) 🚧
 - [ ] JWT key rotation support 🚧
@@ -36,11 +36,11 @@
 ---
 
 ## 4. RBAC & Roles
-- [ ] **Database Models**
+- [x] **Database Models**
   - Role table (id, name, description, is_system)
-- [ ] **Default Roles**
+- [x] **Default Roles**
   - `tenant_admin`, `member`, `billing_admin`, `viewer`
-- [ ] **Endpoints**
+- [x] **Endpoints**
   - POST `/users/{id}/roles`
   - POST `/roles` (sys-admin only)
 - [ ] **RBAC Enforcement**
@@ -52,6 +52,39 @@
   - Invalidate cache on role updates
 - [ ] **Audit Logging**
   - Log role assignments (actor, target, role, tenant, timestamp)
+
+---
+🔑 Prep for Tenant-Service Integration
+
+RBAC & Roles
+
+- Add tenant_id to all role assignment APIs
+
+- Update assign_role_to_user to require tenant_id
+
+- Plan require_roles(...) dependency to check role + tenant
+
+Authentication
+
+- Embed tenant_id in JWT claims alongside roles
+
+- Update token creation/decoding to support tenant_id
+
+User ↔ Tenant linkage
+
+- Create a Tenant-Service client stub (check_membership, list_tenants_for_user)
+
+- Use stub now, replace with real Tenant-Service later
+
+Caching
+
+- Use tenant-scoped cache keys (roles:{user_id}:{tenant_id})
+
+- Invalidate cache per (user_id, tenant_id) updates
+
+Audit Logging
+
+- Always log tenant_id in role changes and RBAC events
 
 ---
 

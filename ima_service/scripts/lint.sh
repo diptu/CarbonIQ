@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/bash
+export PYTHONPATH=$(pwd)
 # Lint & typecheck. Usage: ./lint.sh
 set -Eeuo pipefail
 

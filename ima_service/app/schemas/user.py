@@ -1,45 +1,35 @@
-"""
-Schemas for user-related request and response models.
-"""
-
-from datetime import datetime
-from typing import Optional
-
-from pydantic import BaseModel, EmailStr, ConfigDict
+from typing import List
+from uuid import UUID
+from pydantic import EmailStr
+from .base import ORMBase
+from .role import RoleRead
 
 
-class UserBase(BaseModel):
-    """Shared fields between request and response models."""
-
+# Base user fields
+class UserBase(ORMBase):
     email: EmailStr
     is_active: bool = True
     is_superuser: bool = False
 
-    # Allow reading directly from SQLAlchemy models
-    model_config = ConfigDict(from_attributes=True)
 
-
-class UserCreate(BaseModel):
-    """Schema for creating a new user (signup)."""
-
-    email: EmailStr
+# For creating a new user
+class UserCreate(UserBase):
     password: str
 
 
-class UserUpdate(BaseModel):
-    """Schema for updating user details (partial)."""
-
-    # email: Optional[EmailStr] = None
-    password: Optional[str] = None
-    is_active: Optional[bool] = None
-    is_superuser: Optional[bool] = None
-
-
+# For returning a single user
 class UserRead(UserBase):
-    """Schema for returning user details in API responses."""
+    id: UUID
+    roles: List[RoleRead] = []
 
-    id: int
-    created_at: datetime
-    updated_at: datetime
+    model_config = {
+        "from_attributes": True  # Pydantic v2 ORM support
+    }
 
-    model_config = ConfigDict(from_attributes=True)
+
+# For returning a paginated list of users
+class UserListResponse(ORMBase):
+    total: int
+    previousPage: str | None
+    nextPage: str | None
+    users: List[UserRead]

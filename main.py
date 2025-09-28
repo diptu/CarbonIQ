@@ -1,13 +1,30 @@
 # carbon_IQ/main.py
+"""
+Entry point to run CarbonIQ FastAPI services dynamically.
+Supports loading apps directly or via factory functions, with optional auto-reload and debug mode.
+"""
+
 import argparse
 import importlib
 import sys
+from typing import Optional, Any
+
 import uvicorn
 
 
-def _load_app(service: str, factory: str | None):
+def _load_app(service: str, factory: Optional[str] = None) -> Any:
     """
     Dynamically load a FastAPI app instance or a factory function from the given service.
+
+    Args:
+        service (str): Name of the service module (e.g., 'ima_service').
+        factory (Optional[str]): Name of a factory function to create the app.
+
+    Returns:
+        Any: Loaded FastAPI app instance.
+
+    Raises:
+        RuntimeError: If the app or factory function cannot be found or called.
     """
     module_name = f"{service}.main"
     module = importlib.import_module(module_name)
@@ -30,7 +47,8 @@ def _load_app(service: str, factory: str | None):
         return app
 
 
-def main():
+def main() -> None:
+    """Parse CLI arguments and run the selected CarbonIQ service via Uvicorn."""
     parser = argparse.ArgumentParser(description="Run CarbonIQ services")
     parser.add_argument(
         "--service", type=str, required=True, help="Service to run (e.g., ima_service)"
@@ -47,6 +65,11 @@ def main():
         "--reload", action="store_true", help="Enable auto-reload on code changes"
     )
     parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug mode (debug logging & reload)",
+    )
+    parser.add_argument(
         "--log-level",
         type=str,
         default="info",
@@ -55,7 +78,10 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.reload and not args.factory:
+    log_level = "debug" if args.debug else args.log_level
+    reload_flag = args.reload or args.debug
+
+    if reload_flag and not args.factory:
         # Uvicorn reload requires import string (module:variable)
         import_str = f"{args.service}.main:app"
         uvicorn.run(
@@ -63,7 +89,7 @@ def main():
             host=args.host,
             port=args.port,
             reload=True,
-            log_level=args.log_level,
+            log_level=log_level,
         )
     else:
         # Load app directly (factory or plain app)
@@ -72,8 +98,8 @@ def main():
             app,
             host=args.host,
             port=args.port,
-            reload=args.reload,
-            log_level=args.log_level,
+            reload=reload_flag,
+            log_level=log_level,
         )
 
 

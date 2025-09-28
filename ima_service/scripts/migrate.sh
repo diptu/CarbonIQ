@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/bash
+export PYTHONPATH=$(pwd)
 # Alembic helpers:
 # ./migrate.sh up | down [-1] | rev "msg" | current
 set -Eeuo pipefail

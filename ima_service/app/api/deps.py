@@ -1,16 +1,17 @@
-# app/api/deps.py
-"""
-Shared dependencies for FastAPI routes.
-"""
+"""Dependency utilities for FastAPI endpoints."""
 
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
-from ima_service.app.db.session import async_session_maker
+from app.db.session import async_session
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
-    Dependency that yields a database session.
+    Async database session generator for dependency injection.
+    Usage in routes: db: AsyncSession = Depends(get_db)
     """
-    async with async_session_maker() as session:
-        yield session
+    async with async_session() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
