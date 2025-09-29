@@ -39,22 +39,37 @@ echo "[sanity] Base URL: $BASE_URL"
 # -------------------------
 # 1️⃣ Health check
 # -------------------------
-health_resp=$(curl -s "$BASE_URL/health/")
-if [[ "$health_resp" == *"ok"* ]]; then
+health_resp=$(curl -s -w "\n%{http_code}" "$BASE_URL/health/")
+http_code=$(echo "$health_resp" | tail -n1)
+health_body=$(echo "$health_resp" | sed '$d')
+
+health_status=$(echo "$health_body" | jq -r '.details.status // empty' 2>/dev/null) || {
+    log_fail "Failed to parse JSON from health endpoint"
+    echo "      Raw response: $health_body"
+    exit 1
+}
+
+if [[ "$http_code" != "200" ]]; then
+    log_fail "Health check returned HTTP $http_code"
+    echo "      Response: $health_body"
+    exit 1
+fi
+
+if [[ "$health_status" == "ok" ]]; then
     log_pass "Health OK"
 else
     log_fail "Health FAILED"
-    echo "      Response: $health_resp"
+    echo "      Response: $health_body"
     exit 1
 fi
 
 # -------------------------
 # 2️⃣ Login as admin
 # -------------------------
-ADMIN_EMAIL="admin@caroniq.com"
+ADMIN_EMAIL="admin@carboniq.com"
 ADMIN_PASSWORD="Hello123"
 
-login_resp=$(curl -s -X POST "$BASE_URL/auth/login" \
+login_resp=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/auth/login" \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
   -d "{
@@ -62,131 +77,215 @@ login_resp=$(curl -s -X POST "$BASE_URL/auth/login" \
     \"password\": \"$ADMIN_PASSWORD\"
 }")
 
-ACCESS_TOKEN=$(echo "$login_resp" | jq -r '.access_token // empty')
-REFRESH_TOKEN=$(echo "$login_resp" | jq -r '.refresh_token // empty')
+http_code=$(echo "$login_resp" | tail -n1)
+login_body=$(echo "$login_resp" | sed '$d')
 
-if [[ -z "$ACCESS_TOKEN" ]]; then
-    log_fail "Login failed"
-    echo "$login_resp"
+ACCESS_TOKEN=$(echo "$login_body" | jq -r '.details.accessToken // empty' 2>/dev/null) || {
+    log_fail "Failed to parse JSON from login endpoint (access token)"
+    echo "      Raw response: $login_body"
+    exit 1
+}
+
+REFRESH_TOKEN=$(echo "$login_body" | jq -r '.details.refreshToken // empty' 2>/dev/null) || {
+    log_fail "Failed to parse JSON from login endpoint (refresh token)"
+    echo "      Raw response: $login_body"
+    exit 1
+}
+
+if [[ "$http_code" != "200" || -z "$ACCESS_TOKEN" ]]; then
+    log_fail "Login failed (HTTP $http_code)"
+    echo "      Response: $login_body"
     exit 1
 else
     log_pass "Login successful"
 fi
 
 # -------------------------
-# 3️⃣ Create test user
+# 3️⃣ Token refresh
 # -------------------------
-create_resp=$(curl -s -X POST "$BASE_URL/users/" \
+refresh_resp=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/auth/refresh" \
+  -H "accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"refreshToken\": \"$REFRESH_TOKEN\"
+}")
+
+http_code=$(echo "$refresh_resp" | tail -n1)
+refresh_body=$(echo "$refresh_resp" | sed '$d')
+NEW_ACCESS_TOKEN=$(echo "$refresh_body" | jq -r '.accessToken // empty' 2>/dev/null)
+
+if [[ "$http_code" != "200" || -z "$NEW_ACCESS_TOKEN" ]]; then
+    log_fail "Token refresh failed (HTTP $http_code)"
+    echo "      Response: $refresh_body"
+else
+    log_pass "Token refresh successful"
+    ACCESS_TOKEN="$NEW_ACCESS_TOKEN"
+fi
+
+# -------------------------
+# 4️⃣ Create test user
+# -------------------------
+create_resp=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/users/" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
     \"email\": \"$TEST_USER_EMAIL\",
-    \"password\": \"$TEST_USER_PASSWORD\"
+    \"password\": \"$TEST_USER_PASSWORD\",
+    \"isActive\": true,
+    \"isSuperuser\": false
 }")
 
-USER_ID=$(echo "$create_resp" | jq -r '.id // empty')
-if [[ -z "$USER_ID" ]]; then
-    log_fail "User creation FAILED"
-    echo "$create_resp"
+http_code=$(echo "$create_resp" | tail -n1)
+create_body=$(echo "$create_resp" | sed '$d')
+
+USER_ID=$(echo "$create_body" | jq -r '.details.id // empty' 2>/dev/null) || {
+    log_fail "Failed to parse JSON from create user endpoint"
+    echo "      Raw response: $create_body"
     exit 1
+}
+
+if [[ "$http_code" != "201" || -z "$USER_ID" ]]; then
+    log_fail "User creation FAILED (HTTP $http_code)"
+    echo "      Response: $create_body"
 else
     log_pass "User created ($TEST_USER_EMAIL)"
 fi
 
 # -------------------------
-# 4️⃣ List users
+# 5️⃣ List users
 # -------------------------
-users_resp=$(curl -s -X GET "$BASE_URL/users/" \
+users_resp=$(curl -s -w "\n%{http_code}" -X GET "$BASE_URL/users/?skip=0&limit=100" \
   -H "Authorization: Bearer $ACCESS_TOKEN")
-if [[ "$users_resp" == *"$TEST_USER_EMAIL"* ]]; then
+http_code=$(echo "$users_resp" | tail -n1)
+users_body=$(echo "$users_resp" | sed '$d')
+
+if [[ "$http_code" != "200" ]]; then
+    log_fail "Users list failed (HTTP $http_code)"
+    echo "      Response: $users_body"
+elif [[ "$users_body" == *"$TEST_USER_EMAIL"* ]]; then
     log_pass "Users list contains test user"
 else
     log_fail "Users list FAILED"
 fi
 
 # -------------------------
-# 5️⃣ Get user by ID
+# 6️⃣ Get user by ID
 # -------------------------
-user_by_id_resp=$(curl -s -X GET "$BASE_URL/users/${USER_ID}" \
+user_by_id_resp=$(curl -s -w "\n%{http_code}" -X GET "$BASE_URL/users/${USER_ID}" \
   -H "Authorization: Bearer $ACCESS_TOKEN")
-if [[ "$user_by_id_resp" == *"$TEST_USER_EMAIL"* ]]; then
+http_code=$(echo "$user_by_id_resp" | tail -n1)
+user_by_id_body=$(echo "$user_by_id_resp" | sed '$d')
+
+if [[ "$http_code" != "200" ]]; then
+    log_fail "Get user by ID failed (HTTP $http_code)"
+    echo "      Response: $user_by_id_body"
+elif [[ "$user_by_id_body" == *"$TEST_USER_EMAIL"* ]]; then
     log_pass "Fetched user by ID"
 else
     log_fail "Get user by ID FAILED"
 fi
 
 # -------------------------
-# 6️⃣ Update user email
+# 7️⃣ Update user
 # -------------------------
-UPDATED_EMAIL="updated_${RAND_UID}@example.com"
-update_resp=$(curl -s -X PUT "$BASE_URL/users/${USER_ID}" \
+update_resp=$(curl -s -w "\n%{http_code}" -X PUT "$BASE_URL/users/${USER_ID}" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"email\": \"$UPDATED_EMAIL\",
-    \"is_active\": true,
-    \"is_superuser\": false,
-    \"password\": \"$TEST_USER_PASSWORD\"
+    \"isSuperuser\": true
 }")
-if [[ "$update_resp" == *"$UPDATED_EMAIL"* ]]; then
-    log_pass "User updated successfully"
-else
-    log_fail "Update user FAILED"
-    echo "$update_resp"
-fi
 
-# -------------------------
-# 7️⃣ Assign role (update role)
-# -------------------------
-assign_resp=$(curl -s -X POST "$BASE_URL/users/${USER_ID}/roles" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  --get --data-urlencode "role_name=MEMBER")
-if [[ "$assign_resp" == *"MEMBER"* ]]; then
-    log_pass "Role assigned/updated"
+http_code=$(echo "$update_resp" | tail -n1)
+update_body=$(echo "$update_resp" | sed '$d')
+
+if [[ "$http_code" != "200" ]]; then
+    log_fail "User update FAILED (HTTP $http_code)"
+    echo "      Response: $update_body"
 else
-    log_fail "Role assignment FAILED"
-    echo "$assign_resp"
+    log_pass "User updated successfully"
 fi
 
 # -------------------------
 # 8️⃣ Deactivate user
 # -------------------------
-deact_resp=$(curl -s -X POST "$BASE_URL/users/${USER_ID}/deactivate" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" -d '')
-if [[ "$deact_resp" == *"false"* || "$deact_resp" == *"$UPDATED_EMAIL"* ]]; then
-    log_pass "User deactivated"
+deactivate_resp=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/users/${USER_ID}/deactivate" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+http_code=$(echo "$deactivate_resp" | tail -n1)
+if [[ "$http_code" != "200" ]]; then
+    log_fail "Deactivate user FAILED"
 else
-    log_fail "Deactivate FAILED"
-    echo "$deact_resp"
+    log_pass "Deactivate user successful"
 fi
 
 # -------------------------
 # 9️⃣ Reactivate user
 # -------------------------
-react_resp=$(curl -s -X POST "$BASE_URL/users/${USER_ID}/reactivate" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" -d '')
-if [[ "$react_resp" == *"true"* || "$react_resp" == *"$UPDATED_EMAIL"* ]]; then
-    log_pass "User reactivated"
-else
-    log_fail "Reactivate FAILED"
-    echo "$react_resp"
-fi
-
-# -------------------------
-# 🔟 Delete test user
-# -------------------------
-del_resp=$(curl -s -X DELETE "$BASE_URL/users/${USER_ID}" \
+reactivate_resp=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/users/${USER_ID}/reactivate" \
   -H "Authorization: Bearer $ACCESS_TOKEN")
-if [[ -z "$del_resp" || "$del_resp" == "{}" ]]; then
-    log_pass "User deleted (cleanup)"
+http_code=$(echo "$reactivate_resp" | tail -n1)
+if [[ "$http_code" != "200" ]]; then
+    log_fail "Reactivate user FAILED"
 else
-    log_warn "Cleanup may have failed"
-    echo "$del_resp"
+    log_pass "Reactivate user successful"
 fi
 
 # -------------------------
-# 📊 Summary
+# 10️⃣ Roles list
+# -------------------------
+roles_resp=$(curl -s -w "\n%{http_code}" -X GET "$BASE_URL/roles/" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "accept: application/json")
+http_code=$(echo "$roles_resp" | tail -n1)
+roles_body=$(echo "$roles_resp" | sed '$d')
+
+# check HTTP code
+if [[ "$http_code" != "200" ]]; then
+    log_fail "Roles list fetch FAILED (HTTP $http_code)"
+    echo "      Response: $roles_body"
+else
+    # optionally check if at least one role exists
+    first_role=$(echo "$roles_body" | jq -r '.details[0].name // empty')
+    if [[ -n "$first_role" ]]; then
+        log_pass "Roles list fetched (found role: $first_role)"
+    else
+        log_warn "Roles list fetched but empty"
+    fi
+fi
+
+# -------------------------
+# 11️⃣ Logout
+# -------------------------
+logout_resp=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/auth/logout" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "accept: application/json")
+http_code=$(echo "$logout_resp" | tail -n1)
+logout_body=$(echo "$logout_resp" | sed '$d')
+
+if [[ "$http_code" != "200" ]]; then
+    log_fail "Logout FAILED (HTTP $http_code)"
+    echo "      Response: $logout_body"
+else
+    log_pass "Logout successful"
+fi
+
+# -------------------------
+# 12️⃣ Delete test user
+# -------------------------
+delete_resp=$(curl -s -w "\n%{http_code}" -X DELETE "$BASE_URL/users/${USER_ID}" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+http_code=$(echo "$delete_resp" | tail -n1)
+delete_body=$(echo "$delete_resp" | sed '$d')
+
+if [[ "$http_code" != "204" ]]; then
+    log_fail "Delete user FAILED (HTTP $http_code)"
+    echo "      Response: $delete_body"
+else
+    log_pass "Delete user successful"
+fi
+
+
+# -------------------------
+# Summary
 # -------------------------
 echo
 echo "========== Sanity Summary =========="

@@ -1,4 +1,3 @@
-# app/utils/response.py
 """Standardized API response utilities.
 
 Ensures all responses follow a consistent JSON envelope:
@@ -8,19 +7,37 @@ Ensures all responses follow a consistent JSON envelope:
 - pagination: metadata for paginated results
 """
 
-from typing import Any, Optional
+from typing import Any, Optional, TypedDict
 
 
-def success_response(
+class Pagination(TypedDict, total=False):
+    """Pagination metadata for paginated API responses."""
+
+    total: Optional[int]
+    nextPage: Optional[int]
+    prevPage: Optional[int]
+
+
+class APIResponse(TypedDict, total=False):
+    """Standardized API response envelope."""
+
+    status_code: int
+    msg: str
+    details: Any
+    pagination: Pagination
+
+
+def success_response(  # pylint: disable=R0913
     msg: str,
     details: Any = None,
     status_code: int = 200,
+    *,
     total: Optional[int] = None,
     next_page: Optional[int] = None,
     prev_page: Optional[int] = None,
-) -> dict[str, Any]:
-    """Format a success response."""
-    response: dict[str, Any] = {
+) -> APIResponse:
+    """Format a standardized success API response."""
+    response: APIResponse = {
         "status_code": status_code,
         "msg": msg,
     }
@@ -28,7 +45,6 @@ def success_response(
     if details is not None:
         response["details"] = details
 
-    # only include pagination if relevant
     if total is not None or next_page is not None or prev_page is not None:
         response["pagination"] = {
             "total": total,
@@ -43,12 +59,14 @@ def error_response(
     msg: str,
     status_code: int,
     details: Any = None,
-) -> dict[str, Any]:
-    """Format an error response."""
-    response: dict[str, Any] = {
+) -> APIResponse:
+    """Format a standardized error API response."""
+    response: APIResponse = {
         "status_code": status_code,
         "msg": msg,
     }
+
     if details is not None:
         response["details"] = details
+
     return response

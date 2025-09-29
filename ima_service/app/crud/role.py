@@ -12,6 +12,12 @@ from app.schemas.role import RoleCreate, RoleName
 # -------------------------
 
 
+async def list_roles(db: AsyncSession) -> List[Role]:
+    """Return all roles from the database."""
+    result = await db.execute(select(Role))
+    return result.scalars().all()
+
+
 async def get_role_by_name(db: AsyncSession, name: RoleName) -> Optional[Role]:
     result = await db.execute(select(Role).where(Role.name == name))
     return result.scalar_one_or_none()

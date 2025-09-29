@@ -1,3 +1,4 @@
+# app/crud/user_basic.py
 """Basic User CRUD operations with UUID and role preloading."""
 
 from typing import List, Optional, cast
@@ -11,6 +12,7 @@ from app.models.user import User
 from app.schemas.user import UserCreate
 from app.utils.security import get_password_hash
 from app.models.role import Role
+from app.schemas.role import RoleRead
 from app.crud.user_roles import assign_role_to_user
 
 # -------------------------
@@ -48,11 +50,18 @@ async def update_user_role(
     await db.commit()
 
 
-async def update_user(db: AsyncSession, user: User, user_in: UserCreate) -> User:
-    """Update a user’s email, password, and superuser status."""
-    user.email = user_in.email
-    user.is_superuser = user_in.is_superuser
-    if hasattr(user_in, "password") and user_in.password:
+from app.schemas.user import UserUpdate
+
+
+async def update_user(db: AsyncSession, user: User, user_in: UserUpdate) -> User:
+    """Update a user’s email, password, superuser status, or active flag."""
+    if user_in.email is not None:
+        user.email = user_in.email
+    if user_in.is_superuser is not None:
+        user.is_superuser = user_in.is_superuser
+    if user_in.is_active is not None:
+        user.is_active = user_in.is_active
+    if user_in.password:
         user.hashed_password = get_password_hash(user_in.password)
 
     db.add(user)
@@ -69,6 +78,7 @@ async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
 
 
 async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
+    """Create a user with hashed password."""
     db_user = User(
         email=user_in.email,
         hashed_password=get_password_hash(user_in.password),
@@ -79,6 +89,17 @@ async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
     await db.commit()
     await db.refresh(db_user)
     return db_user
+
+
+def user_to_schema(user: User) -> dict:
+    """Convert SQLAlchemy User -> UserRead compatible dict."""
+    return {
+        "id": user.id,
+        "email": user.email,
+        "is_active": user.is_active,
+        "is_superuser": user.is_superuser,
+        "roles": [RoleRead.from_orm(r) for r in getattr(user, "roles", [])],
+    }
 
 
 async def get_user(db: AsyncSession, user_id: UUID) -> User | None:
