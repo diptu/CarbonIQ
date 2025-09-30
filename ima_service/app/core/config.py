@@ -1,7 +1,6 @@
 # app/core/config.py
 """Application configuration settings using Pydantic."""
 
-import os
 from functools import lru_cache
 from pathlib import Path
 

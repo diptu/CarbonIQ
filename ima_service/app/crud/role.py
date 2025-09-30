@@ -4,8 +4,8 @@
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.role import Role
 from ..schemas.role import RoleCreate, RoleName

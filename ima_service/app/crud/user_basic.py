@@ -1,7 +1,7 @@
 # mypy: ignore-errors
 """Basic User CRUD operations with UUID and role preloading."""
 
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 from uuid import UUID
 
 from sqlalchemy import func, update
@@ -109,7 +109,8 @@ async def list_users(
     total: int = total_result.scalar_one()
 
     # Users query with offset & limit
-    result = await db.execute(select(User).offset(skip).limit(limit))
+    result = await db.execute(select(User).offset(skip).limit(limit))  # pylint: disable=not-callable
+
     users: List[User] = list(result.scalars())
 
     return total, users

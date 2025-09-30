@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID
 
+
 from .base import ORMBase, PaginatedResponse
 
 
@@ -17,8 +18,8 @@ from .base import ORMBase, PaginatedResponse
 class RoleName(str, Enum):
     """Enumeration of supported system roles."""
 
-    BILLING_ADMIN = "BILLING_ADMIN"
     TENANT_ADMIN = "TENANT_ADMIN"
+    BILLING_ADMIN = "BILLING_ADMIN"
     VIEWER = "VIEWER"
     MEMBER = "MEMBER"
 
@@ -37,8 +38,21 @@ class RoleBase(ORMBase):
 # ----------------------
 # Role creation schema
 # ----------------------
-class RoleCreate(RoleBase):
+class RoleCreate(ORMBase):
     """Schema for creating a new role."""
+
+    name: RoleName  # Enum type ensures Swagger dropdown
+    description: Optional[str] = None
+    is_system: bool = False
+
+    class Config:  # pylint: disable=too-few-public-methods
+        schema_extra = {
+            "example": {
+                "name": "TENANT_ADMIN",  # Enum dropdown example
+                "description": "Role for tenant administrators",
+                "is_system": False,
+            }
+        }
 
 
 # ----------------------

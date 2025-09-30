@@ -1,3 +1,4 @@
+# app/pyproject.toml
 [project]
 name = "ima-service"
 version = "0.1.0"
@@ -74,5 +75,17 @@ omit = [
   "ima_service/**/tests/**",
 ]
 
+# ----------------------
+# Pylint config (replaces .pylintrc)
+# ----------------------
 [tool.pylint.MASTER]
-init-hook = 'import sys; from pathlib import Path; sys.path.append(str(Path().resolve()))'
+init-hook = "import sys; from pathlib import Path; sys.path.append(str(Path().resolve()))"
+max-line-length = 100
+disable = [
+    "C0301",   # line-too-long
+    "E0401",   # import-error
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+]
+ignore = ["migrations", "__pycache__"]

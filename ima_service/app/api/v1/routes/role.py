@@ -1,4 +1,6 @@
-"""Role-related API routes with standardized APIResponse."""
+"""
+Role-related API routes with standardized APIResponse.
+"""
 
 from typing import List
 
@@ -9,6 +11,8 @@ from app.schemas.role import RoleCreate, RoleRead
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import create_model
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from ima_service.app.api.v1.docs.role_docs import CREATE_ROLE, LIST_ROLES
 
 router = APIRouter(prefix="/roles", tags=["roles"])
 
@@ -31,15 +35,23 @@ RoleListResponse = create_model(
     "/",
     response_model=RoleListResponse,
     status_code=status.HTTP_200_OK,
-    summary="List all roles",
-    description=(
-        "Retrieve a list of all roles in the system.\n\n"
-        "- Returns all roles with their `id`, `name`, `description`, and `is_system` flag.\n"
-        "- Roles are returned as a list in `details` field of the standardized response."
-    ),
+    summary=LIST_ROLES["summary"],
+    description=LIST_ROLES["description"],
 )
 async def list_roles(db: AsyncSession = Depends(get_db)):
-    """List all roles."""
+    """
+    List all roles in the system.
+
+    Parameters
+    ----------
+    db : AsyncSession, optional
+        SQLAlchemy async session.
+
+    Returns
+    -------
+    RoleListResponse
+        Standardized response containing a list of roles.
+    """
     roles = await crud_role.list_roles(db)
     role_schemas = [RoleRead.from_orm(r) for r in roles]
 
@@ -50,35 +62,53 @@ async def list_roles(db: AsyncSession = Depends(get_db)):
     )
 
 
-# ----------------------
-# 2️⃣ Create Role
-# ----------------------
-@router.post(
-    "/",
-    response_model=RoleReadResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create a new role",
-    description=(
-        "Create a new role in the system.\n\n"
-        "- `name`: Unique name of the role.\n"
-        "- `description`: Optional description of the role.\n"
-        "- `is_system`: Optional flag for system roles (default `False`).\n"
-        "- Returns 400 if a role with the same name already exists.\n"
-        "- Returns the created role in the standardized `details` field."
-    ),
-)
-async def create_role_endpoint(role_in: RoleCreate, db: AsyncSession = Depends(get_db)):
-    """Create a new role."""
-    existing_role = await crud_role.get_role_by_name(db, role_in.name)
-    if existing_role:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Role '{role_in.name}' already exists",
-        )
+# # ----------------------
+# # 2️⃣ Create Role
+# # ----------------------
+# @router.post(
+#     "/",
+#     response_model=RoleReadResponse,
+#     status_code=status.HTTP_201_CREATED,
+#     summary=CREATE_ROLE["summary"],
+#     description=CREATE_ROLE["description"],
+# )
+# async def create_role_endpoint(role_in: RoleCreate, db: AsyncSession = Depends(get_db)):
+#     """
+#     Create a new role in the system.
 
-    role = await crud_role.create_role(db, role_in)
-    return RoleReadResponse(
-        statusCode=status.HTTP_201_CREATED,
-        msg="Role created successfully",
-        details=RoleRead.from_orm(role),
-    )
+#     Parameters
+#     ----------
+#     role_in : RoleCreate
+#         Input schema containing role name (must be one of RoleName enum),
+#         optional description, and optional is_system flag.
+#     db : AsyncSession, optional
+#         SQLAlchemy async session.
+
+#     Returns
+#     -------
+#     RoleReadResponse
+#         Standardized response with the created role details.
+
+#     Raises
+#     ------
+#     HTTPException
+#         400 Bad Request if a role with the same name already exists.
+
+#     Notes
+#     -----
+#     The `name` field in RoleCreate must be one of the following enum values:
+#     - {RoleName.__members__.keys()}
+#     """
+#     existing_role = await crud_role.get_role_by_name(db, role_in.name)
+#     if existing_role:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail=f"Role '{role_in.name}' already exists",
+#         )
+
+#     role = await crud_role.create_role(db, role_in)
+#     return RoleReadResponse(
+#         statusCode=status.HTTP_201_CREATED,
+#         msg="Role created successfully",
+#         details=RoleRead.from_orm(role),
+#     )

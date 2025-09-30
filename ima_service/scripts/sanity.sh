@@ -282,6 +282,38 @@ if [[ "$http_code" != "204" ]]; then
 else
     log_pass "Delete user successful"
 fi
+# -------------------------
+# 1️⃣3️⃣ Roles list
+# -------------------------
+roles_resp=$(curl -s -w "\n%{http_code}" -X GET "$BASE_URL/roles/" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "accept: application/json")
+http_code=$(echo "$roles_resp" | tail -n1)
+roles_body=$(echo "$roles_resp" | sed '$d')
+
+if [[ "$http_code" != "200" ]]; then
+    log_fail "Roles list fetch FAILED (HTTP $http_code)"
+    echo "      Response: $roles_body"
+else
+    # check if roles are returned and match known enum values
+    role_names=$(echo "$roles_body" | jq -r '.details[].name' 2>/dev/null)
+    if [[ -n "$role_names" ]]; then
+        valid_enum=("TENANT_ADMIN" "BILLING_ADMIN" "VIEWER" "MEMBER")
+        invalid_roles=()
+        for r in $role_names; do
+            if [[ ! " ${valid_enum[*]} " =~ " ${r} " ]]; then
+                invalid_roles+=("$r")
+            fi
+        done
+        if [[ ${#invalid_roles[@]} -eq 0 ]]; then
+            log_pass "Roles list fetched successfully (${role_names})"
+        else
+            log_warn "Roles list contains invalid roles: ${invalid_roles[*]}"
+        fi
+    else
+        log_warn "Roles list fetched but empty"
+    fi
+fi
 
 
 # -------------------------
