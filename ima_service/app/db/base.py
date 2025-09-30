@@ -1,9 +1,11 @@
-# app/db/base.py
-from .base_class import Base
+"""Register all SQLAlchemy models so Alembic can detect them for migrations."""
 
-# Import models only once to register them
-import app.models.user  # noqa: F401
-import app.models.role  # noqa: F401
-import app.models.user_roles  # noqa: F401
+# Import all models to register them with SQLAlchemy metadata
+# pylint: disable=unused-import
+from ..models import role
+from ..models import user
+from ..models import user_roles
+
+from .base_class import Base
 
 __all__ = ["Base"]

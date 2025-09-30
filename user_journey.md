@@ -1,131 +1,141 @@
-# RBAC Sanity Test — User Personas & Journeys (with Subscription Plan Limits)
+# RBAC Sanity Test — Personas, Journeys, Seed Data & Multi-Tenancy Design
 
-This document defines user personas for each role (`TENANT_ADMIN`, `BILLING_ADMIN`, `VIEWER`, `MEMBER`) and outlines **sanity test flows** to verify correct RBAC behavior.  
-It also includes **multi-tier subscription plan restrictions** (Basic, Standard, Enterprise) with feature limits.
+This document defines **RBAC personas**, their journeys, **role hierarchy**, and includes a **multi-tenancy/domain strategy** with example **seed data** for Apple, Orange, and Peanut tenants.
+
+---
+
+## 🔑 Role Hierarchy (Inheritance of Access)
+
+* **TENANT_ADMIN** → inherits all functionality of `BILLING_ADMIN`, `MEMBER`, and `VIEWER`.
+* **BILLING_ADMIN** → inherits all functionality of `MEMBER` and `VIEWER`.
+* **MEMBER** → inherits all functionality of `VIEWER`.
+* **VIEWER** → base read-only role.
 
 ---
 
 ## 👤 User Personas
 
 ### 🟩 Tenant Admin
-- **Who:** Primary owner/manager of a tenant.
-- **Responsibilities:**
-  - Manage tenant-level settings.
-  - Invite, deactivate, and assign roles to users.
-- **Access Scope:** Full control **within their tenant** only.
-- **Plan Restriction Awareness:** Must ensure user invites **do not exceed subscription plan limits**.
 
----
+* **Who:** Primary owner/manager of a tenant.
+* **Responsibilities:** Invite, deactivate, and assign roles. Manage tenant/sub-tenant settings.
+* **Access Scope:** Full tenant control (plan limits enforced).
 
 ### 🟧 Billing Admin
-- **Who:** Finance/accounting staff responsible for payments.
-- **Responsibilities:**
-  - Manage billing, invoices, subscriptions.
-  - View usage & cost breakdown.
-- **Access Scope:** **Billing + usage data only**.
-- **Plan Restriction Awareness:** Can **upgrade/downgrade subscription** to change user limits.
 
----
-
-### 🟦 Viewer
-- **Who:** Stakeholders (execs, auditors, consultants).
-- **Responsibilities:**
-  - View dashboards, reports, usage.
-- **Access Scope:** **Read-only** access. Cannot modify anything.
-- **Plan Restriction Awareness:** Does not affect subscription limits.
-
----
+* **Who:** Finance/accounting staff.
+* **Responsibilities:** Manage billing, invoices, and subscriptions.
+* **Access Scope:** Billing + usage data, plus Member + Viewer permissions.
 
 ### 🟨 Member
-- **Who:** Regular team members (engineers, analysts).
-- **Responsibilities:**
-  - Create, update, and use tenant resources.
-- **Access Scope:** **CRUD on resources**, no billing or user management.
-- **Plan Restriction Awareness:** Counted against **active user limit** of the tenant.
+
+* **Who:** Regular team members (engineers, analysts).
+* **Responsibilities:** Create and edit tenant resources.
+* **Access Scope:** CRUD on resources, plus Viewer permissions.
+
+### 🟦 Viewer
+
+* **Who:** Stakeholders (execs, auditors, consultants).
+* **Responsibilities:** Read-only dashboards and reports.
+* **Access Scope:** Read-only.
 
 ---
 
 ## 🧾 Subscription Plan Tiers
 
-| Plan           | Max Users     | Features                                                                                 |
-|----------------|---------------|------------------------------------------------------------------------------------------|
-| **Basic**      | 5             | Limited features, file uploads only (small quota), **no Billing Admin role**.            |
-| **Standard**   | 50            | Full RBAC support, all features enabled, access to integrations, monthly/yearly billing. |
-| **Enterprise** | Unlimited     | Multi-vendor / sub-tenant / branch support, dedicated support, compliance (SOC2, HIPAA), SLAs, unlimited file uploads. |
-
-> **Note:**  
-> - User count = **active users only** (deactivated users don’t count).  
-> - Upgrades unlock higher user caps, downgrades enforce limits on next billing cycle.  
-> - Enterprise tenants can manage **multiple branches or sub-tenants** under the same parent organization.
+| Plan           | Max Active Users | Features                                                                 |
+| -------------- | ---------------- | ------------------------------------------------------------------------ |
+| **Basic**      | 1                | Limited features, file uploads only (small quota), **no Billing Admin**. |
+| **Standard**   | 10               | Full RBAC support, all features enabled, access to integrations.         |
+| **Enterprise** | 100              | Multi-vendor/sub-tenant support, compliance, unlimited uploads, SLAs.    |
 
 ---
 
-## 🧪 Sanity Test Journeys
+## 🏢 Multi-Tenancy & Domain Strategy
 
-### 1. Tenant Admin Journey
-✅ **Expected Allowed**
-- Invite a new user **if under plan limit**.  
-- Assign roles (`MEMBER`, `BILLING_ADMIN`, `VIEWER`).  
-- Deactivate a user to free up slots.  
-- Update tenant-wide settings.  
-- (Enterprise only) Create/manage sub-tenants or branches.  
+### Domains
 
-❌ **Expected Denied**
-- Invite user if **max user limit exceeded** (returns `403 PLAN_LIMIT_EXCEEDED`).  
-- Access billing if not assigned `BILLING_ADMIN`.  
-- (Basic only) Cannot assign `BILLING_ADMIN`.  
+* Each **parent tenant** gets a **unique subdomain**:
 
----
+  * Apple → `apple.saas.com`
+  * Orange → `orange.saas.com`
+  * Peanut → `peanut.saas.com`
 
-### 2. Billing Admin Journey
-✅ **Expected Allowed**
-- View invoices & transaction history.  
-- Update payment method.  
-- View usage reports (user count vs. plan).  
-- Upgrade/downgrade subscription.  
+* Each **sub-tenant** gets a **nested subdomain**:
 
-❌ **Expected Denied**
-- Invite or remove users.  
-- Change tenant-level settings.  
-- Create or modify operational resources.  
+  * Orchard Apple → `orchard.apple.saas.com`
+  * Summit Apple → `summit.apple.saas.com`
+  * Harbor Apple → `harbor.apple.saas.com`
+  * Grove Orange → `grove.orange.saas.com`
+  * Horizon Orange → `horizon.orange.saas.com`
 
----
+### Schema Isolation
 
-### 3. Viewer Journey
-✅ **Expected Allowed**
-- View dashboards & reports.  
-- View tenant resource metadata.  
+* **Each tenant (parent or sub-tenant) has its own schema** to ensure strict data isolation.
+* **Parent tenants** have **read + write access to their sub-tenant schemas**.
+* **Sub-tenants** can only access their **own schema** (no upward or cross-tenant access).
+* **Cross-tenant access is always denied** (Apple cannot see Orange data, etc.).
 
-❌ **Expected Denied**
-- Modify or delete resources.  
-- Manage billing.  
-- Manage users/roles.  
-- Affect subscription/user count.  
+### Tenant DB Model
 
----
+```python
+class Tenant(Base, TimestampMixin):
+    __tablename__ = "tenants"
 
-### 4. Member Journey
-✅ **Expected Allowed**
-- Create & edit resources (e.g., projects, datasets).  
-- Upload files (limited by plan).  
-- Collaborate with other members.  
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)  # Apple, Orange, Peanut
+    domain = Column(String, unique=True, nullable=False)  # apple.saas.com
+    schema_name = Column(String, unique=True, nullable=False)  # e.g. tenant_apple
+    parent_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=True)
 
-❌ **Expected Denied**
-- Manage users or roles.  
-- Access billing.  
-- Change tenant-wide settings.  
-- (Basic only) File upload beyond quota.  
+    parent = relationship("Tenant", remote_side=[id], backref="sub_tenants")
+```
+
+* **Parent Tenant:** `parent_id = NULL`, can query across own and sub-tenant schemas.
+* **Sub-Tenant:** `parent_id = <parent_tenant_id>`, isolated schema, cannot access parent or sibling schemas.
 
 ---
 
-## ✅ Success Criteria
-- Each persona can **only perform actions relevant to their role**.  
-- Cross-tenant access is always denied.  
-- Role escalation is not possible without `TENANT_ADMIN`.  
-- Billing access remains isolated to `BILLING_ADMIN`.  
-- **Subscription plan rules enforced consistently**:  
-  - `TENANT_ADMIN` cannot exceed user cap.  
-  - `BILLING_ADMIN` can adjust plan.  
-  - Deactivations free up slots.  
-  - File uploads restricted in **Basic**.  
-  - **Enterprise** tenants can create/manage **sub-tenants or branches**.  
+## 🌱 Seed Data (Users & Tenants)
+
+### 1. Apple Inc. (Enterprise — 100 users)
+
+* **Domain:** `apple.saas.com`
+* **Schema:** `tenant_apple`
+* **Users:**
+
+  * `admin@apple.com` → TENANT_ADMIN
+* **Sub-Tenants:**
+
+  * **Orchard Apple** (`orchard.apple.saas.com`, schema: `tenant_orchard_apple`)
+
+    * `billing@orchard.apple.com` → BILLING_ADMIN
+    * `member@orchard.apple.com` → MEMBER
+    * `viewer@orchard.apple.com` → VIEWER
+  * **Summit Apple** (`summit.apple.saas.com`, schema: `tenant_summit_apple`) → no seed users yet
+  * **Harbor Apple** (`harbor.apple.saas.com`, schema: `tenant_harbor_apple`) → no seed users yet
+
+### 2. Orange Ltd. (Standard — 10 users)
+
+* **Domain:** `orange.saas.com`
+* **Schema:** `tenant_orange`
+* **Users:**
+
+  * `admin@orange.com` → TENANT_ADMIN
+* **Sub-Tenants:**
+
+  * **Grove Orange** (`grove.orange.saas.com`, schema: `tenant_grove_orange`)
+
+    * `member@grove.orange.com` → MEMBER
+  * **Horizon Orange** (`horizon.orange.saas.com`, schema: `tenant_horizon_orange`)
+
+    * `viewer@horizon.orange.com` → VIEWER
+
+### 3. Peanut Corp. (Basic — 1 user)
+
+* **Domain:** `peanut.saas.com`
+* **Schema:** `tenant_peanut`
+* **Users:**
+
+  * `admin@peanut.com` → TENANT_ADMIN
+* **Sub-Tenants:** none allowed on Basic plan.

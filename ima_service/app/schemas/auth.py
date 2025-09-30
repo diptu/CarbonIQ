@@ -3,8 +3,7 @@ Schemas for authentication and token management.
 Includes login, token issuance, refresh, and standardized API response envelope.
 """
 
-from pydantic import BaseModel
-from .base import ORMBase, APIResponse
+from .base import APIResponse, ORMBase
 
 
 # ----------------------
@@ -42,4 +41,6 @@ class LoginRequest(ORMBase):
 # Concrete API response for login
 # ----------------------
 class LoginAPIResponse(APIResponse):
+    """API response schema for login containing JWT tokens."""
+
     details: Token

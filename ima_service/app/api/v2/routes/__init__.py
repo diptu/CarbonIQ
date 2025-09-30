@@ -5,6 +5,7 @@ Import and register your v2 route modules here.
 """
 
 from fastapi import APIRouter
+
 from . import example
 
 api_router = APIRouter()

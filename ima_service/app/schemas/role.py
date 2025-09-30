@@ -4,9 +4,10 @@ Schemas for role management.
 Includes role creation, reading, and standardized API response envelope.
 """
 
-from typing import Optional, List
-from uuid import UUID
 from enum import Enum
+from typing import Optional
+from uuid import UUID
+
 from .base import ORMBase, PaginatedResponse
 
 
@@ -30,6 +31,7 @@ class RoleBase(ORMBase):
 
     name: RoleName
     description: Optional[str] = None
+    is_system: bool = False
 
 
 # ----------------------
@@ -37,8 +39,6 @@ class RoleBase(ORMBase):
 # ----------------------
 class RoleCreate(RoleBase):
     """Schema for creating a new role."""
-
-    pass
 
 
 # ----------------------
@@ -55,8 +55,6 @@ class RoleRead(RoleBase):
 # ----------------------
 class RoleList(PaginatedResponse[RoleRead]):
     """Paginated response for listing roles."""
-
-    pass
 
 
 # ----------------------

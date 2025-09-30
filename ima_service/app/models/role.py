@@ -1,16 +1,24 @@
+"""SQLAlchemy Role model with Base and timestamp mixin."""
+
 import uuid
-from sqlalchemy import Column, String, Boolean, Enum as SAEnum
+
+from sqlalchemy import Boolean, Column
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from app.db.base_class import Base, TimestampMixin
-from app.schemas.role import RoleName
+
+from ..db.base_class import Base, TimestampMixin
+from ..schemas.role import RoleName
 
 
-class Role(Base, TimestampMixin):
+class Role(Base, TimestampMixin):  # pylint: disable=too-few-public-methods
+    """SQLAlchemy model representing a user role in the IAM service."""
+
     __tablename__ = "roles"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(
+    name = Column(  # type: ignore[var-annotated]
         SAEnum(RoleName, name="role_name_enum", native_enum=True),
         nullable=False,
         unique=True,

@@ -1,10 +1,11 @@
 # app/core/config.py
 """Application configuration settings using Pydantic."""
 
+import os
 from functools import lru_cache
 from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
-import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_FILE = BASE_DIR / ".env"

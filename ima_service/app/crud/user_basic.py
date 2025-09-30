@@ -1,46 +1,39 @@
-# app/crud/user_basic.py
+# mypy: ignore-errors
 """Basic User CRUD operations with UUID and role preloading."""
 
-from typing import List, Optional, cast
+from typing import Optional, Tuple, List
 from uuid import UUID
+
+from sqlalchemy import func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 
-from app.models.user import User
-from app.schemas.user import UserCreate
-from app.utils.security import get_password_hash
-from app.models.role import Role
-from app.schemas.role import RoleRead
-from app.crud.user_roles import assign_role_to_user
+from ..models.role import Role
+from ..models.user import User
+from ..models.user_roles import user_roles
+from ..schemas.role import RoleRead
+from ..schemas.user import UserCreate, UserUpdate
+from ..utils.security import get_password_hash
+
 
 # -------------------------
 # User CRUD
 # -------------------------
-from sqlalchemy import update
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.user_roles import user_roles
-from app.models.user import User
-from app.models.role import Role
-
-
 async def update_user_role(
     db: AsyncSession,
     user: User,
     existing_role: Role,
     new_role: Role,
-    tenant_id: str | None = None,
-):
-    """
-    Update a user's role for a given tenant in the user_roles table.
-    """
+    tenant_id: Optional[str] = None,
+) -> None:
+    """Update a user's role for a given tenant in the user_roles table."""
     stmt = (
         update(user_roles)
         .where(user_roles.c.user_id == user.id)
         .where(user_roles.c.role_id == existing_role.id)
     )
-    if tenant_id:
+    if tenant_id is not None:
         stmt = stmt.where(user_roles.c.tenant_id == tenant_id)
     else:
         stmt = stmt.where(user_roles.c.tenant_id.is_(None))
@@ -48,9 +41,6 @@ async def update_user_role(
     stmt = stmt.values(role_id=new_role.id)
     await db.execute(stmt)
     await db.commit()
-
-
-from app.schemas.user import UserUpdate
 
 
 async def update_user(db: AsyncSession, user: User, user_in: UserUpdate) -> User:
@@ -71,6 +61,7 @@ async def update_user(db: AsyncSession, user: User, user_in: UserUpdate) -> User
 
 
 async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
+    """Find a user based on their email with roles preloaded."""
     result = await db.execute(
         select(User).options(selectinload(User.roles)).where(User.email == email)
     )
@@ -102,35 +93,30 @@ def user_to_schema(user: User) -> dict:
     }
 
 
-async def get_user(db: AsyncSession, user_id: UUID) -> User | None:
+async def get_user(db: AsyncSession, user_id: UUID) -> Optional[User]:
     """Get a user by ID."""
     result = await db.execute(select(User).where(User.id == user_id))
     return result.scalar_one_or_none()
 
 
-# async def list_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[User]:
-#     """List users with pagination."""
-#     result = await db.execute(select(User).offset(skip).limit(limit))
-#     return result.scalars().all()
-
-
 async def list_users(
     db: AsyncSession, skip: int = 0, limit: int = 100
-) -> tuple[int, list[User]]:
+) -> Tuple[int, List[User]]:
     """List users with pagination, returns total count and user list."""
 
     # Total count query
-    total_result = await db.execute(select(func.count(User.id)))
-    total = total_result.scalar_one()
+    total_result = await db.execute(select(func.count(User.id)))  # pylint: disable=not-callable
+    total: int = total_result.scalar_one()
 
     # Users query with offset & limit
     result = await db.execute(select(User).offset(skip).limit(limit))
-    users = result.scalars().all()
+    users: List[User] = list(result.scalars())
 
     return total, users
 
 
 async def deactivate_user(db: AsyncSession, user_id: UUID) -> Optional[User]:
+    """Deactivate a user based on UUID."""
     user = await get_user(db, user_id)
     if user:
         user.is_active = False
@@ -141,6 +127,7 @@ async def deactivate_user(db: AsyncSession, user_id: UUID) -> Optional[User]:
 
 
 async def reactivate_user(db: AsyncSession, user_id: UUID) -> Optional[User]:
+    """Reactivate a user based on UUID."""
     user = await get_user(db, user_id)
     if user:
         user.is_active = True
@@ -151,6 +138,7 @@ async def reactivate_user(db: AsyncSession, user_id: UUID) -> Optional[User]:
 
 
 async def delete_user(db: AsyncSession, user_id: UUID) -> bool:
+    """Delete a user based on UUID."""
     user = await get_user(db, user_id)
     if not user:
         return False

@@ -66,7 +66,7 @@ fi
 # -------------------------
 # 2️⃣ Login as admin
 # -------------------------
-ADMIN_EMAIL="admin@carboniq.com"
+ADMIN_EMAIL="demo@admin.com"
 ADMIN_PASSWORD="Hello123"
 
 login_resp=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/auth/login" \

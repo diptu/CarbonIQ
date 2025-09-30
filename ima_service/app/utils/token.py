@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, cast
 
 import jwt
+
 from ..core.config import get_settings
 
 settings = get_settings()

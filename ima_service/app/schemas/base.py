@@ -7,7 +7,8 @@ Includes:
 - APIResponse: standardized CRUD response envelope
 """
 
-from typing import Generic, TypeVar, List, Optional
+from typing import Generic, List, Optional, TypeVar
+
 from pydantic import BaseModel, Field
 
 T = TypeVar("T")
