@@ -79,18 +79,17 @@ jobs:
       - name: Load test environment variables
         run: |
           echo "Loading .env.test for settings"
-          # Only include non-empty, non-comment lines
-          grep -v '^\s*#' ima_service/.env.test | grep -v '^\s*$' >> $GITHUB_ENV
+          # Remove comments to avoid errors in $GITHUB_ENV
+          grep -v '^#' ima_service/.env.test >> $GITHUB_ENV
 
       - name: Pytest (with coverage)
         env:
-          # Required settings will be loaded from $GITHUB_ENV
+          # Required environment variables for tests
           IMA_ENV: test
           DATABASE_URL: ${{ env.DATABASE_URL }}
           SECRET_KEY: ${{ env.SECRET_KEY }}
           IMA_JWT__SECRET_KEY: ${{ env.SECRET_KEY }}
           IMA_REDIS_DSN: redis://localhost:6379/0
-          IMA_DB__URL: sqlite://
         run: |
           set -euxo pipefail
           uv run pytest \
