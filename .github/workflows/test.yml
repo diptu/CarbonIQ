@@ -79,11 +79,12 @@ jobs:
       - name: Load test environment variables
         run: |
           echo "Loading .env.test for settings"
-          cat ima_service/.env.test >> $GITHUB_ENV
+          # Only include non-empty, non-comment lines
+          grep -v '^\s*#' ima_service/.env.test | grep -v '^\s*$' >> $GITHUB_ENV
 
       - name: Pytest (with coverage)
         env:
-          # Use GitHub Action environment file for required settings
+          # Required settings will be loaded from $GITHUB_ENV
           IMA_ENV: test
           DATABASE_URL: ${{ env.DATABASE_URL }}
           SECRET_KEY: ${{ env.SECRET_KEY }}
