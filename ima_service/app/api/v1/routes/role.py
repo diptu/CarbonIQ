@@ -4,15 +4,15 @@ Role-related API routes with standardized APIResponse.
 
 from typing import List
 
-from app.api.deps import get_db
-from app.crud import role as crud_role
-from app.schemas.base import APIResponse
-from app.schemas.role import RoleCreate, RoleRead
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+from ima_service.app.api.v1.docs.role_docs import LIST_ROLES
 from pydantic import create_model
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ima_service.app.api.v1.docs.role_docs import CREATE_ROLE, LIST_ROLES
+from app.api.deps import get_db
+from app.crud import role as crud_role
+from app.schemas.base import APIResponse
+from app.schemas.role import RoleRead
 
 router = APIRouter(prefix="/roles", tags=["roles"])
 
@@ -72,7 +72,10 @@ async def list_roles(db: AsyncSession = Depends(get_db)):
 #     summary=CREATE_ROLE["summary"],
 #     description=CREATE_ROLE["description"],
 # )
-# async def create_role_endpoint(role_in: RoleCreate, db: AsyncSession = Depends(get_db)):
+# async def create_role_endpoint(
+# role_in: RoleCreate,
+# db: AsyncSession = Depends(get_db)
+# ):
 #     """
 #     Create a new role in the system.
 

@@ -11,13 +11,13 @@ tasks:
       - cmd: uv python install 3.11
       - cmd: |
           set -euxo pipefail
-          uv sync --dev || uv sync "{{.SERVICE}}"
+          uv sync --dev || uv sync --dev --project "{{.SERVICE}}"
 
   start:
-    desc: "Run dev server (reload) via run_service.py"
+    desc: "Run dev server (reload)"
     deps: [setup]
     cmds:
-      - cmd: uv run python run_service.py --service "{{.SERVICE}}" --port "{{.PORT}}" --reload --debug
+      - cmd: uv run uvicorn "{{.SERVICE}}".main:app --reload --port "{{.PORT}}"
 
   lint:
     desc: "Ruff + Pylint (service)"
@@ -41,7 +41,7 @@ tasks:
       IMA_REDIS_DSN: redis://localhost:6379/0
       IMA_DB__URL: sqlite://
     cmds:
-      - cmd: uv run pytest "{{.SERVICE}}/tests/" -q
+      - cmd: uv run pytest "{{.SERVICE}}" -q
 
   qa:
     desc: "Lint + typecheck + tests"
@@ -50,8 +50,9 @@ tasks:
   sanity:
     desc: "Endpoint sanity script"
     deps: [setup]
+    dir: "{{.SERVICE}}"
     cmds:
-      - cmd: uv run bash "{{.SERVICE}}/scripts/sanity.sh"
+      - cmd: bash scripts/sanity.sh
 
   fix:
     desc: "Auto-fix with ruff + format with black/isort"

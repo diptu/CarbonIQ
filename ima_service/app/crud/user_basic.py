@@ -105,7 +105,9 @@ async def list_users(
     """List users with pagination, returns total count and user list."""
 
     # Total count query
-    total_result = await db.execute(select(func.count(User.id)))  # pylint: disable=not-callable
+    total_result = await db.execute(
+        select(func.count(User.id))  # pylint: disable=not-callable
+    )
     total: int = total_result.scalar_one()
 
     # Users query with offset & limit

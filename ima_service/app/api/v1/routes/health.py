@@ -1,8 +1,9 @@
 """Health check endpoint with standardized APIResponse."""
 
-from app.schemas.base import APIResponse
 from fastapi import APIRouter, status
 from pydantic import create_model
+
+from app.schemas.base import APIResponse
 
 router = APIRouter(prefix="/health", tags=["health"])
 
@@ -23,7 +24,8 @@ HealthResponse = create_model(
     status_code=status.HTTP_200_OK,
     summary="Check service health",
     description=(
-        "Perform a simple health check to confirm that the service is up and running.\n\n"
+        "Perform a simple health check to confirm \
+        that the service is up and running.\n\n"
         "- Returns 200 OK if the service is healthy.\n"
         "- `details` field contains a simple `status` key."
     ),

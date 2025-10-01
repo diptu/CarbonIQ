@@ -2,7 +2,7 @@
 
 CREATE_USER = {
     "summary": "Create a new user",
-    "description": """Create a new user in the system.  
+    "description": """Create a new user in the system.\
 The new user will automatically get the default role: VIEWER.
 
 **What you need to provide**:
@@ -72,7 +72,7 @@ No request body needed.
 
 DEACTIVATE_USER = {
     "summary": "Deactivate a user",
-    "description": """Temporarily deactivate a user account.  
+    "description": """Temporarily deactivate a user account.\
 Deactivated users cannot log in but are not deleted.
 
 **Example request**:
@@ -84,7 +84,7 @@ No request body needed.
 
 REACTIVATE_USER = {
     "summary": "Reactivate a user",
-    "description": """Reactivate a previously deactivated user account.  
+    "description": """Reactivate a previously deactivated user account.\
 The user will regain access with their existing roles.
 
 **Example request**:
@@ -96,7 +96,8 @@ No request body needed.
 
 ASSIGN_ROLE = {
     "summary": "Assign a role to a user",
-    "description": """Assign or update a role for a user. Optionally, you can specify a tenant.  
+    "description": """Assign or update a role for a user.
+    Optionally, you can specify a tenant.
 
 **What you need**:
 - Role to assign (e.g., VIEWER, ADMIN)
