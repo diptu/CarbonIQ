@@ -33,7 +33,7 @@ jobs:
     services:
       redis:
         image: redis:7-alpine
-        ports: [ "6379:6379" ]
+        ports: ["6379:6379"]
         options: >-
           --health-cmd "redis-cli ping || exit 1"
           --health-interval 5s
@@ -50,7 +50,7 @@ jobs:
           echo "== pwd ==" && pwd
           echo "== ls -la (repo root) ==" && ls -la
           echo "== ls -la service dir ==" && ls -la "${{ matrix.service }}"
-          echo "== tests under service ==" && ls -la "${{ matrix.service }}/app/tests" || true
+          echo "== tests under service ==" && ls -la "${{ matrix.service }}/tests" || true
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -76,16 +76,24 @@ jobs:
           uv sync --frozen --group dev || \
           uv sync --frozen --group dev --project "${{ matrix.service }}"
 
+      - name: Load test environment variables
+        run: |
+          echo "Loading .env.test for settings"
+          cat ima_service/.env.test >> $GITHUB_ENV
+
       - name: Pytest (with coverage)
         env:
+          # Use GitHub Action environment file for required settings
           IMA_ENV: test
-          IMA_JWT__SECRET_KEY: test-secret
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          SECRET_KEY: ${{ env.SECRET_KEY }}
+          IMA_JWT__SECRET_KEY: ${{ env.SECRET_KEY }}
           IMA_REDIS_DSN: redis://localhost:6379/0
           IMA_DB__URL: sqlite://
         run: |
           set -euxo pipefail
           uv run pytest \
-            "${{ matrix.service }}" \
+            "${{ matrix.service }}/tests" \
             --maxfail=1 \
             --cov="${{ matrix.cov_target }}" \
             --cov-report=xml:"${{ matrix.service }}/coverage.xml" \
