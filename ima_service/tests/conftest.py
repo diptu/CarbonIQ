@@ -4,7 +4,20 @@ from httpx import AsyncClient
 from httpx._transports.asgi import ASGITransport
 
 from ima_service.app.main import app
-from ima_service.app.db.session import async_session, get_db
+from ima_service.app.db.session import async_session, get_db, engine
+from ima_service.app.db.base import Base  # your declarative base
+
+
+# Automatically create tables in test DB
+@pytest.fixture(scope="session", autouse=True)
+async def prepare_test_db():
+    async with engine.begin() as conn:
+        # Create all tables
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    # Optionally drop tables after tests
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 # Override the FastAPI dependency to use test DB
