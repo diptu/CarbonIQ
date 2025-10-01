@@ -529,7 +529,7 @@ wheels = [
 [[package]]
 name = "ima-service"
 version = "0.1.0"
-source = { virtual = "ima_service" }
+source = { editable = "ima_service" }
 dependencies = [
     { name = "aiosqlite" },
     { name = "alembic" },
@@ -580,7 +580,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.10.1" },
     { name = "pyjwt", specifier = ">=2.10.1" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
-    { name = "redis", extras = ["async"], specifier = ">=6.4.0" },
+    { name = "redis", specifier = ">=6.4.0,<7.0.0" },
     { name = "sqlalchemy", specifier = ">=2.0.43" },
     { name = "sqlmodel", specifier = ">=0.0.25" },
     { name = "uvicorn", specifier = ">=0.35.0" },

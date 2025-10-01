@@ -2,7 +2,17 @@
 
 from uuid import UUID
 
+from app.api.deps import get_db
+from app.crud import role as crud_role
+from app.crud import user_basic as crud_user
+from app.crud.user_roles import assign_role_to_user
+from app.schemas.base import APIResponse
+from app.schemas.role import RoleName, RoleRead
+from app.schemas.user import UserCreate, UserList, UserRead, UserUpdate
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from pydantic import create_model
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from ima_service.app.api.v1.docs.user_docs import (
     ASSIGN_ROLE,
     CREATE_USER,
@@ -13,16 +23,6 @@ from ima_service.app.api.v1.docs.user_docs import (
     REACTIVATE_USER,
     UPDATE_USER,
 )
-from pydantic import create_model
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.api.deps import get_db
-from app.crud import role as crud_role
-from app.crud import user_basic as crud_user
-from app.crud.user_roles import assign_role_to_user
-from app.schemas.base import APIResponse
-from app.schemas.role import RoleName, RoleRead
-from app.schemas.user import UserCreate, UserList, UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 

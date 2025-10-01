@@ -1,9 +1,8 @@
 """Health check endpoint with standardized APIResponse."""
 
+from app.schemas.base import APIResponse
 from fastapi import APIRouter, status
 from pydantic import create_model
-
-from app.schemas.base import APIResponse
 
 router = APIRouter(prefix="/health", tags=["health"])
 

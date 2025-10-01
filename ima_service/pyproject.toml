@@ -1,4 +1,7 @@
-# app/pyproject.toml
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "ima-service"
 version = "0.1.0"
@@ -16,7 +19,7 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "pydantic-settings>=2.10.1",
     "pyjwt>=2.10.1",
-    "redis[async]>=6.4.0",
+    "redis>=6.4.0,<7.0.0",   # <-- pinned to avoid resolver issues
     "sqlalchemy>=2.0.43",
     "sqlmodel>=0.0.25",
     "aiosqlite>=0.21.0",
@@ -24,6 +27,10 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "uvicorn>=0.35.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["infra*", "migrations*"]
 
 [dependency-groups]
 dev = [
@@ -39,6 +46,7 @@ dev = [
     "types-passlib>=1.7.7.20250602",
     "types-pyjwt>=1.7.1",
 ]
+
 [tool.black]
 line-length = 88
 target-version = ["py311"]
@@ -56,7 +64,6 @@ python_version = "3.11"
 strict_optional = true
 ignore_missing_imports = true
 
-
 [tool.pytest.ini_options]
 testpaths = ["ima_service/tests"]
 asyncio_mode = "auto"
@@ -67,24 +74,20 @@ filterwarnings = [
     "ignore::pydantic.warnings.PydanticDeprecatedSince20"
 ]
 
-
 [tool.coverage.run]
 source = ["ima_service"]
 branch = true
 omit = [
   "ima_service/main.py",
-  "ima_service/**/tests/**",
+  "ima_service/tests/**",
 ]
 
-# ----------------------
-# Pylint config (replaces .pylintrc)
-# ----------------------
 [tool.pylint.MASTER]
 init-hook = "import sys; from pathlib import Path; sys.path.append(str(Path().resolve()))"
 max-line-length = 100
 disable = [
-    "C0301",   # line-too-long
-    "E0401",   # import-error
+    "C0301",
+    "E0401",
     "missing-module-docstring",
     "missing-class-docstring",
     "missing-function-docstring",

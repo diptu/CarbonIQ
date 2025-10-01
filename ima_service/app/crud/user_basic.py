@@ -111,7 +111,9 @@ async def list_users(
     total: int = total_result.scalar_one()
 
     # Users query with offset & limit
-    result = await db.execute(select(User).offset(skip).limit(limit))  # pylint: disable=not-callable
+    result = await db.execute(
+        select(User).offset(skip).limit(limit)
+    )  # pylint: disable=not-callable
 
     users: List[User] = list(result.scalars())
 

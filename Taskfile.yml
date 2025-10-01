@@ -6,12 +6,12 @@ vars:
 
 tasks:
   setup:
-    desc: "Install Python 3.11 + sync deps (workspace first, fallback service)"
+    desc: "Install Python 3.11 + sync dependencies (workspace first, fallback service)"
     cmds:
       - cmd: uv python install 3.11
       - cmd: |
           set -euxo pipefail
-          uv sync --dev || uv sync "{{.SERVICE}}"
+          uv sync --dev --python 3.11 || uv sync --dev --python 3.11 --project "{{.SERVICE}}"
 
   start:
     desc: "Run dev server (reload) via run_service.py"

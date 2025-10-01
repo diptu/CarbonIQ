@@ -4,16 +4,16 @@ Authentication endpoints: login, refresh, logout.
 
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from ima_service.app.api.v1.docs.auth_docs import LOGIN, LOGOUT, REFRESH_TOKEN
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.deps import get_db
 from app.core.config import get_settings
 from app.crud.user_basic import get_user_by_email
 from app.schemas.auth import LoginAPIResponse, LoginRequest, Token, TokenRefresh
 from app.utils.security import verify_password
 from app.utils.token import create_access_token, create_refresh_token, decode_token
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ima_service.app.api.v1.docs.auth_docs import LOGIN, LOGOUT, REFRESH_TOKEN
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
