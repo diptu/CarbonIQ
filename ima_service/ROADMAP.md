@@ -54,6 +54,20 @@
   - Log role assignments (actor, target, role, tenant, timestamp)
 
 ---
+
+📋 Execution Plan (file order)
+
+✅ core/config.py → we finished.
+
+➡️ utils/cache.py → caching abstraction.
+
+utils/audit.py → audit logger.
+
+api/deps.py → require_roles dependency + JWT decode.
+
+crud/user.py → hook cache invalidation + audit log.
+
+api/v1/routes/user.py → secure routes with RBAC.
 🔑 Prep for Tenant-Service Integration
 
 RBAC & Roles

@@ -1,4 +1,4 @@
-# mypy: ignore-errors
+# app/crud/user_basic
 """Basic User CRUD operations with UUID and role preloading."""
 
 from typing import List, Optional, Tuple
@@ -82,7 +82,7 @@ async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
     return db_user
 
 
-def user_to_schema(user: User) -> dict:
+def user_to_schema(user: User) -> dict[str, object]:
     """Convert SQLAlchemy User -> UserRead compatible dict."""
     return {
         "id": user.id,
@@ -103,18 +103,12 @@ async def list_users(
     db: AsyncSession, skip: int = 0, limit: int = 100
 ) -> Tuple[int, List[User]]:
     """List users with pagination, returns total count and user list."""
-
     # Total count query
-    total_result = await db.execute(
-        select(func.count(User.id))  # pylint: disable=not-callable
-    )
+    total_result = await db.execute(select(func.count(User.id)))
     total: int = total_result.scalar_one()
 
     # Users query with offset & limit
-    result = await db.execute(
-        select(User).offset(skip).limit(limit)
-    )  # pylint: disable=not-callable
-
+    result = await db.execute(select(User).offset(skip).limit(limit))
     users: List[User] = list(result.scalars())
 
     return total, users

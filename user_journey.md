@@ -57,17 +57,17 @@ This document defines **RBAC personas**, their journeys, **role hierarchy**, and
 
 * Each **parent tenant** gets a **unique subdomain**:
 
-  * Apple → `apple.saas.com`
-  * Orange → `orange.saas.com`
-  * Peanut → `peanut.saas.com`
+  * Apple → `apple.carboniq.com`
+  * Orange → `orange.carboniq.com`
+  * Peanut → `peanut.carboniq.com`
 
 * Each **sub-tenant** gets a **nested subdomain**:
 
-  * Orchard Apple → `orchard.apple.saas.com`
-  * Summit Apple → `summit.apple.saas.com`
-  * Harbor Apple → `harbor.apple.saas.com`
-  * Grove Orange → `grove.orange.saas.com`
-  * Horizon Orange → `horizon.orange.saas.com`
+  * Orchard Apple → `orchard.apple.carboniq.com`
+  * Summit Apple → `summit.apple.carboniq.com`
+  * Harbor Apple → `harbor.apple.carboniq.com`
+  * Grove Orange → `grove.orange.carboniq.com`
+  * Horizon Orange → `horizon.orange.carboniq.com`
 
 ### Schema Isolation
 
@@ -84,7 +84,7 @@ class Tenant(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)  # Apple, Orange, Peanut
-    domain = Column(String, unique=True, nullable=False)  # apple.saas.com
+    domain = Column(String, unique=True, nullable=False)  # apple.carboniq.com
     schema_name = Column(String, unique=True, nullable=False)  # e.g. tenant_apple
     parent_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=True)
 
@@ -100,40 +100,40 @@ class Tenant(Base, TimestampMixin):
 
 ### 1. Apple Inc. (Enterprise — 100 users)
 
-* **Domain:** `apple.saas.com`
+* **Domain:** `apple.carboniq.com`
 * **Schema:** `tenant_apple`
 * **Users:**
 
   * `admin@apple.com` → TENANT_ADMIN
 * **Sub-Tenants:**
 
-  * **Orchard Apple** (`orchard.apple.saas.com`, schema: `tenant_orchard_apple`)
+  * **Orchard Apple** (`orchard.apple.carboniq.com`, schema: `tenant_orchard_apple`)
 
     * `billing@orchard.apple.com` → BILLING_ADMIN
     * `member@orchard.apple.com` → MEMBER
     * `viewer@orchard.apple.com` → VIEWER
-  * **Summit Apple** (`summit.apple.saas.com`, schema: `tenant_summit_apple`) → no seed users yet
-  * **Harbor Apple** (`harbor.apple.saas.com`, schema: `tenant_harbor_apple`) → no seed users yet
+  * **Summit Apple** (`summit.apple.carboniq.com`, schema: `tenant_summit_apple`) → no seed users yet
+  * **Harbor Apple** (`harbor.apple.carboniq.com`, schema: `tenant_harbor_apple`) → no seed users yet
 
 ### 2. Orange Ltd. (Standard — 10 users)
 
-* **Domain:** `orange.saas.com`
+* **Domain:** `orange.carboniq.com`
 * **Schema:** `tenant_orange`
 * **Users:**
 
   * `admin@orange.com` → TENANT_ADMIN
 * **Sub-Tenants:**
 
-  * **Grove Orange** (`grove.orange.saas.com`, schema: `tenant_grove_orange`)
+  * **Grove Orange** (`grove.orange.carboniq.com`, schema: `tenant_grove_orange`)
 
     * `member@grove.orange.com` → MEMBER
-  * **Horizon Orange** (`horizon.orange.saas.com`, schema: `tenant_horizon_orange`)
+  * **Horizon Orange** (`horizon.orange.carboniq.com`, schema: `tenant_horizon_orange`)
 
     * `viewer@horizon.orange.com` → VIEWER
 
 ### 3. Peanut Corp. (Basic — 1 user)
 
-* **Domain:** `peanut.saas.com`
+* **Domain:** `peanut.carboniq.com`
 * **Schema:** `tenant_peanut`
 * **Users:**
 

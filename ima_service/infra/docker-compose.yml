@@ -1,33 +1,26 @@
 version: "3.9"
+
 services:
   redis:
     image: redis:7-alpine
     command: ["redis-server","--save","","--appendonly","no"]
-    ports: ["6379:6379"]
-    healthcheck: {test: ["CMD","redis-cli","ping"], interval: 5s, timeout: 3s, retries: 10}
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-ima}
-    ports: ["5432:5432"]
-    volumes: ["ima_pg:/var/lib/postgresql/data"]
-    healthcheck: {test: ["CMD","pg_isready","-U","${POSTGRES_USER:-postgres}"], interval: 5s, timeout: 3s, retries: 20}
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD","redis-cli","ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   app:
     build:
-      context: ..
+      context: ..                 # project root
       dockerfile: infra/Dockerfile
-    environment:
-      IMA_APP_NAME: ${IMA_APP_NAME:-IMA Service}
-      IMA_ENV: ${IMA_ENV:-dev}
-      IMA_DB__URL: ${IMA_DB__URL:-postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ima}}
-      IMA_JWT__SECRET_KEY: ${IMA_JWT__SECRET_KEY:-change-me}
-      IMA_REDIS_DSN: ${IMA_REDIS_DSN:-redis://redis:6379/0}
-    ports: ["8000:8000"]
+    env_file:
+      - ../.env                   # load your Neon DB and JWT config
+    ports:
+      - "8000:8000"
     depends_on:
-      redis: {condition: service_healthy}
-      postgres: {condition: service_healthy}
+      redis:
+        condition: service_healthy
     command: ["uvicorn","main:app","--host","0.0.0.0","--port","8000"]
-volumes:
-  ima_pg: {}

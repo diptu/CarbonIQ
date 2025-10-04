@@ -1,5 +1,5 @@
-# mypy: ignore-errors
-"""CRUD operations for Role model."""
+# app/crud/role.py
+"""CRUD operations for Role model with async SQLAlchemy session."""
 
 from typing import List, Optional
 from uuid import UUID
@@ -21,7 +21,7 @@ async def list_roles(db: AsyncSession) -> List[Role]:
 
 
 async def get_role_by_name(db: AsyncSession, name: RoleName) -> Optional[Role]:
-    """Get role by its name."""
+    """Get a role by its name."""
     result = await db.execute(select(Role).where(Role.name == name))
     return result.scalar_one_or_none()
 
@@ -33,7 +33,7 @@ async def get_roles(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[R
 
 
 async def create_role(db: AsyncSession, role_in: RoleCreate) -> Role:
-    """Create a new role."""
+    """Create a new role in the database."""
     role = Role(
         name=role_in.name,
         description=role_in.description,
@@ -48,7 +48,7 @@ async def create_role(db: AsyncSession, role_in: RoleCreate) -> Role:
 async def update_role(
     db: AsyncSession, role_id: UUID, role_in: RoleCreate
 ) -> Optional[Role]:
-    """Update an existing role."""
+    """Update an existing role by ID."""
     result = await db.execute(select(Role).where(Role.id == role_id))
     role = result.scalar_one_or_none()
     if not role:
