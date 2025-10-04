@@ -139,3 +139,216 @@ class Tenant(Base, TimestampMixin):
 
   * `admin@peanut.com` → TENANT_ADMIN
 * **Sub-Tenants:** none allowed on Basic plan.
+
+```sql
+-- 🌱 Seed Roles (if not already present)
+INSERT INTO public.roles (id, name, description, is_system)
+VALUES
+    (gen_random_uuid(), 'TENANT_ADMIN', 'Tenant Administrator', true),
+    (gen_random_uuid(), 'BILLING_ADMIN', 'Billing Administrator', true),
+    (gen_random_uuid(), 'MEMBER', 'Regular Member', true),
+    (gen_random_uuid(), 'VIEWER', 'Read-only User', true)
+ON CONFLICT (name) DO NOTHING;
+
+-- 🌱 Seed Tenants
+WITH main_tenants AS (
+    INSERT INTO public.tenants (id, name, domain, schema_name)
+    VALUES
+        (gen_random_uuid(), 'Apple Inc.', 'apple.carboniq.com', 'tenant_apple'),
+        (gen_random_uuid(), 'Orange Ltd.', 'orange.carboniq.com', 'tenant_orange'),
+        (gen_random_uuid(), 'Peanut Corp.', 'peanut.carboniq.com', 'tenant_peanut')
+    ON CONFLICT (domain) DO NOTHING
+    RETURNING id, name
+),
+apple_subs AS (
+    INSERT INTO public.tenants (id, name, domain, schema_name, parent_id)
+    SELECT gen_random_uuid(), 'Orchard Apple', 'orchard.apple.carboniq.com', 'tenant_orchard_apple', id
+    FROM main_tenants WHERE name = 'Apple Inc.'
+    UNION ALL
+    SELECT gen_random_uuid(), 'Summit Apple', 'summit.apple.carboniq.com', 'tenant_summit_apple', id
+    FROM main_tenants WHERE name = 'Apple Inc.'
+    UNION ALL
+    SELECT gen_random_uuid(), 'Harbor Apple', 'harbor.apple.carboniq.com', 'tenant_harbor_apple', id
+    FROM main_tenants WHERE name = 'Apple Inc.'
+    ON CONFLICT (domain) DO NOTHING
+    RETURNING id, name
+),
+orange_subs AS (
+    INSERT INTO public.tenants (id, name, domain, schema_name, parent_id)
+    SELECT gen_random_uuid(), 'Grove Orange', 'grove.orange.carboniq.com', 'tenant_grove_orange', id
+    FROM main_tenants WHERE name = 'Orange Ltd.'
+    UNION ALL
+    SELECT gen_random_uuid(), 'Horizon Orange', 'horizon.orange.carboniq.com', 'tenant_horizon_orange', id
+    FROM main_tenants WHERE name = 'Orange Ltd.'
+    ON CONFLICT (domain) DO NOTHING
+    RETURNING id, name
+)
+SELECT 1;
+
+-- 🌱 Seed Users
+WITH inserted_users AS (
+    INSERT INTO public.users (id, email, hashed_password, is_active, is_superuser)
+    VALUES
+        (gen_random_uuid(), 'admin@apple.com', '$2b$12$Or7b854QYKvRrnvBQORntO2.3jgMvHpdjngpozIHbtrDcukKraT3C', true, false),
+        (gen_random_uuid(), 'billing@orchard.apple.com', '$2b$12$Or7b854QYKvRrnvBQORntO2.3jgMvHpdjngpozIHbtrDcukKraT3C', true, false),
+        (gen_random_uuid(), 'member@orchard.apple.com', '$2b$12$Or7b854QYKvRrnvBQORntO2.3jgMvHpdjngpozIHbtrDcukKraT3C', true, false),
+        (gen_random_uuid(), 'viewer@orchard.apple.com', '$2b$12$Or7b854QYKvRrnvBQORntO2.3jgMvHpdjngpozIHbtrDcukKraT3C', true, false),
+        (gen_random_uuid(), 'admin@orange.com', '$2b$12$Or7b854QYKvRrnvBQORntO2.3jgMvHpdjngpozIHbtrDcukKraT3C', true, false),
+        (gen_random_uuid(), 'member@grove.orange.com', '$2b$12$Or7b854QYKvRrnvBQORntO2.3jgMvHpdjngpozIHbtrDcukKraT3C', true, false),
+        (gen_random_uuid(), 'viewer@horizon.orange.com', '$2b$12$Or7b854QYKvRrnvBQORntO2.3jgMvHpdjngpozIHbtrDcukKraT3C', true, false),
+        (gen_random_uuid(), 'admin@peanut.com', '$2b$12$Or7b854QYKvRrnvBQORntO2.3jgMvHpdjngpozIHbtrDcukKraT3C', true, false)
+    ON CONFLICT (email) DO NOTHING
+    RETURNING id, email
+)
+SELECT 1;
+
+-- 🌱 Assign Roles
+INSERT INTO public.user_roles (user_id, role_id, tenant_id)
+SELECT u.id, r.id, t.id
+FROM public.users u
+JOIN public.roles r ON r.name = 'TENANT_ADMIN'
+JOIN public.tenants t ON t.name = 'Apple Inc.'
+WHERE u.email = 'admin@apple.com'
+UNION ALL
+SELECT u.id, r.id, t.id
+FROM public.users u
+JOIN public.roles r ON r.name = 'BILLING_ADMIN'
+JOIN public.tenants t ON t.name = 'Orchard Apple'
+WHERE u.email = 'billing@orchard.apple.com'
+UNION ALL
+SELECT u.id, r.id, t.id
+FROM public.users u
+JOIN public.roles r ON r.name = 'MEMBER'
+JOIN public.tenants t ON t.name = 'Orchard Apple'
+WHERE u.email = 'member@orchard.apple.com'
+UNION ALL
+SELECT u.id, r.id, t.id
+FROM public.users u
+JOIN public.roles r ON r.name = 'VIEWER'
+JOIN public.tenants t ON t.name = 'Orchard Apple'
+WHERE u.email = 'viewer@orchard.apple.com'
+UNION ALL
+SELECT u.id, r.id, t.id
+FROM public.users u
+JOIN public.roles r ON r.name = 'TENANT_ADMIN'
+JOIN public.tenants t ON t.name = 'Orange Ltd.'
+WHERE u.email = 'admin@orange.com'
+UNION ALL
+SELECT u.id, r.id, t.id
+FROM public.users u
+JOIN public.roles r ON r.name = 'MEMBER'
+JOIN public.tenants t ON t.name = 'Grove Orange'
+WHERE u.email = 'member@grove.orange.com'
+UNION ALL
+SELECT u.id, r.id, t.id
+FROM public.users u
+JOIN public.roles r ON r.name = 'VIEWER'
+JOIN public.tenants t ON t.name = 'Horizon Orange'
+WHERE u.email = 'viewer@horizon.orange.com'
+UNION ALL
+SELECT u.id, r.id, t.id
+FROM public.users u
+JOIN public.roles r ON r.name = 'TENANT_ADMIN'
+JOIN public.tenants t ON t.name = 'Peanut Corp.'
+WHERE u.email = 'admin@peanut.com';
+
+```
+
+## Pytest Test Plan for Multi-Tenant RBAC
+1. Role Inheritance Hierarchy
+
+test_tenant_admin_can_do_billing_admin_tasks
+
+test_tenant_admin_can_do_member_tasks
+
+test_tenant_admin_can_do_viewer_tasks
+
+test_billing_admin_can_do_member_tasks
+
+test_billing_admin_can_do_viewer_tasks
+
+test_member_can_do_viewer_tasks
+
+test_viewer_cannot_do_member_tasks
+
+test_member_cannot_do_billing_tasks
+
+test_billing_admin_cannot_do_tenant_admin_tasks
+
+2. Tenant Admin Tests
+
+test_tenant_admin_can_manage_parent_tenant
+
+test_tenant_admin_can_manage_subtenants
+
+test_tenant_admin_cannot_access_other_tenants
+
+test_tenant_admin_can_assign_roles_in_subtenants
+
+test_tenant_admin_inherits_billing_permissions
+
+test_tenant_admin_inherits_member_permissions
+
+test_tenant_admin_inherits_viewer_permissions
+
+3. Billing Admin Tests
+
+test_billing_admin_can_manage_billing
+
+test_billing_admin_cannot_manage_roles
+
+test_billing_admin_cannot_create_subtenants
+
+test_billing_admin_cannot_manage_parent_or_sibling_tenants
+
+test_billing_admin_inherits_member_permissions
+
+test_billing_admin_inherits_viewer_permissions
+
+4. Member Tests
+
+test_member_can_access_basic_features
+
+test_member_cannot_manage_roles_or_billing
+
+test_member_cannot_create_subtenants
+
+test_member_inherits_viewer_permissions
+
+5. Viewer Tests
+
+test_viewer_can_read_data_only
+
+test_viewer_cannot_create_update_delete
+
+test_viewer_cannot_manage_roles
+
+test_viewer_cannot_manage_billing
+
+6. Cross-Tenant Isolation
+
+test_parent_admin_cannot_access_other_tenant
+
+test_subtenant_admin_cannot_manage_parent
+
+test_subtenant_admin_cannot_manage_sibling_tenants
+
+test_cross_tenant_admin_isolation
+
+7. Plan Enforcement
+
+test_basic_plan_cannot_have_subtenants
+
+test_standard_plan_limited_subtenants
+
+test_enterprise_plan_multiple_subtenants
+
+8. Security & Constraints
+
+test_duplicate_role_assignment_not_allowed
+
+test_user_cannot_promote_self
+
+test_conflicting_roles_handled_correctly
+
+test_disabled_user_cannot_login

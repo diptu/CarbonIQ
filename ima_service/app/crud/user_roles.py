@@ -1,15 +1,14 @@
 # app/crud/user_roles.py
 """User Role Assignment CRUD operations with audit logging."""
 
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete, insert
 
 from ..models.user_roles import user_roles
 from ..models.user import User
 from ..models.role import Role
 from ..utils.audit import log_role_assignment
-from typing import List
-from sqlalchemy import select
 
 
 async def get_user_roles(db: AsyncSession, user_id: str) -> List[str]:
@@ -36,7 +35,7 @@ async def assign_role_to_user(
     actor_id: Optional[str] = None,
 ) -> None:
     """
-    Assign a role to a user for a specific tenant, with audit logging.
+    Assign a role to a user for a specific tenant, replacing any existing role.
 
     Parameters
     ----------
@@ -53,17 +52,27 @@ async def assign_role_to_user(
 
     Notes
     -----
+    - Ensures only one role exists per tenant.
     - Automatically logs the role assignment if `actor_id` is provided.
     """
-    stmt = user_roles.insert().values(
-        user_id=user.id,
-        role_id=role.id,
-        tenant_id=tenant_id,
+    # 1️⃣ Remove existing role for this tenant
+    await db.execute(
+        delete(user_roles)
+        .where(user_roles.c.user_id == user.id)
+        .where(user_roles.c.tenant_id == tenant_id)
     )
-    await db.execute(stmt)
+
+    # 2️⃣ Assign new role
+    await db.execute(
+        insert(user_roles).values(
+            user_id=user.id,
+            role_id=role.id,
+            tenant_id=tenant_id,
+        )
+    )
     await db.commit()
 
-    # Audit logging
+    # 3️⃣ Audit logging
     if actor_id:
         log_role_assignment(
             actor_id=actor_id,

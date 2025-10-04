@@ -8,6 +8,7 @@ Includes login, token issuance, refresh, and standardized API response envelope.
 from pydantic import BaseModel
 from fastapi import Form
 from fastapi.security import OAuth2PasswordRequestForm
+from typing import List
 
 
 # ----------------------
@@ -20,6 +21,7 @@ class Token(BaseModel):
     refreshToken: str
     tokenType: str
     expiresIn: int
+    roles: List[str]  # <- add this line
 
 
 # ----------------------
