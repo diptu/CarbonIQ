@@ -1,7 +1,6 @@
-"""Register all SQLAlchemy models so Alembic can detect them for migrations."""
+"""Register all SQLAlchemy models for Alembic autogeneration."""
 
-# Import all models to register them with SQLAlchemy metadata
-# pylint: disable=unused-import
 from .base_class import Base
 
+# All models must be imported in `migrations/env.py` to enable Alembic detection
 __all__ = ["Base"]

@@ -1,4 +1,5 @@
 """
+app.schemas.base.py
 Base schemas for Pydantic models.
 
 Includes:
@@ -8,17 +9,21 @@ Includes:
 """
 
 from typing import Generic, List, Optional, TypeVar
-
 from pydantic import BaseModel, Field
 
 T = TypeVar("T")
 
 
-# ----------------------
-# Base ORM schema
-# ----------------------
 class ORMBase(BaseModel):
-    """Base schema for Pydantic models with ORM support."""
+    """
+    Base schema for Pydantic models with ORM support.
+
+    Notes
+    -----
+    - Supports `from_attributes=True` for ORM integration.
+    - Provides alias generator converting snake_case to camelCase.
+    - Allows population by field name.
+    """
 
     model_config = {
         "from_attributes": True,
@@ -30,11 +35,29 @@ class ORMBase(BaseModel):
     }
 
 
-# ----------------------
-# Paginated response
-# ----------------------
 class PaginatedResponse(Generic[T], ORMBase):
-    """Generic schema for paginated API responses."""
+    """
+    Generic schema for paginated API responses.
+
+    Attributes
+    ----------
+    total : int
+        Total number of items available.
+    skip : int
+        Number of items skipped (offset).
+    limit : int
+        Maximum number of items returned.
+    previousPage : Optional[str]
+        URL to the previous page, if any.
+    nextPage : Optional[str]
+        URL to the next page, if any.
+    firstPage : Optional[str]
+        URL to the first page.
+    lastPage : Optional[str]
+        URL to the last page.
+    items : List[T]
+        List of items on this page.
+    """
 
     total: int = Field(..., description="Total number of items available")
     skip: int = Field(..., description="Number of items skipped (offset)")
@@ -46,17 +69,19 @@ class PaginatedResponse(Generic[T], ORMBase):
     items: List[T] = Field(..., description="List of items on this page")
 
 
-# ----------------------
-# Standard API response envelope
-# ----------------------
 class APIResponse(Generic[T], ORMBase):
     """
     Standardized API response envelope.
 
-    Generic `details` can be any payload, including:
-    - single object
-    - list of objects
-    - PaginatedResponse for paginated results
+    Attributes
+    ----------
+    statusCode : int
+        HTTP status code of the response.
+    msg : str
+        Short descriptive message.
+    details : Optional[T]
+        Generic response payload; can be a single object,
+        list of objects, or PaginatedResponse for paginated results.
     """
 
     statusCode: int = Field(..., description="HTTP status code")

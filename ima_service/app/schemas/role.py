@@ -1,21 +1,14 @@
-"""
-Schemas for role management.
-
-Includes role creation, reading, and standardized API response envelope.
-"""
+"""Schemas for role management with DB-driven RBAC."""
 
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
-
 from .base import ORMBase, PaginatedResponse
+from .permission import PermissionRead
 
 
-# ----------------------
-# Role enum
-# ----------------------
 class RoleName(str, Enum):
-    """Enumeration of supported system roles."""
+    """Enumeration of system roles."""
 
     TENANT_ADMIN = "TENANT_ADMIN"
     BILLING_ADMIN = "BILLING_ADMIN"
@@ -23,56 +16,53 @@ class RoleName(str, Enum):
     MEMBER = "MEMBER"
 
 
-# ----------------------
-# Base role schema
-# ----------------------
 class RoleBase(ORMBase):
     """Base schema for role attributes."""
 
     name: RoleName
+    level: int
     description: Optional[str] = None
     is_system: bool = False
+    permissions: Optional[List[PermissionRead]] = []
 
 
-# ----------------------
-# Role creation schema
-# ----------------------
 class RoleCreate(ORMBase):
     """Schema for creating a new role."""
 
-    name: RoleName  # Enum type ensures Swagger dropdown
+    name: RoleName
+    level: int
     description: Optional[str] = None
     is_system: bool = False
+    permissions: Optional[List[UUID]] = []
 
-    class Config:  # pylint: disable=too-few-public-methods
+    class Config:
         schema_extra = {
             "example": {
-                "name": "TENANT_ADMIN",  # Enum dropdown example
+                "name": "TENANT_ADMIN",
+                "level": 4,
                 "description": "Role for tenant administrators",
                 "is_system": False,
+                "permissions": [],
             }
         }
 
 
-# ----------------------
-# Role read schema
-# ----------------------
+class RoleUpdate(RoleBase):
+    """Schema for updating a role."""
+
+
 class RoleRead(RoleBase):
-    """Schema for returning a role with ID."""
+    """Schema for reading a role."""
 
     id: UUID
 
 
-# ----------------------
-# Paginated list of roles
-# ----------------------
 class RoleList(PaginatedResponse[RoleRead]):
-    """Paginated response for listing roles."""
+    """Paginated response for roles."""
+
+    pass
 
 
-# ----------------------
-# Standardized API response envelope
-# ----------------------
 class RoleListResponse(ORMBase):
     """Standardized API response envelope for role list."""
 

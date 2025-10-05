@@ -352,3 +352,16 @@ test_user_cannot_promote_self
 test_conflicting_roles_handled_correctly
 
 test_disabled_user_cannot_login
+
+✅ Role-Based Access Control (RBAC) with Explicit Permission Inheritance
+1. Store Roles & Permissions in DB
+
+Roles Table (id, name, level, description)
+
+Permissions Table (id, name, description)
+
+Role_Permissions Table (many-to-many: role_id ↔ permission_id)
+
+User_Roles Table (user_id, tenant_id, role_id)
+
+This gives flexibility: you can add roles/permissions without code changes.

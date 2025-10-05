@@ -1,34 +1,44 @@
-"""SQLAlchemy Role model with Base and timestamp mixin."""
-
 import uuid
-
-from sqlalchemy import Boolean, Column
-from sqlalchemy import Enum as SAEnum
-from sqlalchemy import String
+from sqlalchemy import Boolean, Column, String, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-
 from ..db.base_class import Base, TimestampMixin
-from ..schemas.role import RoleName
+from .user_roles import UserRole
 
 
-class Role(Base, TimestampMixin):  # pylint: disable=too-few-public-methods
-    """SQLAlchemy model representing a user role in the IAM service."""
-
+class Role(Base, TimestampMixin):
     __tablename__ = "roles"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(  # type: ignore[var-annotated]
-        SAEnum(RoleName, name="role_name_enum", native_enum=True),
-        nullable=False,
-        unique=True,
-    )
+    tenant_id = Column(UUID(as_uuid=True), nullable=True)  # NULL = system/global role
+    name = Column(String, nullable=False)
+    level = Column(Integer, nullable=False, default=1)
     description = Column(String, nullable=True)
     is_system = Column(Boolean, default=False, nullable=False)
 
+    # Many-to-many with permissions
+    role_permissions = relationship(
+        "RolePermission",
+        back_populates="role",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    permissions = relationship(
+        "Permission",
+        secondary="role_permissions",
+        viewonly=True,
+        back_populates="roles",
+        lazy="selectin",
+    )
+
+    # Many-to-many with users via UserRole
+    users_association = relationship(
+        "UserRole", back_populates="role", cascade="all, delete-orphan", lazy="selectin"
+    )
     users = relationship(
-        "app.models.user.User",
+        "User",
         secondary="user_roles",
+        viewonly=True,
         back_populates="roles",
         lazy="selectin",
     )

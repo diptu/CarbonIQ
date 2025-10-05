@@ -1,78 +1,103 @@
-"""
-app/schemas/auth.py
+"""Schemas for authentication and token management.
 
-Schemas for authentication and token management.
-Includes login, token issuance, refresh, and standardized API response envelope.
+Tenant-aware and supports DB-driven RBAC.
 """
 
+from typing import List, Optional
+from uuid import UUID
 from pydantic import BaseModel
 from fastapi import Form
 from fastapi.security import OAuth2PasswordRequestForm
-from typing import List
+
+from pydantic import BaseModel, EmailStr
+from fastapi import Form
 
 
-# ----------------------
-# Token schema
-# ----------------------
 class Token(BaseModel):
-    """Response schema for issued JWT tokens."""
+    """
+    Response schema for issued JWT tokens.
+
+    Attributes
+    ----------
+    accessToken : str
+        JWT access token for the authenticated user.
+    refreshToken : str
+        JWT refresh token for renewing access tokens.
+    tokenType : str
+        Type of the token, usually "Bearer".
+    expiresIn : int
+        Token expiration time in seconds.
+    user_id : UUID
+        ID of the authenticated user.
+    tenant_id : UUID
+        Tenant ID of the authenticated user.
+    roles : List[str]
+        List of role names assigned to the user.
+    """
 
     accessToken: str
     refreshToken: str
     tokenType: str
     expiresIn: int
-    roles: List[str]  # <- add this line
+    user_id: UUID
+    tenant_id: UUID
+    roles: List[str]
 
 
-# ----------------------
-# Token refresh request
-# ----------------------
 class TokenRefresh(BaseModel):
-    """Request schema for refreshing an access token."""
+    """
+    Request schema for refreshing an access token.
+
+    Attributes
+    ----------
+    refreshToken : str
+        The refresh token to obtain a new access token.
+    """
 
     refreshToken: str
 
 
-# ----------------------
-# OAuth2 password form using email
-# ----------------------
-class OAuth2PasswordRequestFormEmail(OAuth2PasswordRequestForm):
+class OAuth2PasswordRequestFormEmail:
     """
-    Replacement for OAuth2PasswordRequestForm to use `email` instead of `username`
-    in Swagger Authorize UI.
-
-    Swagger will display editable fields for email and password.
+    Form for OAuth2 password login.
+    Uses 'username' field for email.
     """
 
     def __init__(
-        username: str = Form(
-            ...,
-            description="Your email address (use email instead of username)",
-            example="demo@admin.com",
-        ),
-        password: str = Form(..., description="Your password", example="Hello123"),
+        self,
+        username: str = Form(...),
+        password: str = Form(...),
         scope: str = Form(""),
-        client_id: str | None = None,
-        client_secret: str | None = None,
     ):
-        super().__init__(
-            username=username,  # internally stored as username
-            password=password,
-            scope=scope,
-            client_id=client_id,
-            client_secret=client_secret,
-        )
+        self.username = username
+        self.password = password
+        self.scope = scope
 
 
-# ----------------------
-# API response envelope
-# ----------------------
 class APIResponse(BaseModel):
+    """
+    Standard API response envelope.
+
+    Attributes
+    ----------
+    statusCode : int
+        HTTP status code of the response.
+    msg : str
+        Short descriptive message.
+    """
+
     statusCode: int
     msg: str
 
 
 class LoginAPIResponse(APIResponse):
-    """API response schema for login containing JWT tokens."""
+    """
+    API response schema for login containing JWT tokens.
+
+    Attributes
+    ----------
+    details : Token
+        The JWT token information for the authenticated user.
+    """
 
     details: Token
