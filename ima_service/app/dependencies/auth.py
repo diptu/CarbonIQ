@@ -1,12 +1,13 @@
 # app/dependency/auth.py
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from jose import JWTError
 
+from app.core.token import decode_token
 from app.db.session import get_db as get_db_session
 from app.core.config import get_settings
 from app.models.user import User
@@ -23,28 +24,22 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db_session),
 ) -> User:
-    """
-    Extract current user from JWT token.
-    Skips actual DB check if called during OpenAPI generation (Swagger UI)
-    """
-    # Skip token check for OpenAPI docs
     import sys
 
     if "pydantic_openapi" in sys.modules:
-        return None  # dummy user for OpenAPI generation
+        return None
 
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=["HS256"])
+        payload = decode_token(token)
+        if payload is None:
+            raise JWTError("Token verification failed")
         user_id = UUID(payload["user_id"])
-        tenant_id = UUID(payload["tenant_id"])
-    except Exception:
+    except JWTError as e:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid token: {e}"
         )
 
-    result = await db.execute(
-        select(User).where(User.id == user_id, User.tenant_id == tenant_id)
-    )
+    result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
     if not user:
         raise HTTPException(
@@ -54,19 +49,25 @@ async def get_current_user(
 
 
 def require_permissions(required_permissions: List[str]):
+    """
+    Dependency decorator to enforce permission checks.
+    Skips checks for OpenAPI docs.
+    Superusers bypass permission checks.
+    """
+
     async def decorator(
         current_user: User = Depends(get_current_user),
         db: AsyncSession = Depends(get_db_session),
     ):
-        # Skip permissions check if called during OpenAPI generation
         import sys
 
         if current_user is None or "pydantic_openapi" in sys.modules:
             return None
 
-        if current_user.is_superuser:
+        if getattr(current_user, "is_superuser", False):
             return current_user
 
+        # Get user roles for current tenant
         result = await db.execute(
             select(Role)
             .join(UserRole, Role.id == UserRole.role_id)
@@ -77,6 +78,7 @@ def require_permissions(required_permissions: List[str]):
         )
         user_roles = result.scalars().all()
 
+        # Collect all permissions
         permission_names = set()
         for role in user_roles:
             res = await db.execute(
@@ -86,6 +88,7 @@ def require_permissions(required_permissions: List[str]):
             )
             permission_names.update([p[0] for p in res.all()])
 
+        # Check for missing required permissions
         missing = [p for p in required_permissions if p not in permission_names]
         if missing:
             raise HTTPException(

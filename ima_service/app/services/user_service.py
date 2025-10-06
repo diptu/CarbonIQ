@@ -58,9 +58,23 @@ async def create_user(
     return user
 
 
-async def list_users(db: AsyncSession, tenant_id: UUID) -> List[User]:
-    result = await db.execute(select(User).where(User.tenant_id == tenant_id))
-    return result.scalars().all()
+from sqlalchemy import func
+
+
+async def list_users(db: AsyncSession, skip: int = 0, limit: int = 10):
+    """
+    List users with pagination. Returns (total_count, users_list)
+    """
+
+    # 1️⃣ Get paginated users
+    result = await db.execute(select(User).offset(skip).limit(limit))
+    users = result.scalars().all()
+
+    # 2️⃣ Get total count efficiently
+    total_result = await db.execute(select(func.count(User.id)))
+    total = total_result.scalar_one()  # Returns single integer
+
+    return total, users
 
 
 async def get_user_by_email(

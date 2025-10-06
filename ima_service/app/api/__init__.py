@@ -11,7 +11,7 @@ from fastapi import APIRouter
 # Import routers from v1
 from .v1.routes import (
     auth_router,
-    billing_router,
+    # billing_router,
     permission_router,
     reporting_router,
     role_router,
@@ -29,4 +29,4 @@ api_router.include_router(
     permission_router.router, prefix="/permissions", tags=["permissions"]
 )
 api_router.include_router(reporting_router.router, prefix="/reports", tags=["reports"])
-api_router.include_router(billing_router.router, prefix="/billing", tags=["bills"])
+# api_router.include_router(billing_router.router, prefix="/billing", tags=["bills"])

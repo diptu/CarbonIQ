@@ -88,7 +88,7 @@ class UserRead(ORMBase):
     is_superuser: bool = Field(
         default=False, description="Readonly; cannot be set via API", frozen=True
     )
-    roles: List[RoleRead] = []
+    # roles: List[RoleRead] = []
 
 
 # ----------------------

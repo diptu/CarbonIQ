@@ -53,26 +53,33 @@ async def startup_event():
 # ----------------------
 # Custom OpenAPI for Swagger OAuth2
 # ----------------------
+
+
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
 
     openapi_schema = get_openapi(
-        title=app.title, version=app.version, routes=app.routes
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
     )
 
-    # OAuth2 password flow
+    # Define BearerAuth
     openapi_schema["components"]["securitySchemes"] = {
-        "BearerAuth": {
-            "type": "oauth2",
-            "flows": {"password": {"tokenUrl": "/api/v1/auth/login", "scopes": {}}},
-        }
+        "BearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
     }
 
-    # Apply globally to all endpoints (lock endpoints before auth)
-    for path in openapi_schema.get("paths", {}).values():
+    # Apply security only to endpoints with the dependency
+    for path in openapi_schema["paths"].values():
         for method in path.values():
-            method["security"] = [{"BearerAuth": []}]
+            # Only add security if endpoint is protected
+            if "dependencies" in method and any(
+                d.get("$ref") == "#/components/schemas/HTTPBearer"
+                for d in method.get("dependencies", [])
+            ):
+                method["security"] = [{"BearerAuth": []}]
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema

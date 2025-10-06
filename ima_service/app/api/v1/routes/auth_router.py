@@ -1,32 +1,64 @@
 # app/api/v1/routes/auth_router.py
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Form, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional, List
+from uuid import UUID
 
+from app.core.config import get_settings
 from app.db.session import get_db
-from app.services.user_service import authenticate_user, create_tokens_for_user
+from app.services.user_service import authenticate_user
+from app.core.token import create_access_token, create_refresh_token
+from app.schemas.auth import LoginResponse, TokenDetails
 
 router = APIRouter()
+settings = get_settings()
 
 
-@router.post("/login")
+@router.post("/login", response_model=LoginResponse)
 async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    email: str = Form(..., description="Your email address"),
+    password: str = Form(..., description="Your password"),
+    tenant_id: Optional[str] = Form(None, description="Tenant ID (optional)"),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    OAuth2 password login endpoint.
-    Returns access & refresh tokens.
+    Authenticate user and return JWT access + refresh tokens.
+    Minimal token: only user_id (tenant and roles optional for future use).
     """
-    tenant_id = form_data.client_id or None
-    user = await authenticate_user(
-        db, form_data.username, form_data.password, tenant_id
-    )
 
+    # 1. Authenticate user
+    user = await authenticate_user(db, email, password, tenant_id)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not getattr(user, "is_active", True):
+        raise HTTPException(status_code=401, detail="User inactive")
 
-    roles = [r.name for r in user.roles]
-    tokens = create_tokens_for_user(user, roles)
+    # 2. Determine tenant_id (optional)
+    tenant_id_to_use: Optional[str] = tenant_id or getattr(user, "tenant_id", None)
 
-    return tokens
+    # 3. Get user roles (for future RBAC)
+    roles: List[str] = [r.name for r in getattr(user, "roles", [])]
+
+    # 4. Create JWT tokens with minimal payload
+    token_payload = {"user_id": str(user.id)}
+    if tenant_id_to_use:
+        token_payload["tenant_id"] = str(tenant_id_to_use)
+
+    access_token = create_access_token(token_payload)
+    refresh_token = create_refresh_token(token_payload)
+
+    # 5. Build structured response
+    details = TokenDetails(
+        accessToken=access_token,
+        refreshToken=refresh_token,
+        tokenType="bearer",
+        expiresIn=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        roles=roles,
+        tenantId=str(tenant_id_to_use) if tenant_id_to_use else None,
+    )
+
+    return LoginResponse(
+        statusCode=200,
+        msg="Login successful",
+        details=details,
+    )

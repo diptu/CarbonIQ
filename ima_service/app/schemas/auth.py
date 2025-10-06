@@ -5,43 +5,26 @@ Tenant-aware and supports DB-driven RBAC.
 
 from typing import List, Optional
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, EmailStr
 from fastapi import Form
 from fastapi.security import OAuth2PasswordRequestForm
 
-from pydantic import BaseModel, EmailStr
-from fastapi import Form
+
+class TokenDetails(BaseModel):
+    accessToken: str = Field(..., description="JWT access token")
+    refreshToken: str = Field(..., description="JWT refresh token")
+    tokenType: str = Field(default="bearer", description="Token type")
+    expiresIn: int = Field(..., description="Token expiration time in seconds")
+    roles: List[str] = Field(..., description="List of user roles")
+    tenantId: Optional[str] = Field(
+        None, description="Tenant ID associated with the token"
+    )
 
 
-class Token(BaseModel):
-    """
-    Response schema for issued JWT tokens.
-
-    Attributes
-    ----------
-    accessToken : str
-        JWT access token for the authenticated user.
-    refreshToken : str
-        JWT refresh token for renewing access tokens.
-    tokenType : str
-        Type of the token, usually "Bearer".
-    expiresIn : int
-        Token expiration time in seconds.
-    user_id : UUID
-        ID of the authenticated user.
-    tenant_id : UUID
-        Tenant ID of the authenticated user.
-    roles : List[str]
-        List of role names assigned to the user.
-    """
-
-    accessToken: str
-    refreshToken: str
-    tokenType: str
-    expiresIn: int
-    user_id: UUID
-    tenant_id: UUID
-    roles: List[str]
+class LoginResponse(BaseModel):
+    statusCode: int = Field(..., description="HTTP status code")
+    msg: str = Field(..., description="Response message")
+    details: TokenDetails = Field(..., description="Token details and related metadata")
 
 
 class TokenRefresh(BaseModel):
@@ -100,4 +83,4 @@ class LoginAPIResponse(APIResponse):
         The JWT token information for the authenticated user.
     """
 
-    details: Token
+    details: TokenDetails
