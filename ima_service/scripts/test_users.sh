@@ -1,7 +1,7 @@
 #!/bin/bash
 
 API_URL="http://127.0.0.1:8000/api/v1"
-EMAIL="admin@carboniq.com"
+EMAIL="member@orchard.apple.com"
 PASSWORD="Hello123"
 
 echo "Logging in..."

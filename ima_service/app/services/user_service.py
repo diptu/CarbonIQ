@@ -58,29 +58,54 @@ async def create_user(
     return user
 
 
-from sqlalchemy import func
+# app/services/user_service.py
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
+from typing import Optional, Tuple
+from app.models.user import User
 
 
-# list_users function
 async def list_users(
-    db: AsyncSession, skip: int = 0, limit: int = 10, tenant_id: UUID | None = None
-):
-    """
-    Return total count and a list of users, optionally filtered by tenant_id.
-    """
-    query = select(User)
-    if tenant_id:
-        query = query.where(User.tenant_id == tenant_id)
+    db: AsyncSession, skip: int = 0, limit: int = 10, tenant_id: Optional[str] = None
+) -> Tuple[int, list[User]]:
+    tenant_ids = [tenant_id] if tenant_id else []
 
-    result = await db.execute(query.offset(skip).limit(limit))
-    users = result.scalars().all()
-
-    # Total count
-    total_query = select(User)
     if tenant_id:
-        total_query = total_query.where(User.tenant_id == tenant_id)
-    total_result = await db.execute(total_query)
-    total = len(total_result.scalars().all())
+        # Fetch child tenants using raw SQL
+        query = text("""
+            WITH RECURSIVE child_tenants AS (
+                SELECT id FROM tenants WHERE parent_id = :parent_id
+                UNION
+                SELECT t.id
+                FROM tenants t
+                INNER JOIN child_tenants ct ON t.parent_id = ct.id
+            )
+            SELECT id FROM child_tenants
+        """)
+        result = await db.execute(query, {"parent_id": tenant_id})
+        child_ids = [row[0] for row in result.fetchall()]
+        tenant_ids.extend(child_ids)
+
+    # Total users count
+    total_result = await db.execute(
+        text("SELECT COUNT(*) FROM users WHERE tenant_id = ANY(:tenant_ids)"),
+        {"tenant_ids": tenant_ids},
+    )
+    total = total_result.scalar() or 0
+
+    # Fetch users with pagination
+    users_result = await db.execute(
+        text("""
+            SELECT * FROM users
+            WHERE tenant_id = ANY(:tenant_ids)
+            ORDER BY created_at DESC
+            OFFSET :skip LIMIT :limit
+        """),
+        {"tenant_ids": tenant_ids, "skip": skip, "limit": limit},
+    )
+
+    # Map raw rows to User model instances
+    users = [User(**dict(row)) for row in users_result.mappings().all()]
 
     return total, users
 
