@@ -13,6 +13,25 @@ def create_access_token(
     roles: List[str],
     expires_minutes: int | None = None,
 ) -> str:
+    """
+    Create a JWT access token for a user.
+
+    Parameters
+    ----------
+    user_id : UUID
+        Unique identifier of the user.
+    tenant_id : UUID
+        Tenant identifier for multi-tenant support.
+    roles : List[str]
+        List of role names assigned to the user.
+    expires_minutes : int, optional
+        Expiration time in minutes. Defaults to settings.ACCESS_TOKEN_EXPIRE_MINUTES.
+
+    Returns
+    -------
+    str
+        Encoded JWT access token.
+    """
     expire = datetime.utcnow() + timedelta(
         minutes=expires_minutes or settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
@@ -34,6 +53,25 @@ def create_refresh_token(
     roles: List[str],
     expires_days: int | None = None,
 ) -> str:
+    """
+    Create a JWT refresh token for a user.
+
+    Parameters
+    ----------
+    user_id : UUID
+        Unique identifier of the user.
+    tenant_id : UUID
+        Tenant identifier for multi-tenant support.
+    roles : List[str]
+        List of role names assigned to the user.
+    expires_days : int, optional
+        Expiration time in days. Defaults to settings.REFRESH_TOKEN_EXPIRE_DAYS.
+
+    Returns
+    -------
+    str
+        Encoded JWT refresh token.
+    """
     expire = datetime.utcnow() + timedelta(
         days=expires_days or settings.REFRESH_TOKEN_EXPIRE_DAYS
     )
@@ -50,7 +88,24 @@ def create_refresh_token(
 
 
 def decode_token(token: str) -> dict:
-    """Decode JWT token (access or refresh) and verify claims."""
+    """
+    Decode and verify a JWT token (access or refresh).
+
+    Parameters
+    ----------
+    token : str
+        JWT token string to decode.
+
+    Returns
+    -------
+    dict
+        Decoded payload of the JWT token.
+
+    Raises
+    ------
+    jwt.JWTError
+        If the token is invalid, expired, or the signature does not match.
+    """
     return jwt.decode(
         token,
         settings.SECRET_KEY,

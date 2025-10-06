@@ -3,7 +3,7 @@ from typing import List
 from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt
+from jose import jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -34,10 +34,17 @@ async def get_current_user(
         return None  # dummy user for OpenAPI generation
 
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=["HS256"])
+        # Decode JWT with full validation
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,  # Must match create_access_token
+            algorithms=[settings.JWT_ALGORITHM],
+            issuer=settings.JWT_ISSUER,
+            audience=settings.JWT_AUDIENCE,
+        )
         user_id = UUID(payload["user_id"])
         tenant_id = UUID(payload["tenant_id"])
-    except Exception:
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
         )

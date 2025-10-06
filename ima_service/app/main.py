@@ -61,18 +61,24 @@ def custom_openapi():
         title=app.title, version=app.version, routes=app.routes
     )
 
-    # OAuth2 password flow
+    # 1. Define the Bearer Token Security Scheme
     openapi_schema["components"]["securitySchemes"] = {
         "BearerAuth": {
-            "type": "oauth2",
-            "flows": {"password": {"tokenUrl": "/api/v1/auth/login", "scopes": {}}},
+            "type": "http",  # Use the HTTP security scheme
+            "scheme": "bearer",  # Specify the authentication scheme as 'bearer'
+            "bearerFormat": "JWT",  # Optional: for documentation purposes
+            "description": "JWT Authorization header using the Bearer scheme. Example: 'Authorization: Bearer {token}'",
         }
     }
 
-    # Apply globally to all endpoints (lock endpoints before auth)
-    for path in openapi_schema.get("paths", {}).values():
-        for method in path.values():
-            method["security"] = [{"BearerAuth": []}]
+    # 2. Apply Security Globally to All Endpoints (except the health check/root)
+    # This automatically adds the padlock icon to all secured paths
+    for path_item in openapi_schema.get("paths", {}).values():
+        for operation in path_item.values():
+            # Exclude the root health check or other public endpoints if needed
+            if "security" not in operation:
+                # Apply the security requirement
+                operation["security"] = [{"BearerAuth": []}]
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema

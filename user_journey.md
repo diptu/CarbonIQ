@@ -365,3 +365,19 @@ Role_Permissions Table (many-to-many: role_id ↔ permission_id)
 User_Roles Table (user_id, tenant_id, role_id)
 
 This gives flexibility: you can add roles/permissions without code changes.
+
+```sql
+-- Create tenants table with parent_id
+CREATE TABLE tenants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    domain VARCHAR(255) UNIQUE NOT NULL,
+    schema_name VARCHAR(255) UNIQUE NOT NULL,
+    parent_id UUID REFERENCES tenants(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+INSERT INTO tenants (id, name, domain, schema_name, parent_id)
+VALUES (gen_random_uuid(), 'demo', 'demo.carboniq.com', 'tenant_carboniq', NULL);
+```

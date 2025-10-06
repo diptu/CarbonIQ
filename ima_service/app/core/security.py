@@ -1,4 +1,5 @@
 """
+app.core.security
 Security utilities for password hashing and JWT token management.
 Handles:
   - Password hashing and verification
