@@ -6,7 +6,7 @@ Notes
 - Default role is VIEWER if not explicitly assigned.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Generic, TypeVar
 from uuid import UUID
 from pydantic import EmailStr, Field
 from .base import ORMBase, PaginatedResponse
@@ -30,12 +30,17 @@ class UserBase(ORMBase):
         Whether the user account is active.
     is_superuser : bool
         Readonly; bypasses RBAC checks if True.
+    roles : Optional[List[UUID]]
+        List of role IDs assigned to the user (for input/updates).
     """
 
     email: EmailStr
     tenant_id: UUID
     is_active: bool = True
-    is_superuser: bool = False  # readonly, not settable via API
+    is_superuser: bool = Field(
+        default=False, description="Readonly; cannot be set via API", frozen=True
+    )
+    roles: Optional[List[UUID]] = None  # write only, IDs for assignment
 
 
 # ----------------------
@@ -52,7 +57,6 @@ class UserCreate(UserBase):
     """
 
     password: str
-    roles: Optional[List[UUID]] = None
 
     class Config:
         orm_mode = True
@@ -88,7 +92,7 @@ class UserRead(ORMBase):
     is_superuser: bool = Field(
         default=False, description="Readonly; cannot be set via API", frozen=True
     )
-    # roles: List[RoleRead] = []
+    roles: List[RoleRead] = []  # read-only, full role info
 
 
 # ----------------------
@@ -106,10 +110,11 @@ class UserUpdate(ORMBase):
     email: Optional[EmailStr] = None
     password: Optional[str] = None
     is_active: Optional[bool] = None
-    roles: Optional[List[UUID]] = None
+    roles: Optional[List[UUID]] = None  # IDs for role updates
 
     class Config:
         allow_population_by_field_name = True
+        orm_mode = True
 
 
 # ----------------------

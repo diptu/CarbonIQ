@@ -32,8 +32,9 @@ class PermissionRead(PermissionBase):
 
     id: uuid.UUID
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True  # ✅ required for from_orm in Pydantic v2
+    }
 
 
 class PermissionUpdate(BaseModel):

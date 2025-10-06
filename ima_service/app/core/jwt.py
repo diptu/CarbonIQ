@@ -1,8 +1,8 @@
 # app/core/jwt.py
-"""Simplified JWT token creation and decoding utilities."""
+"""Simplified JWT token creation and decoding utilities with tenant and role claims."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, cast
+from typing import Any, Dict, cast, Optional, List
 
 import jwt
 from pydantic import SecretStr
@@ -26,39 +26,47 @@ def _encode_token(data: Dict[str, Any], algorithm: str) -> str:
 
 
 def create_access_token(
-    data: Dict[str, Any], expires_minutes: int | None = None
+    user_id: str,
+    tenant_id: Optional[str] = None,
+    roles: Optional[List[str]] = None,
+    expires_minutes: Optional[int] = None,
 ) -> str:
-    """Create a JWT access token with minimal claims."""
+    """Create a JWT access token including tenant_id and roles."""
     now = datetime.now(timezone.utc)
     expire = now + timedelta(
         minutes=expires_minutes or settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
-    payload = data.copy()
-    payload.update(
-        {
-            "exp": expire,
-            "iat": now,
-            "type": "access",
-        }
-    )
+    payload: Dict[str, Any] = {
+        "user_id": user_id,
+        "tenant_id": tenant_id,
+        "roles": roles or [],
+        "exp": expire,
+        "iat": now,
+        "type": "access",
+    }
 
     return _encode_token(payload, settings.JWT_ALGORITHM)
 
 
-def create_refresh_token(data: Dict[str, Any], expires_days: int | None = None) -> str:
-    """Create a JWT refresh token with minimal claims."""
+def create_refresh_token(
+    user_id: str,
+    tenant_id: Optional[str] = None,
+    roles: Optional[List[str]] = None,
+    expires_days: Optional[int] = None,
+) -> str:
+    """Create a JWT refresh token including tenant_id and roles."""
     now = datetime.now(timezone.utc)
     expire = now + timedelta(days=expires_days or settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
-    payload = data.copy()
-    payload.update(
-        {
-            "exp": expire,
-            "iat": now,
-            "type": "refresh",
-        }
-    )
+    payload: Dict[str, Any] = {
+        "user_id": user_id,
+        "tenant_id": tenant_id,
+        "roles": roles or [],
+        "exp": expire,
+        "iat": now,
+        "type": "refresh",
+    }
 
     return _encode_token(payload, settings.JWT_ALGORITHM)
 
