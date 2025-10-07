@@ -2,10 +2,11 @@
 """User-related business logic for IMA Service."""
 
 from typing import List, Optional, Tuple
-from uuid import UUID
+from uuid import UUID, uuid4
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text, select
+from sqlalchemy import select, text
+from datetime import datetime
 
 from app.models.user import User
 from app.models.role import Role
@@ -20,25 +21,37 @@ from app.core.security import (
     create_refresh_token,
 )
 
+from typing import List
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
+
+
+async def get_accessible_tenants(user_tenant_id: str, db: AsyncSession) -> list[str]:
+    """
+    Return list of tenant IDs accessible to this user:
+    - Own tenant
+    - All child tenants (if any)
+    """
+    query = text("""
+    WITH RECURSIVE child_tenants AS (
+        SELECT id
+        FROM tenants
+        WHERE id = :tenant_id
+        UNION ALL
+        SELECT t.id
+        FROM tenants t
+        INNER JOIN child_tenants ct ON t.parent_id = ct.id
+    )
+    SELECT id FROM child_tenants;
+    """)
+    result = await db.execute(query, {"tenant_id": user_tenant_id})
+    tenant_ids = [str(tid) for tid in result.scalars().all()]
+    return tenant_ids
+
 
 # ---------------------------------------------------------------------------
 # 🧩 User CREATE
 # ---------------------------------------------------------------------------
-# app/services/user_service.py
-
-
-# app/services/user_service.py
-
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from uuid import uuid4
-from datetime import datetime
-from app.models.user import User
-from app.models.role import Role
-from app.models.user_roles import UserRole
-from app.core.security import get_password_hash
-
-
 async def get_role_by_name(db: AsyncSession, name: str, tenant_id: UUID) -> Role:
     """Fetch a role by name within a tenant."""
     q = select(Role).where(Role.name == name, Role.tenant_id == tenant_id)
@@ -49,21 +62,25 @@ async def get_role_by_name(db: AsyncSession, name: str, tenant_id: UUID) -> Role
     return role
 
 
+# app/services/user_service.py
+
+
 async def create_user(
     db: AsyncSession,
     email: str,
     password: str,
-    creator_tenant_id: str,
-    tenant_id: str,
+    tenant_id: str,  # remove creator_tenant_id
 ):
-    # Hash the password
+    """Create a new user under a tenant and assign default VIEWER role."""
+
+    # Hash password
     hashed_password = hash_password(password)
 
     # Create User object
     new_user = User(
         id=uuid4(),
         email=email,
-        hashed_password=hashed_password,  # <-- correct field
+        hashed_password=hashed_password,
         is_active=True,
         tenant_id=tenant_id,
         is_superuser=False,
@@ -74,17 +91,14 @@ async def create_user(
     await db.refresh(new_user)
 
     # Assign default VIEWER role
-    q_role = select(Role).where(Role.name == "VIEWER")
+    q_role = select(Role).where(Role.name == "VIEWER", Role.tenant_id == tenant_id)
     result = await db.execute(q_role)
-    viewer_role = result.scalars().first()
+    viewer_role = result.scalar_one_or_none()
 
     if viewer_role:
-        user_role = UserRole(
-            user_id=new_user.id,
-            role_id=viewer_role.id,
-            tenant_id=tenant_id,
+        db.add(
+            UserRole(user_id=new_user.id, role_id=viewer_role.id, tenant_id=tenant_id)
         )
-        db.add(user_role)
         await db.commit()
 
     return new_user
