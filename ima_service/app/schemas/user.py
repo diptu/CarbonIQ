@@ -46,7 +46,7 @@ class UserBase(ORMBase):
 # ----------------------
 # User creation schema
 # ----------------------
-class UserCreate(UserBase):
+class UserCreate(ORMBase):
     """
     Schema for creating a new user.
 
@@ -56,7 +56,10 @@ class UserCreate(UserBase):
     - Default role VIEWER is assigned if roles not provided.
     """
 
+    email: EmailStr
+    is_active: bool = True
     password: str
+    # tenant_id: Optional[UUID] = None  # optional tenant for creating user
 
     class Config:
         orm_mode = True
