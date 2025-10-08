@@ -1,24 +1,39 @@
-from sqlalchemy import Column, ForeignKey, UniqueConstraint, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
-from ..db.base_class import Base
+# app/models/user_roles.py
+import uuid
+from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from ..db.base_class import Base, TimestampMixin
+from .user import User
+from .role import Role
+from .tenant import Tenant
 
 
-class UserRole(Base):
+class UserRole(Base, TimestampMixin):
     __tablename__ = "user_roles"
 
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True)
-    role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"), primary_key=True)
-    tenant_id = Column(UUID(as_uuid=True), primary_key=True)
-
-    created_at = Column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+    id: Mapped[uuid.UUID] = mapped_column(
+        uuid.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    role_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("roles.id", ondelete="CASCADE"), nullable=False
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Relationships
+    user: Mapped[User] = relationship("User", back_populates="roles", lazy="selectin")
+    role: Mapped[Role] = relationship("Role", lazy="selectin")
+    tenant: Mapped[Tenant] = relationship(
+        "Tenant", back_populates="user_roles", lazy="selectin"
+    )
 
     __table_args__ = (
-        UniqueConstraint("user_id", "role_id", "tenant_id", name="uq_user_role_tenant"),
+        UniqueConstraint("user_id", "role_id", "tenant_id", name="uix_user_role"),
     )
 
-    user = relationship("User", back_populates="roles_association")
-    role = relationship("Role", back_populates="users_association")
+    def __repr__(self) -> str:
+        return f"<UserRole(user_id={self.user_id}, role_id={self.role_id})>"

@@ -1,55 +1,37 @@
-"""Schemas for Permission model."""
-
-import uuid
+# app/schemas/permission.py
 from typing import Optional, List
+from uuid import UUID
 from pydantic import BaseModel, Field
 
 
 class PermissionBase(BaseModel):
-    """
-    Base schema for permissions.
-
-    Attributes
-    ----------
-    name : str
-        Permission name (e.g., 'manage_users').
-    description : Optional[str]
-        Optional description for the permission.
-    """
-
-    name: str = Field(..., example="manage_users")
-    description: Optional[str] = Field(None, example="Allows managing user accounts")
+    name: str = Field(..., max_length=64)
+    description: Optional[str] = Field(None, max_length=255)
 
 
 class PermissionCreate(PermissionBase):
-    """Schema for creating a permission."""
-
     pass
 
 
-class PermissionRead(PermissionBase):
-    """Schema for reading a permission."""
-
-    id: uuid.UUID
-
-    model_config = {
-        "from_attributes": True  # ✅ required for from_orm in Pydantic v2
-    }
-
-
 class PermissionUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
+    name: Optional[str] = Field(None, max_length=64)
+    description: Optional[str] = Field(None, max_length=255)
 
 
-class PermissionAssign(BaseModel):
-    """Schema for assigning a permission to a role."""
+class PermissionRead(PermissionBase):
+    id: UUID
 
-    permission_id: uuid.UUID
+    class Config:
+        orm_mode = True
 
 
-class PermissionListResponse(BaseModel):
-    """Paginated list of permissions."""
+class RoleRead(BaseModel):
+    id: UUID
+    name: str
 
-    total: int
-    items: List[PermissionRead]
+    class Config:
+        orm_mode = True
+
+
+class PermissionReadWithRoles(PermissionRead):
+    roles: List[RoleRead] = []

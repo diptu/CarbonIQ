@@ -1,71 +1,37 @@
-"""Schemas for role management with DB-driven RBAC."""
-
-from enum import Enum
+# app/schemas/role.py
 from typing import List, Optional
 from uuid import UUID
-from .base import ORMBase, PaginatedResponse
-from .permission import PermissionRead
+from pydantic import BaseModel
+from .permission import PermissionBase
+from .user import UserBase
 
 
-class RoleName(str, Enum):
-    """Enumeration of system roles."""
-
-    TENANT_ADMIN = "TENANT_ADMIN"
-    BILLING_ADMIN = "BILLING_ADMIN"
-    VIEWER = "VIEWER"
-    MEMBER = "MEMBER"
-
-
-class RoleBase(ORMBase):
-    """Base schema for role attributes."""
-
-    name: RoleName
-    level: int
+class RoleBase(BaseModel):
+    name: str
     description: Optional[str] = None
-    is_system: bool = False
-    permissions: Optional[List[PermissionRead]] = []
+    is_system: Optional[bool] = True
 
 
-class RoleCreate(ORMBase):
-    """Schema for creating a new role."""
-
-    name: RoleName
-    level: int
-    description: Optional[str] = None
-    is_system: bool = False
-    permissions: Optional[List[UUID]] = []
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "name": "TENANT_ADMIN",
-                "level": 4,
-                "description": "Role for tenant administrators",
-                "is_system": False,
-                "permissions": [],
-            }
-        }
+class RoleCreate(RoleBase):
+    permission_ids: Optional[List[UUID]] = []
 
 
-class RoleUpdate(RoleBase):
-    """Schema for updating a role."""
+class RoleUpdate(BaseModel):
+    name: Optional[str]
+    description: Optional[str]
+    is_system: Optional[bool]
+    permission_ids: Optional[List[UUID]] = []
 
 
 class RoleRead(RoleBase):
-    """Schema for reading a role."""
-
     id: UUID
+    permissions: List[PermissionBase] = []
+    users: Optional[List[UserBase]] = []
+
+    class Config:
+        orm_mode = True
 
 
-class RoleList(PaginatedResponse[RoleRead]):
-    """Paginated response for roles."""
-
-    pass
-
-
-class RoleListResponse(ORMBase):
-    """Standardized API response envelope for role list."""
-
-    statusCode: int
-    msg: str
-    details: RoleList
+class RoleListResponse(BaseModel):
+    roles: List[RoleRead]
+    total: int

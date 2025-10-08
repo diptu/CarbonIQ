@@ -1,68 +1,93 @@
 # app/services/rbac_service.py
-"""RBAC assignment and utility service."""
-
-from uuid import UUID
 from typing import List
+from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.user import User
+from app.models.role import Role
+from app.models.permission import Permission
 from app.models.user_roles import UserRole
 from app.models.role_permission import RolePermission
 
 
-# ----------------------
-# User ↔ Role assignment
-# ----------------------
-async def assign_roles_to_user(
-    db: AsyncSession, user_id: UUID, role_ids: List[UUID], tenant_id: UUID
-):
-    # Remove existing roles for this tenant
-    await db.execute(
-        UserRole.__table__.delete().where(
-            UserRole.user_id == user_id, UserRole.tenant_id == tenant_id
+class RBACService:
+    """Role-Based Access Control service for multi-tenant applications."""
+
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    # -------------------------------
+    # User Roles
+    # -------------------------------
+    async def get_user_roles(self, user_id: UUID) -> List[Role]:
+        """Return list of roles assigned to a user."""
+        stmt = (
+            select(Role)
+            .join(UserRole, Role.id == UserRole.role_id)
+            .where(UserRole.user_id == user_id)
         )
-    )
-    # Assign new roles
-    for role_id in role_ids:
-        db.add(UserRole(user_id=user_id, role_id=role_id, tenant_id=tenant_id))
-    await db.commit()
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
 
-
-async def remove_roles_from_user(
-    db: AsyncSession, user_id: UUID, role_ids: List[UUID], tenant_id: UUID
-):
-    await db.execute(
-        UserRole.__table__.delete().where(
-            UserRole.user_id == user_id,
-            UserRole.role_id.in_(role_ids),
-            UserRole.tenant_id == tenant_id,
+    async def user_has_role(self, user_id: UUID, role_name: str) -> bool:
+        """Check if a user has a specific role."""
+        stmt = (
+            select(Role)
+            .join(UserRole, Role.id == UserRole.role_id)
+            .where(UserRole.user_id == user_id, Role.name == role_name)
         )
-    )
-    await db.commit()
+        result = await self.db.execute(stmt)
+        role = result.scalar_one_or_none()
+        return bool(role)
 
-
-# ----------------------
-# Role ↔ Permission assignment
-# ----------------------
-async def assign_permissions_to_role(
-    db: AsyncSession, role_id: UUID, permission_ids: List[UUID]
-):
-    # Remove existing permissions
-    await db.execute(
-        RolePermission.__table__.delete().where(RolePermission.role_id == role_id)
-    )
-    for perm_id in permission_ids:
-        db.add(RolePermission(role_id=role_id, permission_id=perm_id))
-    await db.commit()
-
-
-async def remove_permissions_from_role(
-    db: AsyncSession, role_id: UUID, permission_ids: List[UUID]
-):
-    await db.execute(
-        RolePermission.__table__.delete().where(
-            RolePermission.role_id == role_id,
-            RolePermission.permission_id.in_(permission_ids),
+    # -------------------------------
+    # Permissions
+    # -------------------------------
+    async def get_user_permissions(self, user_id: UUID) -> List[Permission]:
+        """Return list of permissions assigned via roles."""
+        stmt = (
+            select(Permission)
+            .join(RolePermission, Permission.id == RolePermission.permission_id)
+            .join(Role, Role.id == RolePermission.role_id)
+            .join(UserRole, UserRole.role_id == Role.id)
+            .where(UserRole.user_id == user_id)
         )
-    )
-    await db.commit()
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
+
+    async def user_has_permission(self, user_id: UUID, permission_name: str) -> bool:
+        """Check if a user has a specific permission."""
+        stmt = (
+            select(Permission)
+            .join(RolePermission, Permission.id == RolePermission.permission_id)
+            .join(Role, Role.id == RolePermission.role_id)
+            .join(UserRole, UserRole.role_id == Role.id)
+            .where(UserRole.user_id == user_id, Permission.name == permission_name)
+        )
+        result = await self.db.execute(stmt)
+        perm = result.scalar_one_or_none()
+        return bool(perm)
+
+    # -------------------------------
+    # Convenience
+    # -------------------------------
+    async def assign_role_to_user(self, user_id: UUID, role_id: UUID, tenant_id: UUID):
+        """Assign a role to a user (tenant-aware)."""
+        from app.models.user_roles import UserRole
+
+        ur = UserRole(user_id=user_id, role_id=role_id, tenant_id=tenant_id)
+        self.db.add(ur)
+        await self.db.commit()
+
+    async def remove_role_from_user(self, user_id: UUID, role_id: UUID):
+        """Remove a role from a user."""
+        stmt = select(UserRole).where(
+            UserRole.user_id == user_id, UserRole.role_id == role_id
+        )
+        result = await self.db.execute(stmt)
+        ur = result.scalar_one_or_none()
+        if ur:
+            await self.db.delete(ur)
+            await self.db.commit()
