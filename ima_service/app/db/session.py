@@ -1,17 +1,24 @@
+"""Async SQLAlchemy session and engine setup for FastAPI."""
+
 from typing import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+
 from ..core.config import get_settings
 
+# -------------------------
+# Settings
+# -------------------------
 settings = get_settings()
 
 # -------------------------
-# Async Engine
+# Async engine
 # -------------------------
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
-    future=True,
+    future=True,  # SQLAlchemy 2.0 style
 )
 
 # -------------------------
@@ -25,10 +32,10 @@ async_session = sessionmaker(
 
 
 # -------------------------
-# FastAPI Dependency
+# FastAPI dependency
 # -------------------------
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Provide a transactional scope around a series of operations.
+    """Provide a transactional async session for request scope.
 
     Yields
     ------

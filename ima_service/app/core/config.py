@@ -1,4 +1,5 @@
 # app/core/config.py
+# app/core/config.py
 """Application configuration settings using Pydantic.
 
 Pandas-style docstring
@@ -17,10 +18,12 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
+from datetime import timedelta
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# --- base directory and env file -----------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_FILE = BASE_DIR / ".env"
 
@@ -73,6 +76,33 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    # --- convenience properties -----------------------------------------
+    @property
+    def access_token_expires(self) -> timedelta:
+        """Return access token expiry as timedelta."""
+        return timedelta(minutes=self.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    @property
+    def refresh_token_expires(self) -> timedelta:
+        """Return refresh token expiry as timedelta."""
+        return timedelta(days=self.REFRESH_TOKEN_EXPIRE_DAYS)
+
+    @property
+    def cors_origins(self) -> List[str]:
+        """Return BACKEND_CORS_ORIGINS parsed as a list of origins.
+
+        Accepts comma-separated string values and trims whitespace.
+        """
+        raw = self.BACKEND_CORS_ORIGINS or ""
+        if not raw:
+            return []
+        return [s.strip() for s in raw.split(",") if s.strip()]
+
+    @property
+    def audit_log_path(self) -> Path:
+        """Return the audit log path as a pathlib.Path object."""
+        return Path(self.AUDIT_LOG_PATH).expanduser().resolve()
 
 
 @lru_cache
