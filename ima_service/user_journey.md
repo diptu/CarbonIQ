@@ -174,9 +174,9 @@ ON CONFLICT (domain) Do NOTHING
 INSERT INTO tenants (id, name, domain, schema_name, parent_id)
 VALUES
   (gen_random_uuid(), 'Grove Orange', 'grove.orange.carboniq.com', 'tenant_grove_orange',
-     (SELECT id FROM main_tenants WHERE name = 'Orange Ltd.')),
+     (SELECT id FROM tenants WHERE name = 'Orange Ltd.')),
   (gen_random_uuid(), 'Horizon Orange', 'horizon.orange.carboniq.com', 'tenant_horizon_orange',
-     (SELECT id FROM main_tenants WHERE name = 'Orange Ltd.'))
+     (SELECT id FROM tenants WHERE name = 'Orange Ltd.'))
 ON CONFLICT (domain) DO NOTHING;
 
 INSERT INTO tenants (id, name, domain, schema_name, parent_id)
@@ -204,7 +204,7 @@ INSERT INTO users (id, email, hashed_password, tenant_id, is_active, is_superuse
 VALUES
   (gen_random_uuid(), 'admin@apple.com', '$2b$12$Or7b854QYKvRrnvBQORntO2.3jgMvHpdjngpozIHbtrDcukKraT3C',
      (SELECT id FROM tenants WHERE name='Apple Inc.'), TRUE, TRUE),
-  (gen_random_uuid(), 'billing@orchard.apple.com', '$2b$12$ExampleHashedPassBilling',
+  (gen_random_uuid(), 'billing@orchard.apple.com', '$2b$12$Or7b854QYKvRrnvBQORntO2.3jgMvHpdjngpozIHbtrDcukKraT3C',
      (SELECT id FROM tenants WHERE name='Orchard Apple'), TRUE, FALSE),
   (gen_random_uuid(), 'member@orchard.apple.com', '$2b$12$ExampleHashedPassMember',
      (SELECT id FROM tenants WHERE name='Orchard Apple'), TRUE, FALSE),
@@ -223,6 +223,11 @@ VALUES
      (SELECT id FROM tenants WHERE name='Horizon Orange'), TRUE, FALSE)
 ON CONFLICT (email) DO NOTHING;
 
+-- 🌱 Seed  Peanut Corp.
+INSERT INTO users (id, email, hashed_password, tenant_id, is_active, is_superuser)
+VALUES
+  (gen_random_uuid(), 'admin@peanut.com', '$2b$12$Or7b854QYKvRrnvBQORntO2.3jgMvHpdjngpozIHbtrDcukKraT3C',
+     (SELECT id FROM tenants WHERE name='Peanut Corp.'), TRUE, TRUE)
 --------------------------------------------------------------------------- 🌱 Seed Roles
 ---------------------------------------------------------------------------
 
@@ -308,34 +313,28 @@ ON CONFLICT (user_id, role_id, tenant_id) DO NOTHING;
 
 ```
 
-## Test Plan for Multi-Tenant RBAC
-| #  | Test Case                                  | User                        | Tenant          | Expected Result                          | Description / Purpose                                                                |
-| -- | ------------------------------------------ | --------------------------- | --------------- | ---------------------------------------- | ------------------------------------------------------------------------------------ |
-| 1  | Login as admin                             | `admin@apple.com`           | `Apple Inc.`    | Success                                  | Verify that admin can log in.                                                        |
-| 2  | Login as billing user                      | `billing@orchard.apple.com` | `Orchard Apple` | Success                                  | Verify that billing user can log in.                                                 |
-| 3  | Login as admin in other tenant             | `admin@orange.com`          | `Grove Orange`  | Success                                  | Verify that admin can log in to their own tenant.                                    |
-| 4  | Login as basic-plan admin                  | `admin@peanut.com`          | `Peanut Corp.`  | Success                                  | Verify login for basic-plan admin.                                                   |
-| 5  | Login as non-existent tenant admin         | `admin@peanut.com`          | Non-existent    | Success                                  | Verify login for admin assigned to non-existent tenant.                              |
-| 6  | List users in own tenant                   | `billing@orchard.apple.com` | `Orchard Apple` | List only Orchard Apple users            | Validate that a tenant user can view users only within their own tenant.             |
-| 7  | List users in parent/unrelated tenant      | `billing@orchard.apple.com` | `Apple Inc.`    | Fail: 403                                | Ensure that a tenant user cannot fetch users from parent or unrelated tenants.       |
-| 8  | Create user in own tenant                  | `admin@apple.com`           | `Apple Inc.`    | Success                                  | Verify that an admin can create users within their own tenant.                       |
-| 9  | Create user in child tenant                | `admin@apple.com`           | `Orchard Apple` | Success                                  | Ensure that parent-tenant admins can create users in child/sub-tenants.              |
-| 10 | Create user in unrelated tenant            | `admin@apple.com`           | `Orange Ltd.`   | Fail: 403                                | Confirm that an admin cannot create users in tenants they do not belong to.          |
-| 11 | Duplicate role assignment                  | Already existing user-role  | —               | Fail gracefully (IntegrityError handled) | Check that duplicate roles are handled gracefully without breaking the system.       |
-| 12 | Create user in non-child tenant            | `admin@orange.com`          | `Grove Orange`  | Success                                  | Verify user creation for admins in their own tenant that has no sub-tenants.         |
-| 13 | Create user under Basic plan tenant        | `admin@peanut.com`          | `Peanut Corp.`  | Success                                  | Test user creation for a basic-plan tenant to ensure standard permissions work.      |
-| 14 | Create user under sub-tenant of Basic plan | `admin@peanut.com`          | Non-existent    | Fail: 403                                | Confirm that admins cannot create users in tenants that do not exist or are invalid. |
+🧩 Multi-Tenant RBAC Test Plan (Organized by Endpoint)
+
+| # | Test Case                          | User                        | Tenant        | Expected Result | Description / Purpose                                            |
+| - | ---------------------------------- | --------------------------- | ------------- | --------------- | ---------------------------------------------------------------- |
+| 1 | Login as admin                     | `admin@apple.com`           | Apple Inc.    | ✅ Success       | Verify admin login works.                                        |
+| 2 | Login as billing user              | `billing@orchard.apple.com` | Orchard Apple | ✅ Success       | Verify billing user login works.                                 |
+| 3 | Login as other-tenant admin        | `admin@orange.com`          | Grove Orange  | ✅ Success       | Verify login for different tenant admin.                         |
+| 4 | Login as basic-plan admin          | `admin@peanut.com`          | Peanut Corp.  | ✅ Success       | Validate login under basic plan.                                 |
+| 5 | Login as non-existent tenant admin | `admin@peanut.com`          | Non-existent  | ✅ Success       | Verify that login still works (tenant validation happens later). |
 
 
-| #  | Test Case                      | User                                 | Tenant          | Expected Result                                              |
-| -- | ------------------------------ | ------------------------------------ | --------------- | ------------------------------------------------------------ |
-| 10 | List users in own tenant       | `billing@orchard.apple.com`          | `Orchard Apple` | Only Orchard Apple users                                     |
-| 11 | List users in parent tenant    | `billing@orchard.apple.com`          | `Apple Inc.`    | Fail: 403                                                    |
-| 12 | List users in unrelated tenant | `billing@orchard.apple.com`          | `Orange Ltd.`   | Fail: 403                                                    |
-| 13 | Check role assignment          | Newly created user in allowed tenant | —               | Role assigned according to default policy (VIEWER ) |
+| # | Test Case                      | User                        | Tenant        | Expected Result            | Description / Purpose                                        |
+| - | ------------------------------ | --------------------------- | ------------- | -------------------------- | ------------------------------------------------------------ |
+| 6 | List users in own tenant       | `billing@orchard.apple.com` | Orchard Apple | ✅ List Orchard Apple users | Validate tenant user can view only their own tenant’s users. |
+| 7 | List users in parent tenant    | `billing@orchard.apple.com` | Apple Inc.    | ❌ 403 Forbidden            | Ensure tenant user cannot access parent tenant data.         |
+| 8 | List users in unrelated tenant | `billing@orchard.apple.com` | Orange Ltd.   | ❌ 403 Forbidden            | Ensure no access to unrelated tenant.                        |
 
-| #  | Test Case                        | User                        | Tenant          | Expected Role                | Expected Result                             |
-| -- | -------------------------------- | --------------------------- | --------------- | ---------------------------- | ------------------------------------------- |
-| 14 | Create user under allowed tenant | `billing@orchard.apple.com` | `Orchard Apple` | VIEWER                       | User is created and role assigned correctly |
-| 15 | Create user under parent tenant  | `billing@orchard.apple.com` | `Apple Inc.`    | N/A                          | Should fail: 403                            |
-| 16 | Verify role mapping              | Newly created users         | Tenant          | Default role (VIEWER/MEMBER) | Role exists in `user_roles` table           |
+| #  | Test Case                                  | User               | Tenant        | Expected Result | Description / Purpose                                       |
+| -- | ------------------------------------------ | ------------------ | ------------- | --------------- | ----------------------------------------------------------- |
+| 9  | Create user in own tenant                  | `admin@apple.com`  | Apple Inc.    | ✅ Success       | Verify admin can create users within their own tenant.      |
+| 10 | Create user in child tenant                | `admin@apple.com`  | Orchard Apple | ✅ Success       | Ensure parent-tenant admin can create users in sub-tenants. |
+| 11 | Create user in unrelated tenant            | `admin@apple.com`  | Orange Ltd.   | ❌ 403 Forbidden | Confirm admin cannot create users in unrelated tenant.      |
+| 12 | Create user in non-child tenant            | `admin@orange.com` | Grove Orange  | ✅ Success       | Verify user creation works in standalone tenants.           |
+| 13 | Create user under Basic plan tenant        | `admin@peanut.com` | Peanut Corp.  | ✅ Success       | Verify standard tenant user creation under Basic plan.      |
+| 14 | Create user under sub-tenant of Basic plan | `admin@peanut.com` | Non-existent  | ❌ 403 Forbidden | Prevent creation under invalid/non-existent sub-tenant.     |

@@ -1,5 +1,5 @@
 # app/api/v1/routes/user_router.py
-"""User CRUD API routes for IMA Service with multi-tenant RBAC enforcement."""
+"""User CRUD API routes for IMA Service with DB-driven RBAC and full HTTP error handling."""
 
 from typing import List, Optional
 from uuid import UUID
@@ -7,27 +7,36 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
 
-from app.db.session import get_db
-from app.models.user import User
 from app.models.user_roles import UserRole
 from app.models.role import Role
 from app.models.role_permission import RolePermission
 from app.models.permission import Permission
-from app.schemas.user import UserCreate, UserRead, UserList, UserListResponse
+from app.db.session import get_db
+from app.models.user import User
+from app.models.user_roles import UserRole
+from app.models.role import Role
+from app.schemas.user import (
+    UserCreate,
+    UserRead,
+    UserList,
+    UserListResponse,
+    UserUpdate,
+)
+
 from app.schemas.role import RoleRead
 from app.schemas.permission import PermissionRead
 from app.dependencies.auth import get_current_user
 from app.services.user_service import create_user, list_users, get_accessible_tenants
 from ima_service.app.dependencies.rbac import require_roles
 from app.services.audit_service import log_event
-from app.core.logger import logger
 
 router = APIRouter()
 
 
 # ---------------------------------------------------------------------------
-# 📋 Create New User (Fixed with Tenant RBAC)
+# 👤 Create New User
 # ---------------------------------------------------------------------------
 @router.post(
     "/",
@@ -36,6 +45,7 @@ router = APIRouter()
     dependencies=[Depends(require_roles(["BILLING_ADMIN"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
+@log_event("CREATE_USER")  # Decorator handles logging automatically
 async def create_new_user(
     user_in: UserCreate,
     tenant_id: Optional[UUID] = Query(
@@ -45,10 +55,9 @@ async def create_new_user(
     db: AsyncSession = Depends(get_db),
 ):
     tenant_id = tenant_id or current_user.tenant_id
-    logger.debug(f"Creating user {user_in.email} under tenant {tenant_id}")
 
     # -------------------------------
-    # Tenant validation (same or child only)
+    # Tenant validation
     # -------------------------------
     query = text("""
         SELECT id FROM tenants
@@ -61,46 +70,37 @@ async def create_new_user(
     )
     valid_tenant = result.scalar()
     if not valid_tenant:
-        logger.warning(f"Unauthorized attempt to create user under tenant {tenant_id}")
         raise HTTPException(
-            status_code=403, detail="Cannot create user under unrelated tenant"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot create user under unrelated tenant",
         )
 
     # -------------------------------
-    # Create user
+    # Create user (passes created_by)
     # -------------------------------
-    try:
-        new_user = await create_user(
-            db=db,
-            email=user_in.email,
-            password=user_in.password,
-            tenant_id=tenant_id,
-        )
-        logger.info(
-            f"User {new_user.email} created successfully under tenant {tenant_id}"
-        )
-    except Exception as e:
-        logger.error(f"Failed to create user: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
+    new_user = await create_user(
+        db=db,
+        email=user_in.email,
+        password=user_in.password,
+        tenant_id=tenant_id,
+        created_by=current_user.id,  # pass user ID for auditing
+    )
 
     # -------------------------------
-    # Assign default VIEWER role if not assigned
+    # Assign default VIEWER role
     # -------------------------------
     default_role_result = await db.execute(
         select(Role).where(Role.name == "VIEWER", Role.tenant_id == tenant_id)
     )
     default_role = default_role_result.scalar_one_or_none()
-
     if default_role:
-        role_exists_result = await db.execute(
+        existing_role_result = await db.execute(
             select(UserRole)
             .where(UserRole.user_id == new_user.id)
             .where(UserRole.role_id == default_role.id)
             .where(UserRole.tenant_id == tenant_id)
         )
-        existing_role = role_exists_result.scalar_one_or_none()
-
-        if not existing_role:
+        if not existing_role_result.scalar_one_or_none():
             db.add(
                 UserRole(
                     user_id=new_user.id, role_id=default_role.id, tenant_id=tenant_id
@@ -108,13 +108,12 @@ async def create_new_user(
             )
             await db.commit()
             await db.refresh(new_user)
-            logger.debug(f"Default VIEWER role assigned to {new_user.email}")
 
     return UserRead.from_orm(new_user)
 
 
 # ---------------------------------------------------------------------------
-# 📋 List Users (With Tenant RBAC Enforcement)
+# 📋 List Users (With Tenant RBAC Enforcement via User.have_access)
 # ---------------------------------------------------------------------------
 @router.get(
     "/",
@@ -133,47 +132,31 @@ async def get_users(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Retrieve paginated users for allowed tenants (current + child tenants).
-    Proper RBAC enforced with audit logging.
+    Retrieve paginated users for allowed tenants (current or child tenants).
+    Uses User.have_access() for tenant-level RBAC enforcement.
     """
-    logger.debug(f"User {current_user.email} requested users, tenant_id={tenant_id}")
 
-    # Determine accessible tenants
-    accessible_tenants: List[str] = await get_accessible_tenants(
-        current_user.tenant_id, db
-    )
-    logger.debug(f"Accessible tenants for {current_user.email}: {accessible_tenants}")
+    # Determine target tenant
+    target_tenant_id = tenant_id or str(current_user.tenant_id)
 
-    target_tenant_id = tenant_id or current_user.tenant_id
-
-    # RBAC check
-    if target_tenant_id not in accessible_tenants:
-        logger.warning(
-            f"User {current_user.email} forbidden from accessing tenant {target_tenant_id}"
-        )
+    # ✅ Tenant RBAC enforcement
+    if not await current_user.have_access(target_tenant_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"You do not have access to tenant {target_tenant_id}",
         )
 
-    # Fetch users
-    try:
-        total, users = await list_users(
-            db,
-            skip=skip,
-            limit=limit,
-            tenant_id=target_tenant_id,
-            include_inactive=include_inactive,
-        )
-        logger.info(
-            f"{len(users)} users fetched for tenant {target_tenant_id} by {current_user.email}"
-        )
-    except Exception as e:
-        logger.error(f"Error fetching users for tenant {target_tenant_id}: {e}")
-        raise
+    # ✅ Fetch users for this tenant
+    total, users = await list_users(
+        db,
+        skip=skip,
+        limit=limit,
+        tenant_id=target_tenant_id,
+        include_inactive=include_inactive,
+    )
 
+    # ✅ Handle empty result
     if not users:
-        logger.info(f"No users found for tenant {target_tenant_id}")
         return UserListResponse(
             statusCode=200,
             msg="No users found",
@@ -189,48 +172,47 @@ async def get_users(
             ),
         )
 
-    # Fetch roles and permissions
+    # ✅ Fetch roles & permissions efficiently
     user_ids = [u.id for u in users]
     user_roles_map = {}
-    try:
-        roles_result = await db.execute(
-            select(UserRole.user_id, Role)
-            .join(Role, Role.id == UserRole.role_id)
-            .where(UserRole.user_id.in_(user_ids))
+
+    roles_result = await db.execute(
+        select(UserRole.user_id, Role)
+        .join(Role, Role.id == UserRole.role_id)
+        .where(UserRole.user_id.in_(user_ids))
+    )
+
+    for user_id, role in roles_result.all():
+        perm_result = await db.execute(
+            select(Permission)
+            .join(RolePermission, Permission.id == RolePermission.permission_id)
+            .where(RolePermission.role_id == role.id)
         )
+        permissions = [PermissionRead.from_orm(p) for p in perm_result.scalars().all()]
+        role_read = RoleRead.from_orm(role).model_copy(
+            update={"permissions": permissions}
+        )
+        user_roles_map.setdefault(user_id, []).append(role_read)
 
-        for user_id, role in roles_result.all():
-            perm_result = await db.execute(
-                select(Permission)
-                .join(RolePermission, Permission.id == RolePermission.permission_id)
-                .where(RolePermission.role_id == role.id)
-            )
-            permissions = [
-                PermissionRead.from_orm(p) for p in perm_result.scalars().all()
-            ]
-            role_read = RoleRead.from_orm(role).model_copy(
-                update={"permissions": permissions}
-            )
-            user_roles_map.setdefault(user_id, []).append(role_read)
-
-    except Exception as e:
-        logger.error(f"Error fetching roles/permissions: {e}")
-        raise
-
-    # Assemble user list
+    # ✅ Assemble final user list
     items = []
     for u in users:
         user_dict = UserRead.from_orm(u).model_dump()
         user_dict["roles"] = user_roles_map.get(u.id, [])
         items.append(UserRead(**user_dict))
 
-    # Pagination helper
+    # ✅ Pagination helpers
     def build_page_url(skip_value: int) -> Optional[str]:
         if 0 <= skip_value < total:
-            return f"?skip={skip_value}&limit={limit}&include_inactive={include_inactive}&tenant_id={target_tenant_id}"
+            return (
+                f"?skip={skip_value}&limit={limit}"
+                f"&include_inactive={include_inactive}"
+                f"&tenant_id={target_tenant_id}"
+            )
         return None
 
     last_skip = ((total - 1) // limit) * limit if total > 0 else 0
+
     details = UserList(
         total=total,
         skip=skip,

@@ -1,36 +1,22 @@
 # app/api/v1/routes/auth_router.py
 
-from fastapi import APIRouter, Form, Depends
+from fastapi import APIRouter, Form, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
-
-from app.core.config import get_settings
-from app.db.session import get_db
-from app.services.user_service import get_user_by_email, verify_password
-from app.core.token import create_access_token, create_refresh_token
-from app.schemas.auth import LoginResponse, TokenDetails
-
-router = APIRouter()
-settings = get_settings()
-
-
-# app/api/v1/routes/auth_router.py
-from fastapi import APIRouter, Form, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional, List
-from uuid import UUID
 
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.services.user_service import authenticate_user
 from app.core.token import create_access_token, create_refresh_token
 from app.schemas.auth import LoginResponse, TokenDetails
+from app.services.audit_service import log_event
 
 router = APIRouter()
 settings = get_settings()
 
 
 @router.post("/login", response_model=LoginResponse)
+@log_event("LOGIN")  # Audit log every login attempt
 async def login(
     email: str = Form(..., description="Your email address"),
     password: str = Form(..., description="Your password"),
@@ -38,22 +24,29 @@ async def login(
 ):
     """
     Authenticate user and return JWT access + refresh tokens.
-    Automatically resolves tenant_id from the user record.
+    Proper HTTP status codes used for RBAC violations.
     """
 
     # 1️⃣ Authenticate user
     user = await authenticate_user(db, email, password)
 
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        # Invalid credentials
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials."
+        )
 
     if not getattr(user, "is_active", True):
-        raise HTTPException(status_code=403, detail="Inactive user. Contact admin.")
+        # User exists but is inactive
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user. Contact admin.",
+        )
 
     # 2️⃣ Resolve tenant_id automatically from user
     tenant_id_to_use: Optional[str] = getattr(user, "tenant_id", None)
 
-    # 3️⃣ Get user roles (for future RBAC)
+    # 3️⃣ Get user roles for RBAC
     roles: List[str] = [r.name for r in getattr(user, "roles", [])]
 
     # 4️⃣ Create JWT tokens
@@ -74,8 +67,10 @@ async def login(
         tenantId=str(tenant_id_to_use) if tenant_id_to_use else None,
     )
 
+    # ✅ Explicitly pass current_user to decorator for logging
     return LoginResponse(
-        statusCode=200,
+        statusCode=status.HTTP_200_OK,
         msg="Login successful",
-        details=details.model_dump(),  # ✅ ensure dict for Pydantic validation
+        details=details.model_dump(),
+        current_user=user,  # Used by log_event decorator
     )
