@@ -34,6 +34,10 @@ class Permission(Base):
     roles: Mapped[List["Role"]] = relationship(
         "Role", secondary="role_permissions", back_populates="permissions"
     )
+    # User direct permissions
+    users: Mapped[List["UserPermission"]] = relationship(
+        "UserPermission", back_populates="permission", cascade="all, delete-orphan"
+    )
 
     @cached_property
     def assigned_roles(self) -> List["Role"]:
