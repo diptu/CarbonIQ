@@ -8,7 +8,7 @@ from .base_class import Base
 
 # Import all models here to enable Alembic autogeneration
 # Example:
-from app.models.tenants import Tenant
+from ima_service.app.models.tenant import Tenant
 from app.models.user import User
 from app.models.role import Role
 from app.models.permission import Permission
