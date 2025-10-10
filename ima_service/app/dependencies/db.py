@@ -12,9 +12,10 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Optional
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import async_session
+from app.db.session import AsyncSessionLocal
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -25,7 +26,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     AsyncSession
         SQLAlchemy async session
     """
-    async with async_session() as session:
+    async with AsyncSessionLocal() as session:
         try:
             yield session
             await session.commit()
@@ -50,9 +51,12 @@ async def get_tenant_db(
     AsyncSession
         Scoped async SQLAlchemy session
     """
-    async with async_session() as session:
+    async with AsyncSessionLocal() as session:
         if schema_name:
-            await session.execute(f'SET search_path TO "{schema_name}"')
+            # use sqlalchemy.text for safety
+            await session.execute(
+                text("SET search_path TO :schema").bindparams(schema=schema_name)
+            )
         try:
             yield session
             await session.commit()

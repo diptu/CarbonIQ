@@ -1,18 +1,26 @@
-"""Register all SQLAlchemy models for Alembic autogeneration.
+# app/db/base.py
+"""
+Import all ORM models so Alembic autogenerate sees them.
 
-This module ensures Alembic can detect all models when running
-`alembic revision --autogenerate`.
+Place this file where the app package is importable by Alembic.
+Alembic's env.py should import app.db.base so SQLA metadata
+is registered before autogeneration runs.
 """
 
-from .base_class import Base
+from __future__ import annotations
 
-# Import all models here to enable Alembic autogeneration
-# Example:
-from ima_service.app.models.tenant import Tenant
-from app.models.user import User
-from app.models.role import Role
-from app.models.permission import Permission
-from app.models.user_roles import UserRole
-from app.models.role_permission import RolePermission
+# ensure Base is available for Alembic to reference
+from .base_class import Base  # noqa: F401
+
+# Import all models here. Keep imports explicit so static checks
+# and Alembic autogeneration can find model definitions.
+#
+# Adjust these imports if your models live in a different module path.
+from app.models.tenant import Tenant  # noqa: F401
+from app.models.user import User  # noqa: F401
+from app.models.role import Role  # noqa: F401
+from app.models.permission import Permission  # noqa: F401
+from app.models.user_roles import UserRole  # noqa: F401
+from app.models.role_permission import RolePermission  # noqa: F401
 
 __all__ = ["Base"]

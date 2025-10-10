@@ -193,11 +193,13 @@ class User(Base):
         Returns
         -------
         str
-            Concatenated first and last name if available.
+            Concatenated first and last name if available, or 'Unknown' if missing.
         """
         if self.first_name and self.last_name:
             return f"{self.first_name} {self.last_name}"
-        return self.first_name or self.last_name or ""
+        if self.first_name or self.last_name:
+            return self.first_name or self.last_name
+        return "Unknown"
 
     def normalize_email(self) -> None:
         """

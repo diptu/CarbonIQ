@@ -1,46 +1,47 @@
-"""Async SQLAlchemy session and engine setup for FastAPI."""
+# app/db/session.py
+"""Async SQLAlchemy engine and async session factory."""
+
+from __future__ import annotations
 
 from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    create_async_engine,
+)
 from sqlalchemy.orm import sessionmaker
 
 from ..core.config import get_settings
 
-# -------------------------
-# Settings
-# -------------------------
 settings = get_settings()
 
-# -------------------------
-# Async engine
-# -------------------------
-engine = create_async_engine(
+# Async engine. DATABASE_URL must use asyncpg driver.
+# Example: postgresql+asyncpg://user:pass@host:5432/dbname
+engine: AsyncEngine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    future=True,  # SQLAlchemy 2.0 style
+    echo=bool(settings.DEBUG),
+    future=True,
+    pool_pre_ping=True,
 )
 
-# -------------------------
 # Async session factory
-# -------------------------
-async_session = sessionmaker(
+AsyncSessionLocal = sessionmaker(
     bind=engine,
     class_=AsyncSession,
     expire_on_commit=False,
+    autoflush=False,
+    future=True,
 )
 
 
-# -------------------------
-# FastAPI dependency
-# -------------------------
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Provide a transactional async session for request scope.
-
-    Yields
-    ------
-    AsyncSession
-        SQLAlchemy async session instance.
     """
-    async with async_session() as session:
+    FastAPI dependency that yields an AsyncSession.
+
+    Usage:
+        async def endpoint(db: AsyncSession = Depends(get_db)):
+            await db.execute(...)
+    """
+    async with AsyncSessionLocal() as session:
         yield session

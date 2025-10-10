@@ -1,15 +1,20 @@
+# app/services/user_service.py
 from __future__ import annotations
-from typing import Optional, List
+
+from typing import List, Optional
 from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from app.services.base_service import BaseService, log_method_call, log_action
 from app.models.user import User
 from app.models.tenant import Tenant
 
 
 class UserService(BaseService[User]):
-    """Async service for managing users, including hierarchical RBAC."""
+    """Async service for managing users, including RBAC."""
 
     def __init__(self, db: AsyncSession, tenant_id: UUID | None = None):
         super().__init__(db=db)
@@ -21,7 +26,8 @@ class UserService(BaseService[User]):
             user.tenant_id = self.tenant_id
 
         self.db.add(user)
-        await self.db.commit()
+        # flush to assign PK without committing outer txn
+        await self.db.flush()
         await self.db.refresh(user)
 
         log_action(
@@ -33,13 +39,14 @@ class UserService(BaseService[User]):
 
     @log_method_call
     async def get_by_email(self, email: str) -> Optional[User]:
-        stmt = select(User).where(User.email == email)
+        stmt = select(User).where(User.email == email).options(selectinload(User.roles))
         result = await self.db.execute(stmt)
         return result.scalars().first()
 
     @log_method_call
     async def get_by_id(self, user_id: UUID) -> Optional[User]:
-        stmt = select(User).where(User.id == user_id)
+        """Eager-load roles to avoid lazy loads triggering IO later."""
+        stmt = select(User).where(User.id == user_id).options(selectinload(User.roles))
         result = await self.db.execute(stmt)
         return result.scalars().first()
 
@@ -48,7 +55,11 @@ class UserService(BaseService[User]):
         self, email: str, tenant_id: UUID | None = None
     ) -> Optional[User]:
         tenant_id = tenant_id or self.tenant_id
-        stmt = select(User).where(User.email == email, User.tenant_id == tenant_id)
+        stmt = (
+            select(User)
+            .where(User.email == email, User.tenant_id == tenant_id)
+            .options(selectinload(User.roles))
+        )
         result = await self.db.execute(stmt)
         return result.scalars().first()
 
@@ -57,7 +68,13 @@ class UserService(BaseService[User]):
         self, skip: int = 0, limit: int = 100, tenant_id: UUID | None = None
     ) -> List[User]:
         tenant_id = tenant_id or self.tenant_id
-        stmt = select(User).where(User.tenant_id == tenant_id).offset(skip).limit(limit)
+        stmt = (
+            select(User)
+            .where(User.tenant_id == tenant_id)
+            .options(selectinload(User.roles))
+            .offset(skip)
+            .limit(limit)
+        )
         result = await self.db.execute(stmt)
         return result.scalars().all()
 
@@ -76,7 +93,8 @@ class UserService(BaseService[User]):
         for u in users_to_update:
             u.is_active = True
 
-        await self.db.commit()
+        # commit is handled by the request dependency
+        await self.db.flush()
         for u in users_to_update:
             await self.db.refresh(u)
             log_action(
@@ -100,11 +118,13 @@ class UserService(BaseService[User]):
         for u in users_to_update:
             u.is_active = False
 
-        await self.db.commit()
+        await self.db.flush()
         for u in users_to_update:
             await self.db.refresh(u)
             log_action(
-                "deactivate_user", {"user_id": str(u.id), "email": u.email}, u.tenant_id
+                "deactivate_user",
+                {"user_id": str(u.id), "email": u.email},
+                u.tenant_id,
             )
 
         return users_to_update
@@ -114,7 +134,7 @@ class UserService(BaseService[User]):
         result = await self.db.execute(stmt)
         direct_children = result.scalars().all()
 
-        all_descendants = []
+        all_descendants: List[Tenant] = []
         for child in direct_children:
             all_descendants.append(child)
             all_descendants.extend(await self._get_descendant_tenants(child.id))
