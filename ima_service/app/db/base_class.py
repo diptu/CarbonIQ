@@ -1,71 +1,47 @@
-from sqlalchemy import Column, DateTime, func
-from sqlalchemy.orm import declarative_base
-
-# -------------------------
-# Declarative base
-# -------------------------
-Base = declarative_base()
-
-
-# -------------------------
-# Timestamp mixin
-# -------------------------
-# pylint: disable=too-few-public-methods
-class TimestampMixin:
-    """Adds `created_at` and `updated_at` timestamps to a model.
-
-    Attributes
-    ----------
-    created_at : DateTime
-        Time when the record was created.
-    updated_at : DateTime
-        Time when the record was last updated; auto-updates on modification.
-    """
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
+# app/db/base_class.py
 from __future__ import annotations
 
-from datetime import datetime
+import datetime
+from typing import Any
 
-from sqlalchemy import Column, DateTime, func
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import DateTime
+from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-# -------------------------
-# Declarative base
-# -------------------------
 class Base(DeclarativeBase):
-    """Base class for all SQLAlchemy ORM models."""
+    """Declarative base for all ORM models."""
 
     pass
 
 
-# -------------------------
-# Timestamp mixin
-# -------------------------
-# pylint: disable=too-few-public-methods
 class TimestampMixin:
-    """Adds created_at and updated_at timestamps to a model.
+    """
+    Mixin that provides created_at / updated_at columns.
 
-    Attributes
-    ----------
-    created_at : datetime
-        Time when the record was created.
-    updated_at : datetime
-        Time when the record was last updated; auto-updates on change.
+    Uses SQLAlchemy 2.0 style mapped annotations to avoid the
+    MappedAnnotationError raised when legacy annotations are present.
     """
 
-    created_at: datetime = Column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )
-    updated_at: datetime = Column(
+    updated_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
+        nullable=False,
+    )
+
+
+# Optional small helper if you want UUID primary key column in models
+def uuid_pk_column() -> Any:
+    """Return a mapped_column definition for a UUID primary key."""
+    return mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
         nullable=False,
     )

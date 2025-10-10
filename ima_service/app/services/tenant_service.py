@@ -1,86 +1,40 @@
 # app/services/tenant_service.py
-from __future__ import annotations
-from typing import List, Optional
-from uuid import UUID
-
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-
-from app.models.tenants import Tenant
-from app.schemas.tenant import TenantCreate, TenantUpdate
-from app.services.base_service import BaseService
+from app.services.base_service import BaseService, log_method_call, log_action
+from app.models.tenant import Tenant
 
 
-class TenantService(BaseService):
-    """Service to manage Tenants and sub-tenants with schema isolation."""
-
-    def __init__(self, db: AsyncSession):
-        super().__init__(db)
-
-    @BaseService.log_action("tenant.create")
-    async def create_tenant(
-        self, tenant_in: TenantCreate, parent_id: Optional[UUID] = None
-    ) -> Tenant:
-        tenant = Tenant(
-            name=tenant_in.name,
-            domain=tenant_in.domain,
-            schema_name=tenant_in.schema_name,
-            parent_id=parent_id,
+class TenantService(BaseService[Tenant]):
+    @log_method_call
+    def create_tenant(self, tenant: Tenant) -> Tenant:
+        self.db.add(tenant)
+        self.db.commit()
+        self.db.refresh(tenant)
+        log_action(
+            event_name="create_tenant",
+            metadata={"tenant_id": str(tenant.id), "name": tenant.name},
+            tenant_id=self.tenant_id,
         )
-        self.db.add(tenant)
-        try:
-            await self.db.commit()
-            await self.db.refresh(tenant)
-        except IntegrityError:
-            await self.db.rollback()
-            raise ValueError("Tenant with same domain/schema exists")
         return tenant
 
-    async def get_tenant(self, tenant_id: UUID) -> Optional[Tenant]:
-        stmt = select(Tenant).where(Tenant.id == tenant_id)
-        result = await self.db.execute(stmt)
-        return result.scalar_one_or_none()
-
-    async def get_all_tenants(self) -> List[Tenant]:
-        stmt = select(Tenant)
-        result = await self.db.execute(stmt)
-        return result.scalars().all()
-
-    async def get_sub_tenants(self, parent_id: UUID) -> List[Tenant]:
-        stmt = select(Tenant).where(Tenant.parent_id == parent_id)
-        result = await self.db.execute(stmt)
-        return result.scalars().all()
-
-    async def get_all_child_tenants(self, parent_id: UUID) -> List[Tenant]:
-        """Recursively fetch all child tenants using ORM."""
-        children = []
-
-        async def recurse(pid: UUID):
-            subs = await self.get_sub_tenants(pid)
-            for sub in subs:
-                children.append(sub)
-                await recurse(sub.id)
-
-        await recurse(parent_id)
-        return children
-
-    @BaseService.log_action("tenant.update")
-    async def update_tenant(self, tenant_id: UUID, tenant_in: TenantUpdate) -> Tenant:
-        tenant = await self.get_tenant(tenant_id)
-        if not tenant:
-            raise ValueError("Tenant not found")
-        for field, value in tenant_in.model_dump(exclude_unset=True).items():
-            setattr(tenant, field, value)
-        self.db.add(tenant)
-        await self.db.commit()
-        await self.db.refresh(tenant)
+    @log_method_call
+    def update_tenant(self, tenant: Tenant, updates: dict) -> Tenant:
+        for k, v in updates.items():
+            setattr(tenant, k, v)
+        self.db.commit()
+        self.db.refresh(tenant)
+        log_action(
+            event_name="update_tenant",
+            metadata={"tenant_id": str(tenant.id), "updates": updates},
+            tenant_id=self.tenant_id,
+        )
         return tenant
 
-    @BaseService.log_action("tenant.delete")
-    async def delete_tenant(self, tenant_id: UUID) -> None:
-        tenant = await self.get_tenant(tenant_id)
-        if not tenant:
-            raise ValueError("Tenant not found")
-        await self.db.delete(tenant)
-        await self.db.commit()
+    @log_method_call
+    def delete_tenant(self, tenant: Tenant) -> None:
+        self.db.delete(tenant)
+        self.db.commit()
+        log_action(
+            event_name="delete_tenant",
+            metadata={"tenant_id": str(tenant.id)},
+            tenant_id=self.tenant_id,
+        )

@@ -1,23 +1,14 @@
 # app/schemas/rbac.py
-from uuid import UUID
-from pydantic import BaseModel
+from pydantic import UUID4
+from .base import BaseSchema
 
 
-class UserRoleAssign(BaseModel):
-    role_id: UUID
-    tenant_id: UUID
+class UserRoleAssign(BaseSchema):
+    user_id: UUID4
+    role_id: UUID4
+    tenant_id: UUID4
 
 
-class UserRoleRead(BaseModel):
-    user_id: UUID
-    role_id: UUID
-    tenant_id: UUID
-
-
-class RolePermissionAssign(BaseModel):
-    permission_id: UUID
-
-
-class RolePermissionRead(BaseModel):
-    role_id: UUID
-    permission_id: UUID
+class RolePermissionAssign(BaseSchema):
+    role_id: UUID4
+    permission_id: UUID4

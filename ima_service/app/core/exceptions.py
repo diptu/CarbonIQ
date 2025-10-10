@@ -1,67 +1,91 @@
+# app/core/exceptions.py
+"""Custom exceptions for authentication, authorization, and RBAC.
+
+Pandas-style docstring
+----------------------
+This module defines structured exceptions for the IMA service:
+
+- HTTP exceptions for API responses
+- Custom RBAC, tenant, and authentication errors
+- Provides reusable functions for raising exceptions consistently
 """
-app/core/exception.py
----------------------
-Custom exception classes for the IMA Service.
-
-These provide standardized HTTPException wrappers with default messages and
-status codes for consistent API error handling.
-
-Notes
------
-- Inherit from BaseHTTPException for all service-specific errors.
-- Extend with domain-specific exceptions if needed (e.g., ValidationError).
-- Compatible with FastAPI exception handlers and DRF-style responses.
-"""
-
-from __future__ import annotations
 
 from fastapi import HTTPException, status
 
 
-class BaseHTTPException(HTTPException):
-    """Base class for all custom HTTP exceptions in the IMA Service."""
-
-    def __init__(self, *, status_code: int, detail: str, headers: dict | None = None):
-        super().__init__(status_code=status_code, detail=detail, headers=headers)
-
-
-class UnauthorizedException(BaseHTTPException):
-    """401 Unauthorized — Authentication credentials are missing or invalid."""
-
-    def __init__(self, detail: str = "Unauthorized"):
-        super().__init(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
+# --- Authentication Exceptions -----------------------------------
+def raise_invalid_credentials() -> None:
+    """Raise HTTP 401 for invalid username/password."""
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
-class ForbiddenException(BaseHTTPException):
-    """403 Forbidden — Authenticated but not authorized to perform this action."""
-
-    def __init__(self, detail: str = "Forbidden"):
-        super().__init(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
-
-
-class NotFoundException(BaseHTTPException):
-    """404 Not Found — The requested resource does not exist."""
-
-    def __init__(self, detail: str = "Not Found"):
-        super().__init(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+def raise_inactive_user() -> None:
+    """Raise HTTP 403 for inactive user login attempts."""
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Inactive user",
+    )
 
 
-class BadRequestException(BaseHTTPException):
-    """400 Bad Request — The request parameters are invalid."""
-
-    def __init__(self, detail: str = "Bad Request"):
-        super().__init(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
-
-
-class ConflictException(BaseHTTPException):
-    """409 Conflict — The request could not be completed due to a conflict."""
-
-    def __init__(self, detail: str = "Conflict"):
-        super().__init(status_code=status.HTTP_409_CONFLICT, detail=detail)
+def raise_invalid_token() -> None:
+    """Raise HTTP 401 for invalid or expired JWT token."""
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
-class InternalServerErrorException(BaseHTTPException):
-    """500 Internal Server Error — An unexpected error occurred."""
+# --- Authorization / RBAC Exceptions -----------------------------
+def raise_permission_denied() -> None:
+    """Raise HTTP 403 when user lacks required permission."""
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Permission denied",
+    )
 
-    def __init__(self, detail: str = "Internal server error"):
-        super().__init(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+
+def raise_role_assignment_denied() -> None:
+    """Raise HTTP 403 when user tries to assign roles outside scope."""
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Role assignment not allowed",
+    )
+
+
+# --- Tenant / Multi-tenancy Exceptions --------------------------
+def raise_tenant_access_denied() -> None:
+    """Raise HTTP 403 when user tries to access another tenant."""
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Tenant access denied",
+    )
+
+
+def raise_tenant_not_found() -> None:
+    """Raise HTTP 404 when tenant does not exist."""
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Tenant not found",
+    )
+
+
+# --- Resource Exceptions ----------------------------------------
+def raise_resource_not_found(resource_name: str = "Resource") -> None:
+    """Raise HTTP 404 when a resource is not found."""
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"{resource_name} not found",
+    )
+
+
+def raise_resource_conflict(resource_name: str = "Resource") -> None:
+    """Raise HTTP 409 when a resource conflicts (e.g., duplicate entry)."""
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=f"{resource_name} already exists",
+    )

@@ -1,34 +1,61 @@
 # app/dependencies/db.py
-"""Database session dependency for FastAPI endpoints."""
+"""Database session dependency using SQLAlchemy Async.
 
-from typing import AsyncGenerator
+Provides:
+- Async session per request
+- Automatic rollback on exception
+- Tenant-aware schema enforcement
+"""
+
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import async_session
-from app.services.base_service import BaseService
 
 
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Provide a transactional scope around a series of operations.
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Yield an async SQLAlchemy session and handle commit/rollback.
 
     Yields
     ------
     AsyncSession
-        Async SQLAlchemy session for DB operations.
+        SQLAlchemy async session
     """
     async with async_session() as session:
         try:
-            BaseService.log_action(action="db_session_start")
             yield session
             await session.commit()
-            BaseService.log_action(action="db_session_commit")
-        except Exception as e:
+        except Exception:
             await session.rollback()
-            BaseService.log_action(
-                action="db_session_rollback", details={"error": str(e)}
-            )
             raise
-        finally:
-            BaseService.log_action(action="db_session_end")
+
+
+@asynccontextmanager
+async def get_tenant_db(
+    schema_name: Optional[str] = None,
+) -> AsyncGenerator[AsyncSession, None]:
+    """Yield a tenant-specific async DB session.
+
+    Args
+    ----
+    schema_name : Optional[str]
+        Schema for multi-tenant isolation
+
+    Yields
+    ------
+    AsyncSession
+        Scoped async SQLAlchemy session
+    """
+    async with async_session() as session:
+        if schema_name:
+            await session.execute(f'SET search_path TO "{schema_name}"')
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise

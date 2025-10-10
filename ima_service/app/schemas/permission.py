@@ -1,37 +1,17 @@
 # app/schemas/permission.py
-from typing import Optional, List
-from uuid import UUID
-from pydantic import BaseModel, Field
+from typing import Optional
+from pydantic import UUID4, constr
+from .base import BaseSchema
 
 
-class PermissionBase(BaseModel):
-    name: str = Field(..., max_length=64)
-    description: Optional[str] = Field(None, max_length=255)
+class PermissionBase(BaseSchema):
+    name: constr(min_length=1, max_length=100)
+    description: Optional[constr(max_length=255)] = None
 
 
 class PermissionCreate(PermissionBase):
     pass
 
 
-class PermissionUpdate(BaseModel):
-    name: Optional[str] = Field(None, max_length=64)
-    description: Optional[str] = Field(None, max_length=255)
-
-
 class PermissionRead(PermissionBase):
-    id: UUID
-
-    class Config:
-        orm_mode = True
-
-
-class RoleRead(BaseModel):
-    id: UUID
-    name: str
-
-    class Config:
-        orm_mode = True
-
-
-class PermissionReadWithRoles(PermissionRead):
-    roles: List[RoleRead] = []
+    id: UUID4

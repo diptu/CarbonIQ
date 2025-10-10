@@ -1,46 +1,25 @@
 # app/schemas/user.py
-from typing import List, Optional
-from uuid import UUID
-from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field
-from .tenant import TenantRead
-from .role import RoleRead
+from pydantic import UUID4, EmailStr, constr
+from typing import Optional
+from .base import BaseSchema
 
 
-class UserBase(BaseModel):
+class UserBase(BaseSchema):
     email: EmailStr
-    is_active: Optional[bool] = True
-    is_superuser: Optional[bool] = False
-    tenant_id: UUID
+    full_name: constr(min_length=1, max_length=100)
+    is_active: bool = True
+    tenant_id: UUID4
 
 
 class UserCreate(UserBase):
-    password: str
+    password: constr(min_length=8, max_length=128)
 
 
-class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    password: Optional[str] = None
+class UserRead(UserBase):
+    id: UUID4
+
+
+class UserUpdate(BaseSchema):
+    full_name: Optional[constr(min_length=1, max_length=100)] = None
+    password: Optional[constr(min_length=8, max_length=128)] = None
     is_active: Optional[bool] = None
-    is_superuser: Optional[bool] = None
-    tenant_id: Optional[UUID] = None
-
-
-class UserOut(UserBase):
-    id: UUID
-    tenant: TenantRead
-    roles: List[RoleRead] = []
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        orm_mode = True
-
-
-class UserSummary(BaseModel):
-    id: UUID
-    email: EmailStr
-    roles: List[str] = []
-
-    class Config:
-        orm_mode = True

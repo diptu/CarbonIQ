@@ -1,5 +1,4 @@
 # app/core/config.py
-# app/core/config.py
 """Application configuration settings using Pydantic.
 
 Pandas-style docstring
@@ -24,8 +23,8 @@ from datetime import timedelta
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # --- base directory and env file -----------------------------------
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-ENV_FILE = BASE_DIR / ".env"
+BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
+ENV_FILE: Path = BASE_DIR / ".env"
 
 
 class Settings(BaseSettings):
@@ -94,7 +93,7 @@ class Settings(BaseSettings):
 
         Accepts comma-separated string values and trims whitespace.
         """
-        raw = self.BACKEND_CORS_ORIGINS or ""
+        raw: str = self.BACKEND_CORS_ORIGINS or ""
         if not raw:
             return []
         return [s.strip() for s in raw.split(",") if s.strip()]

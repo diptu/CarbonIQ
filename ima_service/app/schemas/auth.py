@@ -1,22 +1,13 @@
-from typing import List, Optional
-from uuid import UUID
-from pydantic import BaseModel, Field
+# app/schemas/auth.py
+from pydantic import BaseModel, constr, EmailStr
 
 
-class TokenDetails(BaseModel):
-    accessToken: str
-    refreshToken: str
-    tokenType: str = "bearer"
-    expiresIn: int
-    roles: List[str] = []
-    tenantId: Optional[str] = None
+class LoginSchema(BaseModel):
+    email: EmailStr
+    password: constr(min_length=8, max_length=128)
 
 
-class LoginResponse(BaseModel):
-    statusCode: int
-    msg: str
-    details: TokenDetails
-
-
-class TokenRefresh(BaseModel):
-    refreshToken: str
+class TokenSchema(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
