@@ -1,64 +1,59 @@
-# app/dependencies/auth.py
-"""Authentication dependencies for FastAPI.
-
-Includes:
-- OAuth2PasswordBearer token parsing
-- Current user resolution
-- Tenant-aware authentication
-"""
-
 from __future__ import annotations
-
-from typing import Optional
-
+from typing import List, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
-
-from app.core.security import decode_token
-from app.core.config import get_settings
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.db import get_db
 from app.models.user import User
+from app.core.security import decode_token
 
-settings = get_settings()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    token: str = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Get the current user from JWT token.
+    # 🔹 Lazy import to break circular import
+    from app.services.user_service import UserService
 
-    Args
-    ----
-    token : str
-        Bearer token from request header
-    db : Session
-        Database session
-
-    Returns
-    -------
-    User
-        Authenticated user instance
-
-    Raises
-    ------
-    HTTPException
-        If token is invalid or user not found
-    """
     payload = decode_token(token)
-    user_id: str = payload.get("sub")
+    user_id: Optional[str] = payload.get("sub")
     tenant_id: Optional[str] = payload.get("tenant_id")
+
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
         )
 
-    user = (
-        db.query(User).filter(User.id == user_id, User.tenant_id == tenant_id).first()
-    )
+    user_service = UserService(db, tenant_id=tenant_id)
+    user = await user_service.get_by_id(user_id)
+
     if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user"
         )
+
     return user
+
+
+def require_roles(required_roles: List[str]):
+    """
+    Dependency to ensure current_user has at least one of the required roles.
+    Usage:
+        @router.get("/admin")
+        async def admin_route(current_user: User = Depends(require_roles(["admin"]))):
+            ...
+    """
+
+    async def checker(current_user: User = Depends(get_current_user)):
+        if not hasattr(current_user, "roles") or not any(
+            role in current_user.roles for role in required_roles
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
+        return current_user
+
+    return checker

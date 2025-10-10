@@ -1,11 +1,8 @@
-# app/services/user_service.py
 from __future__ import annotations
 from typing import Optional, List
 from uuid import UUID
-
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.services.base_service import BaseService, log_method_call, log_action
 from app.models.user import User
 from app.models.tenant import Tenant
@@ -14,15 +11,23 @@ from app.models.tenant import Tenant
 class UserService(BaseService[User]):
     """Async service for managing users, including hierarchical RBAC."""
 
+    def __init__(self, db: AsyncSession, tenant_id: UUID | None = None):
+        super().__init__(db=db)
+        self.tenant_id = tenant_id
+
     @log_method_call
     async def create_user(self, user: User) -> User:
+        if not user.tenant_id and self.tenant_id:
+            user.tenant_id = self.tenant_id
+
         self.db.add(user)
         await self.db.commit()
         await self.db.refresh(user)
+
         log_action(
-            event_name="create_user",
-            metadata={"user_id": str(user.id), "email": user.email},
-            tenant_id=self.tenant_id,
+            "create_user",
+            {"user_id": str(user.id), "email": user.email},
+            user.tenant_id,
         )
         return user
 
@@ -40,17 +45,24 @@ class UserService(BaseService[User]):
 
     @log_method_call
     async def get_by_email_and_tenant(
-        self, email: str, tenant_id: UUID
+        self, email: str, tenant_id: UUID | None = None
     ) -> Optional[User]:
+        tenant_id = tenant_id or self.tenant_id
         stmt = select(User).where(User.email == email, User.tenant_id == tenant_id)
         result = await self.db.execute(stmt)
         return result.scalars().first()
 
     @log_method_call
+    async def get_users(
+        self, skip: int = 0, limit: int = 100, tenant_id: UUID | None = None
+    ) -> List[User]:
+        tenant_id = tenant_id or self.tenant_id
+        stmt = select(User).where(User.tenant_id == tenant_id).offset(skip).limit(limit)
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
+
+    @log_method_call
     async def activate_user(self, user: User, cascade: bool = False) -> List[User]:
-        """
-        Activate a user and optionally all users in descendant tenants.
-        """
         users_to_update: List[User] = [user]
 
         if cascade:
@@ -68,18 +80,13 @@ class UserService(BaseService[User]):
         for u in users_to_update:
             await self.db.refresh(u)
             log_action(
-                event_name="activate_user",
-                metadata={"user_id": str(u.id), "email": u.email},
-                tenant_id=u.tenant_id,
+                "activate_user", {"user_id": str(u.id), "email": u.email}, u.tenant_id
             )
 
         return users_to_update
 
     @log_method_call
     async def deactivate_user(self, user: User, cascade: bool = False) -> List[User]:
-        """
-        Deactivate a user and optionally all users in descendant tenants.
-        """
         users_to_update: List[User] = [user]
 
         if cascade:
@@ -97,17 +104,12 @@ class UserService(BaseService[User]):
         for u in users_to_update:
             await self.db.refresh(u)
             log_action(
-                event_name="deactivate_user",
-                metadata={"user_id": str(u.id), "email": u.email},
-                tenant_id=u.tenant_id,
+                "deactivate_user", {"user_id": str(u.id), "email": u.email}, u.tenant_id
             )
 
         return users_to_update
 
     async def _get_descendant_tenants(self, tenant_id: UUID) -> List[Tenant]:
-        """
-        Recursively fetch all descendant tenants of a given tenant.
-        """
         stmt = select(Tenant).where(Tenant.parent_id == tenant_id)
         result = await self.db.execute(stmt)
         direct_children = result.scalars().all()

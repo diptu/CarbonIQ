@@ -11,3 +11,5 @@ class TokenSchema(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    expires_in: int  # in seconds
+    tenant_id: str

@@ -12,6 +12,7 @@ from app.dependencies.db import get_db
 from app.models.permission import Permission
 from app.models.role import Role
 from app.models.user_roles import UserRole
+from app.models.user import User
 
 
 # -------------------------
@@ -67,24 +68,14 @@ async def require_permissions(
     return True
 
 
-async def require_roles(
-    roles: List[str],
-    current_user=Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> bool:
-    """Ensure current user has required roles (FastAPI endpoint)."""
-    user_roles = (
-        db.query(Role.name)
-        .join(UserRole, UserRole.role_id == Role.id)
-        .filter(UserRole.user_id == current_user.id)
-        .all()
-    )
-    user_role_names = {r[0] for r in user_roles}
+def require_roles(required_roles: List[str]):
+    """Ensure current_user has at least one required role."""
 
-    for role in roles:
-        if role not in user_role_names:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Role '{role}' required",
-            )
-    return True
+    async def checker(current_user: User = Depends(get_current_user)):
+        if not hasattr(current_user, "roles") or not any(
+            role in current_user.roles for role in required_roles
+        ):
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+        return current_user
+
+    return checker
