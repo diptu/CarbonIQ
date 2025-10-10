@@ -40,6 +40,14 @@ def raise_invalid_token() -> None:
     )
 
 
+def raise_internal_error() -> None:
+    """Raise HTTP 500 for unexpected server errors."""
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Internal server error",
+    )
+
+
 # --- Authorization / RBAC Exceptions -----------------------------
 def raise_permission_denied() -> None:
     """Raise HTTP 403 when user lacks required permission."""

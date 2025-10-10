@@ -14,6 +14,6 @@ class Tenant(Base):
     domain = Column(String(255), nullable=False, unique=True)
     schema_name = Column(String(100), nullable=False, unique=True)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=True)
-
+    is_active = Column(Boolean, default=True, nullable=False)
     parent = relationship("Tenant", remote_side=[id], backref="sub_tenants")
     users = relationship("User", back_populates="tenant")

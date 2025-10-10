@@ -22,7 +22,7 @@ from .v1.routes import (
 api_router = APIRouter()
 
 # Include individual routers
-api_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
+api_router.include_router(auth_router.router, prefix="/auth", tags=["Authentication"])
 # api_router.include_router(user_router.router, prefix="/users", tags=["users"])
 # api_router.include_router(role_router.router, prefix="/roles", tags=["roles"])
 # api_router.include_router(

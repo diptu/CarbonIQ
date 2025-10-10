@@ -10,7 +10,12 @@ from app.core.config import get_settings
 
 # Import all models here so Alembic can see them
 from app.db.base_class import Base
-from app.models import *
+from app.models.user import User
+from app.models.tenants import Tenant
+from app.models.role import Role
+from app.models.permission import Permission
+from app.models.user_roles import UserRole
+from app.models.role_permission import RolePermission
 
 # Import any other models here
 # from app.models.other_model import OtherModel
