@@ -1,6 +1,6 @@
 # app/schemas/user.py
 from pydantic import UUID4, EmailStr, constr
-from typing import Optional
+from typing import Optional, List
 from .base import BaseSchema
 
 
@@ -23,3 +23,10 @@ class UserUpdate(BaseSchema):
     full_name: Optional[constr(min_length=1, max_length=100)] = None
     password: Optional[constr(min_length=8, max_length=128)] = None
     is_active: Optional[bool] = None
+
+
+class UserPaginated(BaseSchema):
+    data: List[UserRead]
+    total_count: int
+    next_page: Optional[int]
+    prev_page: Optional[int]
