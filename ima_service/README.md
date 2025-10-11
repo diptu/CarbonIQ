@@ -56,7 +56,7 @@ Auth: JWT + Refresh Token, integrated with role-based policy middleware
 | Column          | Type                                  | Description           |
 | --------------- | ------------------------------------- | --------------------- |
 | `id`            | UUID (PK)                             | Unique user ID        |
-| `email`         | VARCHAR(255), UNIQUE                  | User email (login ID) |
+| `email`         | VARCHAR(255) NOT NULL, UNIQUE                  | User email (login ID) |
 | `password_hash` | TEXT                                  | Hashed password       |
 | `full_name`     | VARCHAR(255)                          | Display name          |
 | `is_active`     | BOOLEAN                               | Account status        |
