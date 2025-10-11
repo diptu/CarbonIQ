@@ -29,6 +29,7 @@ dependencies = [
     "python-jose[cryptography]>=3.5.0",
     "python-multipart>=0.0.20",
     "colorama>=0.4.6",
+    "types-python-jose>=3.5.0.20250531",
 ]
 
 [tool.setuptools.packages.find]
