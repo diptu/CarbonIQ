@@ -8,12 +8,12 @@ Provides:
 - Token verification with multi-tenant RBAC context
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional, List, Union, Dict
-from uuid import UUID
 import logging
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional, Union
+from uuid import UUID
 
-from jose import jwt, JWTError, ExpiredSignatureError
+from jose import ExpiredSignatureError, JWTError, jwt
 from passlib.context import CryptContext
 
 from .config import get_settings

@@ -5,21 +5,16 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ima-service"
 version = "0.1.0"
-description = "MA auth/RBAC service (FastAPI, JWT, Redis, SQLModel)."
+description = "IMA auth/RBAC service (FastAPI, JWT, Redis, SQLAlchemy, SQLModel)."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "asyncpg>=0.30.0",
-    "fastapi[standard]>=0.116.2",
+    "asyncpg>=0.30.0",                     # Async PostgreSQL driver
+    "fastapi[all]>=0.116.2",               # FastAPI with extras
     "greenlet>=3.2.4",
     "httpx>=0.28.1",
     "passlib[bcrypt]>=1.7.4",
     "psycopg[binary]>=3.2.10",
-    "psycopg-binary>=3.2.10",
-    "psycopg2-binary>=2.9.10",
-    "pydantic-settings>=2.10.1",
-    "pyjwt>=2.10.1",
-    "redis>=6.4.0,<7.0.0", # <-- pinned to avoid resolver issues
     "sqlalchemy>=2.0.43",
     "sqlmodel>=0.0.25",
     "aiosqlite>=0.21.0",
@@ -29,6 +24,7 @@ dependencies = [
     "python-jose[cryptography]>=3.5.0",
     "python-multipart>=0.0.20",
     "colorama>=0.4.6",
+    "redis>=6.4.0,<7.0.0",
     "types-python-jose>=3.5.0.20250531",
 ]
 
@@ -67,6 +63,7 @@ select = ["E","F","W","I","C"]
 python_version = "3.11"
 strict_optional = true
 ignore_missing_imports = true
+follow_imports = "normal"
 
 [tool.pytest.ini_options]
 testpaths = ["ima_service/tests"]
@@ -90,8 +87,8 @@ omit = [
 init-hook = "import sys; from pathlib import Path; sys.path.append(str(Path().resolve()))"
 max-line-length = 100
 disable = [
-    "C0301",
-    "E0401",
+    "C0301",  # line too long
+    "E0401",  # import error (handle via PYTHONPATH)
     "missing-module-docstring",
     "missing-class-docstring",
     "missing-function-docstring",

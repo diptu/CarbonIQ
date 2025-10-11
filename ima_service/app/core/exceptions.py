@@ -12,7 +12,8 @@ Notes
 - Optional `headers` allow passing custom HTTP headers if needed.
 """
 
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
+
 from fastapi import HTTPException, status
 
 

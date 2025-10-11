@@ -21,7 +21,6 @@ from typing import List, Optional
 from pydantic import Field, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 # Base project directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_FILE = BASE_DIR / ".env"
