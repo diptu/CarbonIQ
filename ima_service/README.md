@@ -1,0 +1,363 @@
+# IMA Service (Identity & Management API)
+
+For a multi-tenant, hierarchical database–backed RBAC (Role-Based Access Control) system
+
+## Overview
+The IMA Service is responsible for authentication, authorization, role & permission management, and session lifecycle. It issues RS256-signed JWTs and provides endpoints for user and role management used by Tenant Service and other microservices.
+
+## ⚙️ System Overview
+
+Architecture:
+
+Multi-tenant hierarchy: Organization > Tenant > Subtenant (optional) > User
+
+RBAC: Role & Permission-based with inheritance (roles → permissions)
+
+DB: PostgreSQL (schemas or row-based tenancy)
+
+Services:
+
+IMA Service → Handles authentication, authorization, users, roles, permissions
+
+Tenant Service → Manages tenant creation, hierarchy, and metadata
+
+API Style: REST (JSON responses)
+
+Auth: JWT + Refresh Token, integrated with role-based policy middleware
+
+
+## 🔐 Key Features
+- JWT-based authentication (RS256)
+- Multi-tenant aware user management
+- Role & permission-based access control (RBAC)
+- Refresh token lifecycle management
+- Integration-ready with Tenant Service
+- Optional audit logging & policy engine (Casbin/OPA)
+
+---
+
+## 🗂️ Core Entities
+
+| Entity | Description |
+|---------|--------------|
+| **User** | Represents an authenticated individual tied to a tenant |
+| **Role** | Defines access level and permissions for a tenant or system |
+| **Permission** | Atomic operation that can be assigned to roles |
+| **UserRole** | Many-to-many relationship between users and roles |
+| **RolePermission** | Many-to-many relationship between roles and permissions |
+| **AuthToken** | Refresh/session token tracking |
+| **AuditLog** | Records every privileged or sensitive action |
+
+---
+## 🗂️ Tables
+
+1. users
+   
+| Column          | Type                                  | Description           |
+| --------------- | ------------------------------------- | --------------------- |
+| `id`            | UUID (PK)                             | Unique user ID        |
+| `email`         | VARCHAR(255), UNIQUE                  | User email (login ID) |
+| `password_hash` | TEXT                                  | Hashed password       |
+| `full_name`     | VARCHAR(255)                          | Display name          |
+| `is_active`     | BOOLEAN                               | Account status        |
+| `tenant_id`     | UUID (FK → tenant_service.tenants.id) | User’s tenant context |
+| `created_at`    | TIMESTAMP                             | Created time          |
+| `updated_at`    | TIMESTAMP                             | Updated time          |
+
+⚠️ The tenant_id defines which tenant the user belongs to,
+but their access level is determined by their roles.
+
+2. roles
+
+| Column           | Type            | Description                                 |
+| ---------------- | --------------- | ------------------------------------------- |
+| `id`             | UUID (PK)       | Unique role ID                              |
+| `name`           | VARCHAR(100)    | Role name (`tenant_admin`, `manager`, etc.) |
+| `description`    | TEXT            | Human-readable description                  |
+| `tenant_id`      | UUID (nullable) | Role scope (null = global/system role)      |
+| `is_system_role` | BOOLEAN         | If true, accessible to all tenants          |
+| `created_at`     | TIMESTAMP       | Created time                                |
+
+Roles can be system-wide (like super_admin) or tenant-specific (like tenant_admin).
+
+3. permissions
+
+| Column        | Type                 | Description                                          |
+| ------------- | -------------------- | ---------------------------------------------------- |
+| `id`          | UUID (PK)            | Permission ID                                        |
+| `code`        | VARCHAR(100), UNIQUE | Permission code (`manage_users`, `view_tenant`)      |
+| `description` | TEXT                 | Description                                          |
+| `module`      | VARCHAR(50)          | Optional grouping (e.g. `tenant`, `user`, `billing`) |
+
+4. role_permissions
+
+| Column          | Type                         | Description     |
+| --------------- | ---------------------------- | --------------- |
+| `role_id`       | UUID (FK → roles.id)         | Role link       |
+| `permission_id` | UUID (FK → permissions.id)   | Permission link |
+| PRIMARY KEY     | (`role_id`, `permission_id`) | Composite key   |
+
+Defines role → permission mapping.
+
+
+5. user_roles
+
+| Column      | Type                   | Description   |
+| ----------- | ---------------------- | ------------- |
+| `user_id`   | UUID (FK → users.id)   | User link     |
+| `role_id`   | UUID (FK → roles.id)   | Role link     |
+| PRIMARY KEY | (`user_id`, `role_id`) | Composite key |
+
+Defines user → role assignments
+
+6. auth_tokens (for refresh tokens / sessions)
+
+| Column       | Type                 | Description            |
+| ------------ | -------------------- | ---------------------- |
+| `id`         | UUID (PK)            | Token ID               |
+| `user_id`    | UUID (FK → users.id) | Associated user        |
+| `token`      | TEXT                 | Refresh token (hashed) |
+| `expires_at` | TIMESTAMP            | Expiry                 |
+| `revoked`    | BOOLEAN              | If token invalidated   |
+
+
+7. audit_logs
+
+| Column        | Type           | Description                              |
+| ------------- | -------------- | ---------------------------------------- |
+| `id`          | BIGSERIAL (PK) | Log ID                                   |
+| `user_id`     | UUID           | Actor                                    |
+| `tenant_id`   | UUID           | Tenant context                           |
+| `action`      | VARCHAR(100)   | Action performed                         |
+| `resource`    | VARCHAR(100)   | Target resource (e.g. `/api/v1/tenants`) |
+| `status_code` | INT            | HTTP status                              |
+| `timestamp`   | TIMESTAMP      | Event time                               |
+
+
+---
+| Method     | Endpoint                         | Description                   | Auth Required |
+| ---------- | -------------------------------- | ----------------------------- | ------------- |
+| **POST**   | `/api/v1/auth/register`          | Register a new user           | ❌             |
+| **POST**   | `/api/v1/auth/login`             | Login and get tokens          | ❌             |
+| **POST**   | `/api/v1/auth/refresh`           | Refresh JWT token             | ✅             |
+| **POST**   | `/api/v1/auth/logout`            | Logout user                   | ✅             |
+| **GET**    | `/api/v1/users`                  | List users (tenant scoped)    | ✅ (admin)     |
+| **GET**    | `/api/v1/users/{id}`             | Get user details              | ✅             |
+| **POST**   | `/api/v1/users`                  | Create user under tenant      | ✅ (admin)     |
+| **PATCH**  | `/api/v1/users/{id}`             | Update user profile or role   | ✅             |
+| **DELETE** | `/api/v1/users/{id}`             | Soft delete user              | ✅ (admin)     |
+| **GET**    | `/api/v1/roles`                  | List all roles in tenant      | ✅             |
+| **POST**   | `/api/v1/roles`                  | Create a role                 | ✅ (admin)     |
+| **PATCH**  | `/api/v1/roles/{id}`             | Update role                   | ✅ (admin)     |
+| **DELETE** | `/api/v1/roles/{id}`             | Delete role                   | ✅ (admin)     |
+| **GET**    | `/api/v1/permissions`            | List all permissions          | ✅             |
+| **POST**   | `/api/v1/roles/{id}/permissions` | Assign permissions to role    | ✅ (admin)     |
+| **GET**    | `/api/v1/me`                     | Get current user info & roles | ✅             |
+
+
+🚀 Strategy Overview
+
+We'll combine token-based authentication, tenant-context enforcement, and RBAC middleware:
+
+```css
+[Client] → [API Gateway] → [Auth Middleware] → [Tenant Service]
+                                  ↓
+                          [IMA (Auth Service)]
+
+
+```
+
+🧠 Objective
+
+Ensure only authenticated users can call Tenant Service APIs,
+and their access is scoped to their tenant hierarchy and RBAC roles.
+
+1. Use JWT from the IMA Service (Central Auth Provider)
+
+All authentication happens in the IMA Service (Identity Management API).
+
+When user logs in:
+
+They get an Access Token (JWT) and Refresh Token.
+
+The JWT includes claims like:
+
+```json
+{
+  "sub": "u_12345",
+  "tenant_id": "t_001",
+  "roles": ["tenant_admin"],
+  "permissions": ["manage_users", "view_tenants"],
+  "exp": 1728902400,
+  "iss": "ima.service.local"
+}
+
+```
+
+2. Audit and Logging
+   
+| Field     | Example                   |
+| --------- | ------------------------- |
+| user_id   | u_12345                   |
+| tenant_id | t_001                     |
+| endpoint  | /api/v1/tenants/001/users |
+| action    | GET                       |
+| status    | 200                       |
+| timestamp | 2025-10-11T14:23:12Z      |
+
+
+3. 🧩 Bonus: Advanced Hardening
+
+Rotate signing keys (JWKS) regularly.
+
+Deny access by default (zero-trust model).
+
+Multi-tenant DB filters via ORM decorators.
+
+JWT caching for performance (e.g., Redis token verifier).
+
+Use OPA (Open Policy Agent) or Casbin if policies become complex.
+
+
+### 🔐 1. Security & Access Control Enhancements
+1.1. Row-Level Security (RLS) in PostgreSQL
+1.2. Scoped JWT Claims
+1.3. Token Introspection & Blacklisting
+1.4. Encrypted at Rest + Transit
+
+### 🧩 2. Architecture Enhancements
+2.1. API Gateway Enforcement
+2.2. Decouple Services via Events
+2.3. Policy Engine (OPA / Casbin / Zanzibar)
+
+### ⚙️ 3. Data Modeling & Schema Enhancements
+3.1. Soft Deletes with “Deleted At”
+3.2. Versioned Configs
+3.3. Tenant “Type” Column
+3.4. Multi-Tenant Metadata Indexing
+
+### 🧠 4. Performance & Scalability
+4.1. Read/Write Split
+4.2. Caching Layer (Redis)
+4.3. Query-level Auditing
+
+### 📈 5. Observability, Governance, and Compliance
+5.1. Structured Logging
+5.2. Distributed Tracing
+5.3. Data Governance
+
+
+🧭 Summary: Modern Multi-Tenant RBAC Blueprint
+| Area         | Enhancement                         | Benefit                        |
+| ------------ | ----------------------------------- | ------------------------------ |
+| Security     | RLS + Scoped JWT + Token revocation | Bulletproof isolation          |
+| Architecture | API Gateway + Event Bus             | Scalability + clean boundaries |
+| Data         | Versioned configs + soft deletes    | Auditability                   |
+| Performance  | Redis caching + read replicas       | Low latency under scale        |
+| Governance   | Structured logs + OpenTelemetry     | Observability + compliance     |
+
+
+| Layer                     | Control           | Purpose                    |
+| ------------------------- | ----------------- | -------------------------- |
+| 1️⃣ IMA Service           | JWT issuance      | Central authentication     |
+| 2️⃣ Tenant Service        | JWT validation    | Auth enforcement           |
+| 3️⃣ Tenant Context        | Tenant isolation  | Prevent cross-tenant leaks |
+| 4️⃣ RBAC Middleware       | Role enforcement  | Least privilege            |
+| 5️⃣ API Gateway           | Request filtering | Unified entry control      |
+| 6️⃣ mTLS / Service Tokens | Internal auth     | Microservice security      |
+| 7️⃣ Audit Logs            | Observability     | Security + compliance      |
+
+
+```sql
+    
+                 ┌───────────────┐
+                 │   Client App  │
+                 └───────┬───────┘
+                         │
+                         ▼
+                 ┌───────────────┐
+                 │  Gateway API  │
+                 │ (Tenant/RBAC) │
+                 └───────┬───────┘
+                         │
+         ┌───────────────┼────────────────┐
+         ▼               ▼                ▼
+ ┌────────────┐    ┌────────────┐   ┌──────────────┐
+ │ JWT Auth & │    │ Tenant     │   │ Audit &      │
+ │ RBAC Check │    │ Scoping    │   │ Observability│
+ │ (IMA)      │    │ Middleware │   │ Service      │
+ └─────┬──────┘    └─────┬──────┘   └───────┬──────┘
+       │                 │                  │
+       └───────┬─────────┴─────────┬────────┘
+               ▼                   ▼
+      Tenant ID / Role Claims   Action Allowed?
+        extracted from JWT       by RBAC rules
+               │                   │
+               └─────────┬─────────┘
+                         ▼
+           ┌─────────────────────────────┐
+           │ Service Router / Proxy      │
+           │ (Forward requests to each  │
+           │  tenant-scoped microservice│
+           └─────────┬──────────────────┘
+                     │
+     ┌───────────────┼──────────────────────────┐
+     ▼               ▼                          ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ Ingestion    │ │ OCR Service  │ │ Normalization│
+│ Service      │ │              │ │ Service      │
+└──────────────┘ └──────────────┘ └──────────────┘
+     │               │                  │
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ Factor       │ │ Calculation  │ │ AI Service   │
+│ Service      │ │ Service      │ │              │
+└──────────────┘ └──────────────┘ └──────────────┘
+     │               │                  │
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ Renewables   │ │ Offset       │ │ Reporting    │
+│ Service      │ │ Service      │ │ Service      │
+└──────────────┘ └──────────────┘ └──────────────┘
+     │               │                  │
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ Explainability││ Onboarding   │ │ Notification │
+│ Service       ││ Service      │ │ Service      │
+└──────────────┘ └──────────────┘ └──────────────┘
+
+Legend / Notes:
+- Gateway API verifies JWT via IMA Service
+- Extracts tenant_id and user roles → tenant scoping & RBAC
+- Denies unauthorized access immediately (zero-trust)
+- Routes request to the appropriate microservice
+- Logs all actions in Audit & Observability
+- Each service receives tenant_id in headers for filtering
+
+```
+Each microservice only processes requests if JWT + tenant + role checks pass.
+
+RBAC + tenant scoping is enforced at middleware level.
+
+Audit logs every sensitive action for compliance.
+----
+# Access Flow Example
+
+1. User login → Auth Service → issues JWT with:
+   ```json
+    {
+  "user_id": "u123",
+  "roles": ["Manager"],
+  "tenant_scope": ["divisionA", "team1"]
+}
+
+   ```
+2. Client calls Tenant Service → /tenants
+
+  Service checks JWT → extracts tenant_scope and roles
+
+  Returns only tenants within scope
+
+3. Client calls IMA Service → /users
+
+  Service checks JWT → applies RBAC filters
+
+4. All write operations → Audit Service logs user action
+----

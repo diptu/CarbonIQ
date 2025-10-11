@@ -213,3 +213,102 @@ CarbonIQ is released under the MIT License.
 - Logging: no sensitive payloads; structured JSON; OTel traces with IDs only
 
 - Uploads: virus scan PDFs/CSVs (ClamAV container optional in dev)
+
+## Ordered to be followed:
+1️⃣ Start with IMA Service (Authentication & RBAC)
+
+Why first:
+
+Every other service depends on authentication, JWT issuance, and role/permission enforcement.
+
+Without a secure identity system, your tenants, RBAC rules, and downstream services cannot enforce access control.
+
+Steps:
+
+Define core entities:
+
+User, Role, Permission, UserRole, RolePermission, AuthToken
+
+Implement JWT authentication:
+
+RS256 signing
+
+Include tenant_id, roles, and permissions in claims
+
+Implement RBAC & tenant scoping logic
+
+Roles → permissions mapping
+
+Tenant-aware access enforcement
+
+Implement refresh tokens / session management
+
+Implement audit logging for all auth events
+
+Outcome:
+
+Any user can register, login, and receive JWTs scoped to their tenant and role.
+
+Other services can trust this JWT for enforcing access.
+
+2️⃣ Next: Gateway API
+
+Why next:
+
+Acts as central entry point for all microservices.
+
+Ensures tenant isolation, RBAC enforcement, and routing.
+
+Provides a single place to integrate logging, metrics, and observability.
+
+Steps:
+
+Implement JWT validation middleware (using IMA public key)
+
+Implement tenant-scoping middleware
+
+Implement RBAC enforcement middleware
+
+Implement service routing/proxy to all microservices
+
+Integrate audit/logging
+
+Optionally implement BFF endpoints for frontend aggregation
+
+Outcome:
+
+All requests to microservices pass through tenant-aware RBAC validation.
+
+You now have a secure, unified entry point.
+
+3️⃣ Build Core Tenant Service Next
+
+Allows creating tenants, sub-tenants, and memberships.
+
+Must enforce that only authenticated users with the correct roles can create/update tenants.
+
+Integrates tightly with JWT claims from IMA Service.
+
+4️⃣ Add Services Incrementally
+
+Once the above three layers are working:
+
+Start with Ingestion → Normalization → Calculation chain (data pipeline)
+
+Add OCR, AI, Factor Service
+
+Add Reporting, Explainability, Notification, Renewables, Offset
+
+Ensure every new service:
+
+Receives tenant_id from Gateway
+
+Enforces RBAC using shared_libs
+
+Logs actions to Audit/Observability
+
+5️⃣ Observability & Compliance
+
+Integrate Audit & Observability early (with IMA & Gateway), even before adding many services.
+
+This ensures all sensitive actions are logged from day one.
