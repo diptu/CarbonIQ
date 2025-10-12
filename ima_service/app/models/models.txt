@@ -1,0 +1,299 @@
+"""Audit log for tracking sensitive actions."""  # <-- Added module docstring
+
+import uuid
+from datetime import datetime
+
+from sqlalchemy import (DateTime, ForeignKey,  # <-- ADDED DateTime and func
+                        Integer, String, func)
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .base import BaseModel
+
+
+class AuditLog(BaseModel):
+    """Tracks sensitive actions performed by users."""
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("tenants.id"), nullable=True
+    )
+    action: Mapped[str] = mapped_column(String(100), nullable=False)
+    resource: Mapped[str] = mapped_column(String(100), nullable=False)
+    status_code: Mapped[int] = mapped_column(Integer, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),  # pylint: disable=E1102
+    )
+
+    def __repr__(self) -> str:
+        return f"<AuditLog {self.user_id} {self.action} {self.resource}>"
+"""Refresh/session tokens for users."""
+
+import uuid
+from datetime import datetime
+
+from sqlalchemy import Boolean, ForeignKey, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .base import BaseModel
+from .user import User
+
+
+class AuthToken(BaseModel):
+    """Refresh token tied to a user session."""
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    token: Mapped[str] = mapped_column(Text, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(nullable=False)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Relationship
+    user: Mapped["User"] = relationship("User", backref="auth_tokens")
+
+    def revoke(self) -> None:
+        """Invalidate this token."""
+        self.revoked = True
+        self.touch()
+"""Base ORM model with common timestamp fields for all models."""
+
+from datetime import datetime
+from typing import Optional
+
+from sqlalchemy import DateTime, func
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+class BaseModel(DeclarativeBase):  # pylint: disable=too-few-public-methods
+    """Base class for ORM models with timestamps."""
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),  # pylint: disable=E1102
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),  # pylint: disable=E1102
+        server_onupdate=func.now(),  # pylint: disable=E1102
+    )
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    def touch(self) -> None:
+        """Update `updated_at` timestamp to current UTC."""
+        self.updated_at = datetime.utcnow()
+# ima_service/app/models/permission.py (Example structure)
+
+"""Permission model for the RBAC system."""  # <-- Good practice docstring
+
+import uuid
+from typing import TYPE_CHECKING, Optional  # <-- Add TYPE_CHECKING
+
+from sqlalchemy import String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .base import BaseModel
+
+# --- SOLUTION: Import for Type Checking Only ---
+# This resolves the forward reference "Role" for mypy without
+# causing a runtime circular import.
+if TYPE_CHECKING:
+    from .role import Role
+# -----------------------------------------------
+
+
+class Permission(BaseModel):
+    """Defines a specific action or resource access right."""
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Line 20 (or similar) - The source of the error:
+    roles: Mapped[list["Role"]] = relationship(
+        "Role", secondary="role_permissions", back_populates="permissions"
+    )
+
+    def __repr__(self) -> str:
+        return f"<Permission {self.name}>"
+# ima_service/app/models/role.py
+"""Role model for the RBAC system."""
+
+import uuid
+from typing import TYPE_CHECKING, Optional
+
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .base import BaseModel
+
+if TYPE_CHECKING:
+    from .permission import Permission
+    from .user import User
+# -----------------------------------------------
+
+
+class Role(BaseModel):
+    """Role defines a set of permissions for a tenant or system."""
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    label: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("tenants.id"), nullable=True
+    )
+    is_system_role: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Relationships (Lines 24 and 27 are correct with string literals)
+    users: Mapped[list["User"]] = relationship(
+        "User", secondary="user_roles", back_populates="roles"
+    )
+    permissions: Mapped[list["Permission"]] = relationship(
+        "Permission", secondary="role_permissions", back_populates="roles"
+    )
+
+    def __repr__(self) -> str:
+        return f"<Role {self.name} ({self.label})>"
+"""RolePermission association table."""
+
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .base import BaseModel
+
+
+class RolePermission(BaseModel):
+    """Many-to-many relationship: Role <-> Permission."""
+
+    role_id: Mapped = mapped_column(ForeignKey("roles.id"), primary_key=True)
+    permission_id: Mapped = mapped_column(
+        ForeignKey("permissions.id"), primary_key=True
+    )
+
+    def __repr__(self) -> str:  # <-- Added method to resolve R0903
+        return f"<RolePermission role={self.role_id} permission={self.permission_id}>"
+"""User model for multi-tenant RBAC system."""
+
+import uuid
+from typing import TYPE_CHECKING, Optional
+
+import bcrypt
+from sqlalchemy import Boolean, ForeignKey, String, Text
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .base import BaseModel
+
+if TYPE_CHECKING:
+    from .role import Role
+
+
+# --- Password hashing & verification --------------------------------
+
+
+def hash_password(plain_password: str) -> str:
+    """Hash plain password using bcrypt.
+
+    Args
+    ----
+    plain_password : str
+        Raw password to hash.
+
+    Returns
+    -------
+    str
+        Hashed password.
+    """
+    hashed = bcrypt.hashpw(plain_password.encode("utf-8"), bcrypt.gensalt())
+    return hashed.decode("utf-8")
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify plain password against hashed password.
+
+    Args
+    ----
+    plain_password : str
+        Raw password.
+    hashed_password : str
+        Hashed password stored in DB.
+
+    Returns
+    -------
+    bool
+        True if password matches, False otherwise.
+    """
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"), hashed_password.encode("utf-8")
+        )
+    except ValueError:
+        return False
+
+
+class User(BaseModel):
+    """Represents an authenticated individual tied to a tenant."""
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("tenants.id"), nullable=True
+    )
+
+    roles: Mapped[list["Role"]] = relationship(
+        "Role", secondary="user_roles", back_populates="users"
+    )
+
+    def __repr__(self) -> str:
+        return f"<User {self.email}>"
+
+    # --- Security Methods (Domain Logic) ---
+    @hybrid_property
+    def password(self) -> str:
+        """Prevent direct reading of the password hash."""
+        raise AttributeError("Password is not readable")
+
+    @password.setter  # type: ignore[no-redef]
+    def password(self, password: str) -> None:
+        """Hashes the password and updates the security stamp."""
+        self._password_hash = hash_password(password)
+        self.security_stamp = uuid.uuid4()  # Invalidate old tokens
+
+    def verify_password(self, password: str) -> bool:
+        """Verifies a plaintext password against the stored hash."""
+        return verify_password(password, self.password_hash)
+
+    def activate(self) -> None:
+        """Activate the user."""
+        self.is_active = True
+        self.touch()
+
+    def deactivate(self) -> None:
+        """Deactivate the user."""
+        self.is_active = False
+        self.touch()
+"""UserRole association table."""
+
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .base import BaseModel
+
+
+class UserRole(BaseModel):
+    """Many-to-many relationship: User <-> Role."""
+
+    user_id: Mapped = mapped_column(ForeignKey("users.id"), primary_key=True)
+    role_id: Mapped = mapped_column(ForeignKey("roles.id"), primary_key=True)
+
+    def __repr__(self) -> str:  # <-- Added method to resolve R0903
+        return f"<UserRole user={self.user_id} role={self.role_id}>"

@@ -1,0 +1,382 @@
+"""Application configuration settings for the IMA Service.
+
+Pandas-style docstring
+----------------------
+Centralized configuration for database, JWT, Redis, CORS, and audit logging.
+
+Notes
+-----
+- Loads from environment variables and optional `.env` file.
+- Cached via functools.lru_cache for efficiency.
+- Supports JWT, Redis, audit logging, and multi-tenant defaults.
+- Type-checked and PEP8-compliant.
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+from pathlib import Path
+from typing import List, Optional
+
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Base project directory
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+ENV_FILE = BASE_DIR / ".env"
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables.
+
+    Attributes
+    ----------
+    DATABASE_URL : str
+        SQLAlchemy/PostgreSQL connection URL.
+    SECRET_KEY : str
+        Cryptographic secret key used for JWT signing.
+    DEBUG : bool
+        Enable debug mode.
+    ACCESS_TOKEN_EXPIRE_MINUTES : int
+        JWT access token expiry in minutes.
+    REFRESH_TOKEN_EXPIRE_DAYS : int
+        JWT refresh token expiry in days.
+    JWT_ALGORITHM : str
+        JWT signing algorithm (HS256/RS256).
+    JWT_ISSUER : str
+        Expected JWT issuer claim.
+    JWT_AUDIENCE : str
+        Expected JWT audience claim.
+    BACKEND_CORS_ORIGINS : List[str]
+        Allowed CORS origins.
+    REDIS_URL : Optional[str]
+        Redis connection URL for caching or token revocation.
+    AUDIT_LOG_PATH : str
+        Path for storing audit logs (JSONL format).
+    """
+
+    DATABASE_URL: str = Field(..., description="Database connection URL")
+    SECRET_KEY: str = Field(..., description="JWT signing secret key")
+    DEBUG: bool = Field(default=False, description="Enable debug mode")
+
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
+        default=15, description="Access token lifetime in minutes"
+    )
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(
+        default=7, description="Refresh token lifetime in days"
+    )
+    JWT_ALGORITHM: str = Field(default="HS256", description="JWT signing algorithm")
+    JWT_ISSUER: str = Field(default="ima_service", description="JWT issuer")
+    JWT_AUDIENCE: str = Field(default="ima_clients", description="JWT audience")
+    BACKEND_CORS_ORIGINS: List[str] = Field(
+        default_factory=lambda: ["http://localhost", "http://localhost:3000"],
+        description="Allowed CORS origins",
+    )
+
+    REDIS_URL: Optional[str] = Field(
+        default=None, description="Redis URL for caching or token blacklisting"
+    )
+    AUDIT_LOG_PATH: str = Field(
+        default=str(BASE_DIR / "logs" / "audit.log"), description="Audit log file path"
+    )
+
+    # Pydantic v2 config
+    model_config = SettingsConfigDict(
+        env_file=str(ENV_FILE),
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=True,
+    )
+
+    # --- Validators ---
+    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Convert comma-separated string to list if needed."""
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Return cached settings instance.
+
+    Returns
+    -------
+    Settings
+        Loaded and cached configuration for the application.
+    """
+    return Settings()  # type: ignore[call-arg]
+"""
+app.core.exxception.py
+Custom exceptions for IMA Service.
+
+Pandas-style docstring
+----------------------
+This module defines standardized HTTPException wrappers for FastAPI
+to ensure consistent status codes and error responses across the service.
+
+Notes
+-----
+- All exceptions inherit from FastAPI's HTTPException.
+- Optional `detail` message can be customized.
+- Optional `headers` allow passing custom HTTP headers if needed.
+"""
+
+from typing import Any, Dict, Optional
+
+from fastapi import HTTPException, status
+
+
+class BaseAPIException(HTTPException):
+    """Base exception for all IMA Service API errors."""
+
+    def __init__(
+        self,
+        status_code: int,
+        detail: str,
+        headers: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Initialize the exception.
+
+        Parameters
+        ----------
+        status_code : int
+            HTTP status code.
+        detail : str
+            Human-readable error message.
+        headers : Optional[Dict[str, Any]]
+            Optional HTTP headers to include in response.
+        """
+        super().__init__(status_code=status_code, detail=detail, headers=headers)
+
+
+class UnauthorizedException(BaseAPIException):
+    """401 Unauthorized"""
+
+    def __init__(self, detail: str = "Unauthorized") -> None:
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
+
+
+class ForbiddenException(BaseAPIException):
+    """403 Forbidden"""
+
+    def __init__(self, detail: str = "Forbidden") -> None:
+        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+
+
+class NotFoundException(BaseAPIException):
+    """404 Not Found"""
+
+    def __init__(self, detail: str = "Not Found") -> None:
+        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+
+
+class BadRequestException(BaseAPIException):
+    """400 Bad Request"""
+
+    def __init__(self, detail: str = "Bad Request") -> None:
+        super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+
+
+class ConflictException(BaseAPIException):
+    """409 Conflict"""
+
+    def __init__(self, detail: str = "Conflict") -> None:
+        super().__init__(status_code=status.HTTP_409_CONFLICT, detail=detail)
+"""
+app.core.logger.py
+Centralized logging configuration for IMA Service.
+
+Pandas-style docstring
+----------------------
+This module sets up a production-ready logger with console, file,
+and rotating file support. Log level is environment-configurable.
+
+Notes
+-----
+- Uses `get_settings()` to load audit log path and debug mode.
+- RotatingFileHandler prevents unbounded log file growth.
+- Compatible with structured logging if needed.
+"""
+
+import logging
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+
+from .config import get_settings
+
+settings = get_settings()
+
+LOG_DIR = Path(settings.AUDIT_LOG_PATH).parent
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# Determine log level
+LOG_LEVEL = logging.DEBUG if settings.DEBUG else logging.INFO
+
+# Formatter
+FORMATTER = logging.Formatter(
+    "%(asctime)s [%(levelname)s] %(name)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+# -----------------------------
+# Root logger
+# -----------------------------
+logger = logging.getLogger("carboniq")
+logger.setLevel(LOG_LEVEL)
+logger.propagate = False  # Avoid double logging if used in other modules
+
+# -----------------------------
+# Console handler
+# -----------------------------
+console_handler = logging.StreamHandler()
+console_handler.setLevel(LOG_LEVEL)
+console_handler.setFormatter(FORMATTER)
+logger.addHandler(console_handler)
+
+# -----------------------------
+# File handler (rotating)
+# -----------------------------
+file_handler = RotatingFileHandler(
+    filename=settings.AUDIT_LOG_PATH,
+    mode="a",
+    maxBytes=10 * 1024 * 1024,  # 10 MB per file
+    backupCount=5,  # keep last 5 logs
+    encoding="utf-8",
+    delay=False,
+)
+file_handler.setLevel(LOG_LEVEL)
+file_handler.setFormatter(FORMATTER)
+logger.addHandler(file_handler)
+
+# -----------------------------
+# Convenience short-hands
+# -----------------------------
+debug = logger.debug
+info = logger.info
+warning = logger.warning
+error = logger.error
+critical = logger.critical
+exception = logger.exception
+# app/core/security.py
+"""
+Security utilities for password hashing and JWT token management.
+
+Provides:
+- Password hashing & verification using bcrypt (Passlib)
+- JWT access & refresh token creation
+- Token verification with multi-tenant RBAC context
+"""
+
+import logging
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional, Union
+from uuid import UUID
+
+from jose import ExpiredSignatureError, JWTError, jwt
+from passlib.context import CryptContext
+
+from .config import get_settings
+
+settings = get_settings()
+logger = logging.getLogger("carboniq.security")
+
+# -------------------------------
+# Password Hashing
+# -------------------------------
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def hash_password(password: str) -> str:
+    """Hash a plaintext password."""
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a plaintext password against a hashed password."""
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+# -------------------------------
+# JWT Token Utilities
+# -------------------------------
+SECRET_KEY: str = settings.SECRET_KEY
+ALGORITHM: str = settings.JWT_ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_DAYS: int = settings.REFRESH_TOKEN_EXPIRE_DAYS
+
+
+def _utcnow() -> datetime:
+    """Return current UTC time."""
+    return datetime.now(timezone.utc)
+
+
+def create_access_token(
+    user_id: Union[UUID, str],
+    tenant_id: Union[UUID, str],
+    roles: List[str],
+    expires_minutes: Optional[int] = None,
+) -> str:
+    """Create a JWT access token with user_id, tenant_id, roles, and expiry."""
+    now = _utcnow()
+    expire = now + timedelta(minutes=expires_minutes or ACCESS_TOKEN_EXPIRE_MINUTES)
+    payload: Dict[str, Union[str, List[str], datetime]] = {
+        "sub": str(user_id),
+        "user_id": str(user_id),
+        "tenant_id": str(tenant_id),
+        "roles": roles,
+        "type": "access",
+        "iat": now,
+        "exp": expire,
+        "iss": settings.JWT_ISSUER,
+        "aud": settings.JWT_AUDIENCE,
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return token
+
+
+def create_refresh_token(
+    user_id: Union[UUID, str],
+    tenant_id: Union[UUID, str],
+    expires_days: Optional[int] = None,
+) -> str:
+    """Create a JWT refresh token with user_id and tenant_id."""
+    now = _utcnow()
+    expire = now + timedelta(days=expires_days or REFRESH_TOKEN_EXPIRE_DAYS)
+    payload: Dict[str, Union[str, datetime]] = {
+        "sub": str(user_id),
+        "user_id": str(user_id),
+        "tenant_id": str(tenant_id),
+        "type": "refresh",
+        "iat": now,
+        "exp": expire,
+        "iss": settings.JWT_ISSUER,
+        "aud": settings.JWT_AUDIENCE,
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return token
+
+
+def verify_token(token: str) -> Optional[dict]:
+    """
+    Decode and verify a JWT token.
+    Returns the payload if valid, otherwise None.
+    Handles invalid, expired, and malformed tokens gracefully.
+    """
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            audience=settings.JWT_AUDIENCE,
+            issuer=settings.JWT_ISSUER,
+        )
+        return payload
+
+    except ExpiredSignatureError:
+        logger.warning("JWT token expired.")
+        return None
+    except JWTError as e:
+        logger.warning("JWT verification failed: %s", e)
+        return None

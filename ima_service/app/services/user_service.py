@@ -14,7 +14,6 @@ from .base_service import BaseService
 class UserService(BaseService[User]):
     """User service with optional RLS."""
 
-    # pylint:disable=R0801
     def __init__(self, db: AsyncSession, tenant_id: str, actor_id: str):
         super().__init__(db=db, tenant_id=tenant_id, actor_id=actor_id)
         self.rls_enabled: bool = True
