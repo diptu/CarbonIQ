@@ -1,4 +1,6 @@
-"""Centralized logging configuration for IMA Service.
+"""
+app.core.logger.py
+Centralized logging configuration for IMA Service.
 
 Pandas-style docstring
 ----------------------

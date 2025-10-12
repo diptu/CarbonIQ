@@ -1,4 +1,6 @@
-"""Custom exceptions for IMA Service.
+"""
+app.core.exxception.py
+Custom exceptions for IMA Service.
 
 Pandas-style docstring
 ----------------------

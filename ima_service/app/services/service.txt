@@ -1,0 +1,549 @@
+"""Audit adapter for IMA Service.
+
+Provides a reusable audit logging mechanism for all services.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Any, Awaitable, Callable, Dict, Optional, Union
+
+from ..core.logger import logger
+
+# Callable type for audit events: can be sync or async
+AuditCallable = Callable[[Dict[str, Any]], Union[None, Awaitable[None]]]
+
+
+class AuditAdapter:
+    """Adapter to handle audit events consistently for all services."""
+
+    def __init__(self, audit_callable: Optional[AuditCallable] = None) -> None:
+        """
+        Initialize the AuditAdapter.
+
+        Parameters
+        ----------
+        audit_callable : Optional[AuditCallable]
+            A callable to handle audit events asynchronously or synchronously.
+        """
+        self._audit_callable: Optional[AuditCallable] = audit_callable
+
+    async def log_event(self, event: Dict[str, Any]) -> None:
+        """
+        Log an audit event asynchronously.
+
+        If an audit callable is provided, use it; otherwise, fallback to the default logger.
+
+        Parameters
+        ----------
+        event : Dict[str, Any]
+            The audit event data.
+        """
+        if self._audit_callable:
+            result = self._audit_callable(event)
+            if result is not None and hasattr(result, "__await__"):
+                await result  # type: ignore
+        else:
+            logger.info("AUDIT EVENT: %s", event)
+
+    async def log(  # pylint:disable=R0913
+        self,
+        *,
+        actor_id: Optional[str] = None,
+        tenant_id: Optional[str] = None,
+        action: str,
+        resource: str,
+        status: int,
+        meta: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Construct and log an audit event with standard metadata.
+
+        Parameters
+        ----------
+        actor_id : Optional[str]
+            The ID of the actor performing the action.
+        tenant_id : Optional[str]
+            The ID of the tenant.
+        action : str
+            The action performed (e.g., "login", "create").
+        resource : str
+            The resource being acted upon.
+        status : int
+            Status code of the action (e.g., 200, 401).
+        meta : Optional[Dict[str, Any]]
+            Additional metadata.
+        """
+        event: Dict[str, Any] = {
+            "actor_id": actor_id,
+            "tenant_id": tenant_id,
+            "action": action,
+            "resource": resource,
+            "status": status,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "meta": meta or {},
+        }
+        await self.log_event(event)
+"""Authentication service for IMA Service with secure JWT handling."""
+
+from __future__ import annotations
+from typing import Any, Dict
+
+from .base_service import BaseService
+from .user_serice import UserService
+from ..core.security import (
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    verify_token,
+)
+
+
+class AuthService(BaseService[Dict[str, Any]]):
+    """Handles authentication logic, JWT access/refresh tokens, and logout."""
+
+    def __init__(
+        self,
+        user_service: UserService,
+        tenant_id: str,
+        actor_id: str,
+        db=None,  # Optional, most operations via UserService
+    ) -> None:
+        super().__init__(db=db, tenant_id=tenant_id, actor_id=actor_id)
+        self.user_service = user_service
+
+    async def login(self, credentials: Dict[str, str]) -> Dict[str, Any]:
+        """User Login"""
+        email = credentials.get("email")
+        password = credentials.get("password")
+        if not email or not password:
+            raise ValueError("Email and password are required")
+
+        user = await self.user_service.get_by_email(email)
+        if not user or not verify_password(password, user.password):
+            await self._audit(
+                action="login_failed",
+                resource="user",
+                status=401,
+                meta={"email": email},
+            )
+            raise ValueError("Invalid credentials")
+
+        await self._audit(
+            action="login_success",
+            resource="user",
+            status=200,
+            meta={"user_id": str(user.id), "email": user.email},
+        )
+
+        tenant_id = self.tenant_id
+        if not tenant_id:
+            raise ValueError("Tenant ID missing for token generation")
+
+        role_names = [r.name for r in user.roles]  # Convert Role objects to str
+        access_token = create_access_token(user.id, tenant_id, role_names)
+        refresh_token = create_refresh_token(user.id, tenant_id)
+
+        return {
+            "user": user.__dict__,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+        }
+
+    async def refresh(self, refresh_token: str) -> Dict[str, str]:
+        """Token refresh"""
+        payload = verify_token(refresh_token)  # type: ignore
+        if not payload or payload.get("type") != "refresh":
+            raise ValueError("Invalid refresh token")
+
+        email = payload.get("email")
+        if not email:
+            raise ValueError("Invalid token payload")
+
+        user = await self.user_service.get_by_email(email)
+        if not user:
+            raise ValueError("User not found")
+
+        tenant_id = payload.get("tenant_id")
+        if not tenant_id:
+            raise ValueError("Tenant ID missing for token generation")
+
+        role_names = [r.name for r in user.roles]  # Convert Role objects to str
+        new_access_token = create_access_token(user.id, tenant_id, role_names)  # type: ignore
+        return {"access_token": new_access_token}
+
+    async def logout(self, user_id: str) -> None:
+        """User LOgout"""
+        await self._audit(
+            action="logout",
+            resource="user",
+            status=200,
+            meta={"user_id": user_id},
+        )
+"""Base service providing audit and tenant context for derived services."""
+
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+from typing import Any, Optional, TypeVar, Generic
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from .audit_adapter import AuditAdapter
+
+T = TypeVar("T")
+
+
+class BaseService(AuditAdapter, Generic[T]):
+    """
+    Base service providing tenant context, database session,
+    and audit logging for all derived services.
+    """
+
+    def __init__(
+        self,
+        *,
+        db: AsyncSession,
+        tenant_id: Optional[str] = None,
+        actor_id: Optional[str] = None,
+        audit_adapter: Optional[AuditAdapter] = None,
+    ) -> None:
+        """
+        Initialize the BaseService.
+
+        Parameters
+        ----------
+        db : AsyncSession
+            The async SQLAlchemy session.
+        tenant_id : Optional[str]
+            Tenant context for the service.
+        actor_id : Optional[str]
+            Actor (user) performing the actions.
+        audit_adapter : Optional[AuditAdapter]
+            Optional AuditAdapter to handle audit events.
+        """
+        super().__init__(
+            audit_callable=audit_adapter._audit_callable if audit_adapter else None
+        )
+        self.db: AsyncSession = db
+        self.tenant_id: Optional[str] = tenant_id
+        self.actor_id: Optional[str] = actor_id
+
+    @asynccontextmanager
+    async def transaction(self) -> Any:
+        """
+        Async context manager for database transactions.
+
+        Usage:
+            async with service.transaction():
+                await service.db.execute(...)
+        """
+        async with self.db.begin():
+            try:
+                yield
+            except Exception:
+                await self.db.rollback()
+                raise
+            await self.db.commit()
+
+    async def _audit(
+        self,
+        action: str,
+        resource: str,
+        status: int,
+        meta: Optional[dict[str, Any]] = None,
+    ) -> None:
+        """
+        Helper to log an audit event with tenant and actor context.
+
+        Parameters
+        ----------
+        action : str
+            Action performed (e.g., "create", "update").
+        resource : str
+            Resource acted upon.
+        status : int
+            Status code of the action.
+        meta : Optional[dict[str, Any]]
+            Optional additional metadata.
+        """
+        await self.log(
+            actor_id=self.actor_id,
+            tenant_id=self.tenant_id,
+            action=action,
+            resource=resource,
+            status=status,
+            meta=meta or {},
+        )
+"""Billing service placeholder for IMA Service."""
+
+from typing import Any, Optional
+from .crud_service import CRUDService
+
+
+class BillingService(CRUDService[Any]):
+    """Service for managing billing operations (placeholder)."""
+
+    async def list(
+        self,
+        model: type[Any],
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[Any]:
+        """
+        List billing entries.
+
+        `model` is required to match CRUDService signature.
+        """
+        return await super().list(model=model, limit=limit, offset=offset)
+
+    async def get_by_id(self, model: type[Any], obj_id: str) -> Optional[Any]:
+        """Get a billing entry by ID."""
+        return await super().get_by_id(model=model, obj_id=obj_id)
+
+    async def update(self, obj: Any) -> Any:
+        """Update a billing entry."""
+        return await super().update(obj)
+"""Generic CRUD service."""
+
+from __future__ import annotations
+
+from typing import Generic, List, Optional, TypeVar
+from sqlalchemy import select
+
+
+from .base_service import BaseService
+
+T = TypeVar("T")
+
+
+class CRUDService(BaseService[T], Generic[T]):
+    """Generic CRUD operations for any SQLAlchemy model."""
+
+    async def list(
+        self,
+        model: type[T],
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[T]:
+        """
+        List objects of the given model with pagination.
+
+        Parameters
+        ----------
+        model : type[T]
+            SQLAlchemy model class.
+        limit : int
+            Max number of records to return.
+        offset : int
+            Number of records to skip.
+
+        Returns
+        -------
+        List[T]
+            List of model instances.
+        """
+        stmt = select(model).limit(limit).offset(offset)
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())  # ensure list[T] type
+
+    async def get_by_id(self, model: type[T], obj_id: str) -> Optional[T]:
+        """
+        Get a single object by primary key.
+
+        Parameters
+        ----------
+        model : type[T]
+            SQLAlchemy model class.
+        obj_id : str
+            Primary key value.
+
+        Returns
+        -------
+        Optional[T]
+            The object if found, else None.
+        """
+        return await self.db.get(model, obj_id)
+
+    async def create(self, obj: T) -> T:
+        """
+        Add a new object to the database.
+
+        Parameters
+        ----------
+        obj : T
+            The object instance to create.
+
+        Returns
+        -------
+        T
+            The created object with updated state.
+        """
+        self.db.add(obj)
+        await self.db.commit()
+        await self.db.refresh(obj)
+        return obj
+
+    async def update(self, obj: T) -> T:
+        """
+        Commit changes to an existing object.
+
+        Parameters
+        ----------
+        obj : T
+            The object instance to update.
+
+        Returns
+        -------
+        T
+            The updated object with refreshed state.
+        """
+        await self.db.commit()
+        await self.db.refresh(obj)
+        return obj
+
+    async def soft_delete(self, obj: T) -> None:
+        """
+        Delete an object from the database.
+
+        Parameters
+        ----------
+        obj : T
+            The object instance to delete.
+        """
+        await self.db.delete(obj)
+        await self.db.commit()
+"""Tenant-scoped Permission service."""
+
+from __future__ import annotations
+
+from .crud_service import CRUDService
+from ..models.permission import Permission  # ORM model
+
+
+class PermissionService(CRUDService[Permission]):
+    """Tenant-aware Permission service."""
+
+    # inherits all CRUD + RLS + auditing functionality
+"""RBAC service for managing roles and permissions."""
+
+from uuid import UUID
+
+from .crud_service import CRUDService
+from .role_service import RoleService
+from ..models.role import Role
+from ..models.permission import Permission
+
+
+# pylint:disable=R0903
+class RBACService:
+    """Service to manage RBAC: roles, permissions, and assignments."""
+
+    def __init__(
+        self,
+        role_service: RoleService,
+        role_crud: CRUDService[Role],
+        permission_crud: CRUDService[Permission],
+    ) -> None:
+        self.role_service = role_service
+        self.role_crud = role_crud
+        self.permission_crud = permission_crud
+
+    async def assign_permission_to_role(
+        self, role_id: UUID, permission_id: UUID
+    ) -> None:
+        """
+        Assign a permission object to a role within a transaction.
+        """
+        # Get Role
+        role = await self.role_crud.get_by_id(Role, str(role_id))
+        if not role:
+            raise ValueError(f"Role {role_id} not found")
+
+        # Get Permission
+        permission = await self.permission_crud.get_by_id(
+            Permission, str(permission_id)
+        )
+        if not permission:
+            raise ValueError(f"Permission {permission_id} not found")
+
+        # Use RoleService to add permission object
+        await self.role_service.add_permission_to_role(
+            role_id=str(role_id), permission_id=permission
+        )  # type: ignore
+"""Reporting service placeholder for IMA Service."""
+
+from typing import Any, Optional
+from .crud_service import CRUDService
+
+
+class ReportingService(CRUDService[Any]):
+    """Service for managing reporting operations (placeholder)."""
+
+    async def list(
+        self,
+        model: type[Any],
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[Any]:
+        """
+        List report entries.
+
+        `model` is required to match CRUDService signature.
+        """
+        return await super().list(model=model, limit=limit, offset=offset)
+
+    async def get_by_id(self, model: type[Any], obj_id: str) -> Optional[Any]:
+        """Get a report entry by ID."""
+        return await super().get_by_id(model=model, obj_id=obj_id)
+
+    async def update(self, obj: Any) -> Any:
+        """Update a report entry."""
+        return await super().update(obj)
+"""Role Service"""
+
+from typing import Optional
+
+from ..models.role import Role
+from ..models.permission import Permission
+from .crud_service import CRUDService
+
+
+class RoleService(CRUDService[Role]):
+    """Service for managing roles."""
+
+    async def add_permission_to_role(
+        self, role_id: str, permission: Permission
+    ) -> None:
+        """Assign a permission object to a role (within a transaction)."""
+        async with self.transaction():
+            role: Optional[Role] = await self.get_by_id(Role, role_id)
+            if not role:
+                raise ValueError(f"Role {role_id} not found")
+
+            if permission not in role.permissions:
+                role.permissions.append(permission)
+                await self.update(role)
+"""User service"""
+
+from __future__ import annotations
+
+from typing import Optional
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..models.user import User
+from .base_service import BaseService
+
+
+class UserService(BaseService[User]):
+    """User service with optional RLS."""
+
+    def __init__(self, db: AsyncSession, tenant_id: str, actor_id: str):
+        super().__init__(db=db, tenant_id=tenant_id, actor_id=actor_id)
+        self.rls_enabled: bool = True
+
+    async def get_by_email(self, email: str) -> Optional[User]:
+        """Find user by email"""
+        result = await self.db.execute(select(User).where(User.email == email))
+        return result.scalar_one_or_none()
