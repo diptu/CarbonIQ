@@ -17,18 +17,10 @@ class RolePermission(BaseModel):
     """
     Many-to-many relationship: Role <-> Permission.
 
-    This association defines which permissions are assigned to which roles.
-    Optional tenant_id allows tenant-scoped role-permission assignments.
-
-    Parameters
-    ----------
-    role_id : UUID
-        Foreign key to Role.
-    permission_id : UUID
-        Foreign key to Permission.
-    tenant_id : Optional[UUID]
-        Tenant context for multi-tenant RBAC.
+    Inherits all audit fields (created_at, created_by, etc.) from BaseModel.
     """
+
+    __tablename__ = "role_permissions"  # 🔑 Added explicit tablename
 
     __table_args__ = (
         Index("ix_role_permissions_role_id", "role_id"),
@@ -36,11 +28,19 @@ class RolePermission(BaseModel):
         Index("ix_role_permissions_tenant_id", "tenant_id"),
     )
 
-    role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("roles.id"), primary_key=True)
+    # 🔑 FIX: Added ondelete="CASCADE" for automatic cleanup
+    role_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True
+    )
+    # 🔑 FIX: Added ondelete="CASCADE" for automatic cleanup
     permission_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("permissions.id"), primary_key=True
+        ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True
     )
 
+    # Note: tenant_id is inherited from BaseModel,
+    # but defined here for explicit column definition
+    # or if it needs to override the base definition.
+    # Keeping it explicit aligns with the original code.
     tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(String(36), nullable=True)
 
     def __repr__(self) -> str:

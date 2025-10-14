@@ -1,36 +1,56 @@
-"""Base ORM model and common fields for IMA service.
+"""Base ORM model and common fields for IMA service."""
 
-Provides:
-- BaseModel: common timestamp fields and tenant scoping.
-- touch() method for updated_at.
-- Integrates TenantMixin for tenant-aware queries.
-"""
+from __future__ import annotations  # For forward references like 'User'
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import uuid
 
-from sqlalchemy import DateTime, String
+# Import SQLAlchemy components explicitly to resolve Pylint E1102
+import sqlalchemy as sa
+from sqlalchemy import DateTime, String, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.sql import func  # ✅ important
+
 from .tenant_mixin import TenantMixin
+
+# Type checking import for relationships without circular import issues
+if TYPE_CHECKING:
+    from .user import User
 
 
 class BaseModel(DeclarativeBase, TenantMixin):
-    """Base class for ORM models with timestamps and optional tenant scoping."""
+    """
+    Base class for ORM models with timestamps, full user-based audit fields,
+    soft-delete, and optional tenant scoping.
+    """
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        server_default=func.now(),  # pylint: disable=E1102
+        server_default=sa.func.now(),  # pylint: disable=E1102
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        server_default=func.now(),  # pylint: disable=E1102
-        server_onupdate=func.now(),  # pylint: disable=E1102
+        server_default=sa.func.now(),  # pylint: disable=E1102
+        server_onupdate=sa.func.now(),  # pylint: disable=E1102
     )
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # 🔑 NEW: Tracks the user who created the record (Audit trail)
+    created_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="User ID who created the record",
+    )
+
+    # 🔑 NEW: Tracks the user who last updated the record (Audit trail)
+    updated_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="User ID who last updated the record",
+    )
+
     tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(String(36), nullable=True)
 
     def touch(self):

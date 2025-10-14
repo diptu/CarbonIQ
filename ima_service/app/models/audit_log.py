@@ -1,7 +1,8 @@
 """AuditLog model for tracking sensitive actions in the IMA service."""
 
+from __future__ import annotations
+
 import uuid
-from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import JSON, ForeignKey, Index, Integer, String
@@ -17,40 +18,21 @@ class AuditLog(BaseModel):
     """
     Tracks sensitive actions performed by users for audit and compliance.
 
-    Parameters
-    ----------
-    user_id : Optional[uuid.UUID]
-        The ID of the user performing the action.
-    tenant_id : Optional[uuid.UUID]
-        Tenant context of the action.
-    tenant_path : Optional[str]
-        Hierarchical tenant path (e.g., "org/tenant/subtenant").
-    action : str
-        The action performed (e.g., 'CREATE', 'DELETE').
-    resource : str
-        Target resource affected by the action.
-    method : Optional[str]
-        HTTP method used for the action.
-    endpoint : Optional[str]
-        API endpoint accessed.
-    status_code : int
-        HTTP status code resulting from the action.
-    ip_address : Optional[str]
-        IP address of the request origin.
-    device_info : Optional[str]
-        Device or client information.
-    correlation_id : Optional[str]
-        Correlation ID for request tracing.
-    trace_id : Optional[str]
-        Trace ID for distributed tracing.
-    extra : Optional[dict]
-        Flexible JSON metadata.
-    created_at : datetime
-        Timestamp when the log entry was created.
+    Inherits all common fields (created_at, updated_at, tenant_id, created_by, updated_by)
+    from BaseModel.
     """
 
+    __tablename__ = "audit_logs"  # 🔑 Added explicit tablename
+
+    # Audit Logs should NEVER be soft-deleted. The methods are removed below.
+    # The BaseModel's deleted_at column should be unused or configured to NOT inherit.
+
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    # 🔑 FIX: Foreign Key should be ON DELETE SET NULL
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     tenant_path: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     action: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -62,12 +44,15 @@ class AuditLog(BaseModel):
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
     device_info: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
-    # NEW fields for traceability
+    # fields for traceability
     correlation_id: Mapped[Optional[str]] = mapped_column(String(100), index=True, nullable=True)
     trace_id: Mapped[Optional[str]] = mapped_column(String(100), index=True, nullable=True)
 
-    # NEW flexible JSON metadata
+    # flexible JSON metadata
     extra: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # The inherited created_by/updated_by fields are redundant here, as the log
+    # tracks the acting user in user_id, but their presence is harmless.
 
     # Relationships
     user: Mapped[Optional["User"]] = relationship("User", backref="audit_logs", lazy="joined")
@@ -83,15 +68,9 @@ class AuditLog(BaseModel):
     # Helper Methods
     # ==============================
 
-    def soft_delete(self):
-        """Soft-delete the audit log entry without removing from DB."""
-        self.deleted_at = datetime.utcnow()
-        self.touch()
-
-    @classmethod
-    def active(cls, session):
-        """Return query for audit logs that are not soft-deleted."""
-        return session.query(cls).filter(cls.deleted_at.is_(None))
+    # 🔑 FIX: REMOVED soft_delete and active methods.
+    # Audit logs MUST NOT be soft-deleted. If the BaseModel adds these methods,
+    # they must be overridden to raise an exception, or simply not used.
 
     def __repr__(self) -> str:
         return (

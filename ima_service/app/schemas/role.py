@@ -1,26 +1,37 @@
-"""Role schemas for the multi-tenant RBAC system."""
+"""Role schemas for the multi-tenant RBAC system with effective permissions support."""
 
 from __future__ import annotations
 
 import uuid
-from typing import Optional
+from enum import Enum
+from typing import Optional, List
 
 from pydantic import BaseModel, Field, field_validator
 
 from .base import ORMBaseSchema
 
 
+class RoleStatus(str, Enum):
+    """Enumeration for role status."""
+
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    PENDING = "pending"
+
+
 class RoleBase(BaseModel):
-    """Base schema with shared role fields."""
+    """Base schema for roles with shared attributes."""
 
     name: str = Field(..., max_length=100, description="Role name")
     description: Optional[str] = Field(None, description="Human-readable description")
-    label: int = Field(default=1, description="Numeric label for ordering")
-    tenant_id: Optional[uuid.UUID] = Field(
-        None, description="Tenant associated with this role"
+    priority: int = Field(
+        default=1, ge=1, le=100, description="Role priority (1–100, higher = more precedence)"
     )
-    is_system_role: bool = Field(
-        default=False, description="Indicates if role is system-defined"
+    tenant_id: Optional[uuid.UUID] = Field(None, description="Tenant associated with this role")
+    is_system_role: bool = Field(default=False, description="Indicates if role is system-defined")
+    status: RoleStatus = Field(default=RoleStatus.ACTIVE, description="Role status")
+    parent_role_id: Optional[uuid.UUID] = Field(
+        None, description="Parent role ID for hierarchical inheritance"
     )
 
 
@@ -41,25 +52,36 @@ class RoleUpdate(BaseModel):
 
     name: Optional[str] = None
     description: Optional[str] = None
-    label: Optional[int] = None
-    tenant_id: Optional[uuid.UUID] = None
+    priority: Optional[int] = None
+    # 🔑 FIX: Removed tenant_id from update. Role scope is immutable after creation.
+    # tenant_id: Optional[uuid.UUID] = None
     is_system_role: Optional[bool] = None
+    status: Optional[RoleStatus] = None
+    parent_role_id: Optional[uuid.UUID] = None
+
+    # 🔑 NEW: Add name validation to update schema
+    _validate_name = field_validator("name", mode="before")(RoleCreate.validate_name)
 
 
 class RoleRead(RoleBase, ORMBaseSchema):
-    """Schema for reading role information."""
+    """Schema for reading role information with audit fields."""
 
     id: uuid.UUID = Field(..., description="Unique role identifier")
+    children_ids: List[uuid.UUID] = Field(default_factory=list, description="IDs of child roles")
+    effective_permission_ids: List[uuid.UUID] = Field(
+        default_factory=list,
+        description="Aggregated permission IDs including inherited from parent roles",
+    )
 
 
 class RoleInDB(RoleRead):
-    """Internal schema including linked relationships."""
+    """Internal schema including linked relationships for reporting."""
 
-    user_ids: list[uuid.UUID] = Field(
+    user_ids: List[uuid.UUID] = Field(
         default_factory=list, description="IDs of users linked to role"
     )
-    permission_ids: list[uuid.UUID] = Field(
-        default_factory=list, description="IDs of permissions linked to role"
+    permission_ids: List[uuid.UUID] = Field(
+        default_factory=list, description="IDs of permissions directly assigned to role"
     )
 
 
@@ -69,4 +91,5 @@ __all__ = [
     "RoleUpdate",
     "RoleRead",
     "RoleInDB",
+    "RoleStatus",
 ]

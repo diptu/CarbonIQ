@@ -17,6 +17,8 @@ class UserRole(BaseModel):
     """
     Many-to-many relationship table linking Users to Roles.
 
+    Inherits all audit fields (created_at, created_by, etc.) from BaseModel.
+
     Parameters
     ----------
     user_id : UUID
@@ -27,14 +29,22 @@ class UserRole(BaseModel):
         Optional tenant context for hierarchical multi-tenancy.
     """
 
+    __tablename__ = "user_roles"  # 🔑 Added explicit tablename
+
     __table_args__ = (
         Index("ix_user_roles_user_id", "user_id"),
         Index("ix_user_roles_role_id", "role_id"),
         Index("ix_user_roles_tenant_id", "tenant_id"),
     )
 
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("roles.id"), primary_key=True)
+    # 🔑 FIX: Added ondelete="CASCADE" for automatic cleanup
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    # 🔑 FIX: Added ondelete="CASCADE" for automatic cleanup
+    role_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True
+    )
 
     def __repr__(self) -> str:
         return f"<UserRole user={self.user_id} role={self.role_id} tenant={self.tenant_id}>"

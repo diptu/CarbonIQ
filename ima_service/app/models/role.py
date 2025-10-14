@@ -1,5 +1,7 @@
 """Role model for RBAC system with hierarchical tenant support and effective permissions."""
 
+from __future__ import annotations
+
 import uuid
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, List
@@ -8,6 +10,10 @@ from sqlalchemy import Boolean, Integer, String, Text, ForeignKey, Index, Enum a
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import BaseModel
+
+# 🔑 NEW: Import the explicit join tables
+from .user_role import UserRole
+from .role_permission import RolePermission
 
 if TYPE_CHECKING:
     from .permission import Permission
@@ -26,30 +32,9 @@ class Role(BaseModel):
     """
     Role defines a set of permissions for a tenant or system.
     Supports optional hierarchical inheritance via parent_role_id.
-
-    Attributes
-    ----------
-    id : UUID
-        Unique role identifier.
-    name : str
-        Role name (e.g., 'tenant_admin').
-    description : Optional[str]
-        Human-readable description of the role.
-    priority : int
-        Priority of the role (higher = more precedence).
-    is_system_role : bool
-        If True, accessible across all tenants.
-    status : RoleStatus
-        Role status (ACTIVE, INACTIVE, PENDING).
-    parent_role_id : Optional[UUID]
-        Parent role ID for hierarchical inheritance.
-    children : List[Role]
-        Child roles inheriting from this role.
-    permissions : List[Permission]
-        Permissions assigned directly to this role.
-    users : List[User]
-        Users assigned to this role.
     """
+
+    __tablename__ = "roles"  # 🔑 Added explicit tablename
 
     __table_args__ = (
         Index("ix_roles_tenant_id", "tenant_id"),
@@ -65,17 +50,24 @@ class Role(BaseModel):
         SAEnum(RoleStatus), default=RoleStatus.ACTIVE, nullable=False
     )
 
+    # 🔑 FIX: Added ondelete="SET NULL" for hierarchical integrity
     parent_role_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        ForeignKey("roles.id"), nullable=True
+        ForeignKey("roles.id", ondelete="SET NULL"), nullable=True
     )
 
     # Relationships
+
+    # UPDATED: Relationship uses the explicit UserRole table object
     users: Mapped[List["User"]] = relationship(
-        "User", secondary="user_roles", back_populates="roles"
+        "User", secondary=UserRole.__table__, back_populates="roles"
     )
+
+    # UPDATED: Relationship uses the explicit RolePermission table object
     permissions: Mapped[List["Permission"]] = relationship(
-        "Permission", secondary="role_permissions", back_populates="roles"
+        "Permission", secondary=RolePermission.__table__, back_populates="roles"
     )
+
+    # Hierarchical relationships remain the same
     children: Mapped[List["Role"]] = relationship(
         "Role",
         back_populates="parent",
@@ -92,11 +84,6 @@ class Role(BaseModel):
     def effective_permissions(self) -> List["Permission"]:
         """
         Compute the effective permissions for this role including inherited permissions.
-
-        Returns
-        -------
-        List[Permission]
-            Permissions assigned to this role and inherited from parent roles.
         """
         perms = set(self.permissions)
         parent = self.parent

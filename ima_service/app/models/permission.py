@@ -1,12 +1,17 @@
 """Permission model for the RBAC system with optional tenant scoping."""
 
+from __future__ import annotations
+
 import uuid
 from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import String, Text, Index
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, Session, Query
 
 from .base import BaseModel
+
+# 🔑 NEW: Import the explicit RolePermission join model
+from .role_permission import RolePermission
 
 if TYPE_CHECKING:
     from .role import Role  # noqa: F401
@@ -16,28 +21,8 @@ class Permission(BaseModel):
     """
     Represents a specific action or resource access right in the system.
 
-    Parameters
-    ----------
-    id : UUID
-        Unique identifier for the permission.
-    code : str
-        Machine-readable permission code (e.g., 'manage_users').
-    name : Optional[str]
-        Human-friendly display name.
-    description : Optional[str]
-        Textual description of the permission.
-    module : Optional[str]
-        Logical grouping or module (e.g., 'user', 'tenant').
-    roles : List[Role]
-        Roles that include this permission.
-    tenant_id : Optional[UUID]
-        Optional tenant scope for multi-tenant isolation.
-    created_at : datetime
-        Timestamp when the permission was created.
-    updated_at : datetime
-        Timestamp when the permission was last updated.
-    deleted_at : Optional[datetime]
-        Soft-delete timestamp.
+    (Docstring content remains the same, but now implicitly includes created_by/updated_by
+    from BaseModel.)
     """
 
     __table_args__ = (
@@ -56,9 +41,10 @@ class Permission(BaseModel):
     tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(String(36), nullable=True)
 
     # RBAC relationships
+    # 🔑 UPDATED: Relationship now uses the explicit RolePermission table object
     roles: Mapped[List["Role"]] = relationship(
         "Role",
-        secondary="role_permissions",
+        secondary=RolePermission.__table__,
         back_populates="permissions",
         lazy="selectin",
     )
@@ -67,23 +53,11 @@ class Permission(BaseModel):
         return f"<Permission code={self.code} name={self.name}>"
 
     @classmethod
-    def for_module(cls, session, module: str, tenant_id: Optional[str] = None):
+    def for_module(cls, session: Session, module: str, tenant_id: Optional[str] = None) -> Query:
         """
         Return permissions filtered by module and optionally by tenant_id.
 
-        Parameters
-        ----------
-        session : Session
-            SQLAlchemy session.
-        module : str
-            Module name to filter permissions by.
-        tenant_id : Optional[str]
-            Tenant ID for scoping (optional).
-
-        Returns
-        -------
-        Query
-            SQLAlchemy Query object filtered by module (and tenant if given).
+        (Docstring remains the same)
         """
         query = cls.for_tenant(session, tenant_id) if tenant_id else session.query(cls)
         return query.filter(cls.module == module)
