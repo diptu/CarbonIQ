@@ -5,6 +5,84 @@ For a multi-tenant, hierarchical database–backed RBAC (Role-Based Access Contr
 ## Overview
 The IMA Service is responsible for authentication, authorization, role & permission management, and session lifecycle. It issues RS256-signed JWTs and provides endpoints for user and role management used by Tenant Service and other microservices.
 
+## Tenant Management
+
+### Tenant ID Source
+The `tenant_id` in IMA Service does **not** come from an internal table.  
+Instead, it is **fetched from the Tenant Service**, which is hosted in a **separate database**.
+
+Whenever a new user or request is processed, IMA Service communicates with the Tenant Service to identify the correct tenant.
+
+---
+
+## Automatic Tenant Resolution via Subdomain
+
+Each tenant is identified automatically based on the request’s subdomain.
+
+**Example:**
+```
+https://acme.carboniq.ai/api/v1/users
+```
+Here, the subdomain `acme` maps to a specific tenant record in the Tenant Service.  
+IMA Service sends the subdomain to the Tenant Service API to retrieve the associated `tenant_id`.
+
+**Tenant Service Endpoint Example:**
+```
+GET /tenant-service/api/v1/tenants/resolve?subdomain=acme
+Response:
+{
+  "tenant_id": "77ed9f5e-12e9-430d-bada-fa6efa24e68d",
+  "name": "Acme Corp",
+  "domain": "acme.carboniq.ai"
+}
+```
+
+---
+
+## Sequence Flow
+
+### 1. User Request Arrives
+A request (e.g., `/api/v1/users/login`) comes in via subdomain `acme.carboniq.ai`.
+
+### 2. Tenant Resolution
+IMA Service extracts the subdomain (`acme`) and calls Tenant Service:
+```
+GET /tenant-service/api/v1/tenants/resolve?subdomain=acme
+```
+
+### 3. Tenant Validation
+Tenant Service responds with the `tenant_id` and other metadata.
+
+### 4. User Operation
+IMA Service uses the `tenant_id` from Tenant Service to perform the requested operation (e.g., user authentication, user listing).
+
+### 5. Multi-Tenant Data Isolation
+All user-related operations in IMA Service are scoped by the resolved `tenant_id` to ensure strict data isolation.
+
+---
+
+## Example Flow Diagram
+
+```
++-------------+          +----------------+          +------------------+
+| User Client |  --->    | IMA Service    |  --->    | Tenant Service   |
+| (acme.carboniq.ai)     | (extract subdomain)       | (resolve tenant) |
++-------------+          +----------------+          +------------------+
+                               | tenant_id |
+                               v
+                         [Process user ops]
+```
+
+---
+
+## Summary
+
+- **Tenant IDs** are managed by **Tenant Service**.  
+- IMA Service performs **automatic subdomain-based tenant resolution**.  
+- Ensures **data isolation and secure cross-service communication**.
+
+
+
 ## ⚙️ System Overview
 
 Architecture:
@@ -255,109 +333,3 @@ Use OPA (Open Policy Agent) or Casbin if policies become complex.
 | Data         | Versioned configs + soft deletes    | Auditability                   |
 | Performance  | Redis caching + read replicas       | Low latency under scale        |
 | Governance   | Structured logs + OpenTelemetry     | Observability + compliance     |
-
-
-| Layer                     | Control           | Purpose                    |
-| ------------------------- | ----------------- | -------------------------- |
-| 1️⃣ IMA Service           | JWT issuance      | Central authentication     |
-| 2️⃣ Tenant Service        | JWT validation    | Auth enforcement           |
-| 3️⃣ Tenant Context        | Tenant isolation  | Prevent cross-tenant leaks |
-| 4️⃣ RBAC Middleware       | Role enforcement  | Least privilege            |
-| 5️⃣ API Gateway           | Request filtering | Unified entry control      |
-| 6️⃣ mTLS / Service Tokens | Internal auth     | Microservice security      |
-| 7️⃣ Audit Logs            | Observability     | Security + compliance      |
-
-
-```sql
-    
-                 ┌───────────────┐
-                 │   Client App  │
-                 └───────┬───────┘
-                         │
-                         ▼
-                 ┌───────────────┐
-                 │  Gateway API  │
-                 │ (Tenant/RBAC) │
-                 └───────┬───────┘
-                         │
-         ┌───────────────┼────────────────┐
-         ▼               ▼                ▼
- ┌────────────┐    ┌────────────┐   ┌──────────────┐
- │ JWT Auth & │    │ Tenant     │   │ Audit &      │
- │ RBAC Check │    │ Scoping    │   │ Observability│
- │ (IMA)      │    │ Middleware │   │ Service      │
- └─────┬──────┘    └─────┬──────┘   └───────┬──────┘
-       │                 │                  │
-       └───────┬─────────┴─────────┬────────┘
-               ▼                   ▼
-      Tenant ID / Role Claims   Action Allowed?
-        extracted from JWT       by RBAC rules
-               │                   │
-               └─────────┬─────────┘
-                         ▼
-           ┌─────────────────────────────┐
-           │ Service Router / Proxy      │
-           │ (Forward requests to each  │
-           │  tenant-scoped microservice│
-           └─────────┬──────────────────┘
-                     │
-     ┌───────────────┼──────────────────────────┐
-     ▼               ▼                          ▼
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│ Ingestion    │ │ OCR Service  │ │ Normalization│
-│ Service      │ │              │ │ Service      │
-└──────────────┘ └──────────────┘ └──────────────┘
-     │               │                  │
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│ Factor       │ │ Calculation  │ │ AI Service   │
-│ Service      │ │ Service      │ │              │
-└──────────────┘ └──────────────┘ └──────────────┘
-     │               │                  │
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│ Renewables   │ │ Offset       │ │ Reporting    │
-│ Service      │ │ Service      │ │ Service      │
-└──────────────┘ └──────────────┘ └──────────────┘
-     │               │                  │
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│ Explainability││ Onboarding   │ │ Notification │
-│ Service       ││ Service      │ │ Service      │
-└──────────────┘ └──────────────┘ └──────────────┘
-
-Legend / Notes:
-- Gateway API verifies JWT via IMA Service
-- Extracts tenant_id and user roles → tenant scoping & RBAC
-- Denies unauthorized access immediately (zero-trust)
-- Routes request to the appropriate microservice
-- Logs all actions in Audit & Observability
-- Each service receives tenant_id in headers for filtering
-
-```
-Each microservice only processes requests if JWT + tenant + role checks pass.
-
-RBAC + tenant scoping is enforced at middleware level.
-
-Audit logs every sensitive action for compliance.
-----
-# Access Flow Example
-
-1. User login → Auth Service → issues JWT with:
-   ```json
-    {
-  "user_id": "u123",
-  "roles": ["Manager"],
-  "tenant_scope": ["divisionA", "team1"]
-}
-
-   ```
-2. Client calls Tenant Service → /tenants
-
-  Service checks JWT → extracts tenant_scope and roles
-
-  Returns only tenants within scope
-
-3. Client calls IMA Service → /users
-
-  Service checks JWT → applies RBAC filters
-
-4. All write operations → Audit Service logs user action
-----

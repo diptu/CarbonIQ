@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["app*"]
+include = ["ima_service*"]
 exclude = ["infra*", "migrations*"]
 
 [dependency-groups]
@@ -38,34 +38,44 @@ dev = [
     "black>=25.9.0",
     "isort>=6.0.1",
     "mypy>=1.18.2",
-    "prometheus-client>=0.23.1",
     "pylint>=3.3.8",
     "pytest>=8.4.2",
     "pytest-asyncio>=1.2.0",
     "pytest-cov>=7.0.0",
     "pytest-mock>=3.15.1",
     "ruff>=0.13.1",
+    "prometheus-client>=0.23.1",
     "types-passlib>=1.7.7.20250602",
     "types-pyjwt>=1.7.1",
+    "sqlalchemy-stubs>=0.4",  # Helps mypy understand Mapped[]
+    "pre-commit>=4.0.1",
 ]
 
 [tool.black]
-line-length = 88
+line-length = 100
 target-version = ["py311"]
 skip-string-normalization = true
 
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["ima_service"]
+combine_as_imports = true
+
 [tool.ruff]
-line-length = 88
+line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E","F","W","I","C"]
+select = ["E", "F", "W", "I", "C"]
+ignore = ["E501"]  # line length handled by black
 
 [tool.mypy]
 python_version = "3.11"
 strict_optional = true
 ignore_missing_imports = true
 follow_imports = "normal"
+plugins = ["sqlalchemy.ext.mypy.plugin"]
 
 [tool.pytest.ini_options]
 testpaths = ["ima_service/tests"]
@@ -96,3 +106,4 @@ disable = [
     "missing-function-docstring",
 ]
 ignore = ["migrations", "__pycache__"]
+ignored-classes = ["Mapped", "func"]  # ✅ Fix for SQLAlchemy typing

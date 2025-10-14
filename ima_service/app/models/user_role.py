@@ -1,16 +1,40 @@
-"""UserRole association table."""
+"""UserRole association table for RBAC system linking Users to Roles."""
 
-from sqlalchemy import ForeignKey
+import uuid
+from typing import TYPE_CHECKING
+
+from sqlalchemy import ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import BaseModel
 
+if TYPE_CHECKING:
+    from .user import User  # type: ignore
+    from .role import Role  # type: ignore
+
 
 class UserRole(BaseModel):
-    """Many-to-many relationship: User <-> Role."""
+    """
+    Many-to-many relationship table linking Users to Roles.
 
-    user_id: Mapped = mapped_column(ForeignKey("users.id"), primary_key=True)
-    role_id: Mapped = mapped_column(ForeignKey("roles.id"), primary_key=True)
+    Parameters
+    ----------
+    user_id : UUID
+        Foreign key referencing `users.id`.
+    role_id : UUID
+        Foreign key referencing `roles.id`.
+    tenant_id : Optional[UUID]
+        Optional tenant context for hierarchical multi-tenancy.
+    """
 
-    def __repr__(self) -> str:  # <-- Added method to resolve R0903
-        return f"<UserRole user={self.user_id} role={self.role_id}>"
+    __table_args__ = (
+        Index("ix_user_roles_user_id", "user_id"),
+        Index("ix_user_roles_role_id", "role_id"),
+        Index("ix_user_roles_tenant_id", "tenant_id"),
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("roles.id"), primary_key=True)
+
+    def __repr__(self) -> str:
+        return f"<UserRole user={self.user_id} role={self.role_id} tenant={self.tenant_id}>"

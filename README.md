@@ -312,3 +312,155 @@ Logs actions to Audit/Observability
 Integrate Audit & Observability early (with IMA & Gateway), even before adding many services.
 
 This ensures all sensitive actions are logged from day one.
+
+
+
+
+| Layer                     | Control           | Purpose                    |
+| ------------------------- | ----------------- | -------------------------- |
+| 1️⃣ IMA Service           | JWT issuance      | Central authentication     |
+| 2️⃣ Tenant Service        | JWT validation    | Auth enforcement           |
+| 3️⃣ Tenant Context        | Tenant isolation  | Prevent cross-tenant leaks |
+| 4️⃣ RBAC Middleware       | Role enforcement  | Least privilege            |
+| 5️⃣ API Gateway           | Request filtering | Unified entry control      |
+| 6️⃣ mTLS / Service Tokens | Internal auth     | Microservice security      |
+| 7️⃣ Audit Logs            | Observability     | Security + compliance      |
+
+
+```sql
+    
+                 ┌───────────────┐
+                 │   Client App  │
+                 └───────┬───────┘
+                         │
+                         ▼
+                 ┌───────────────┐
+                 │  Gateway API  │
+                 │ (Tenant/RBAC) │
+                 └───────┬───────┘
+                         │
+         ┌───────────────┼────────────────┐
+         ▼               ▼                ▼
+ ┌────────────┐    ┌────────────┐   ┌──────────────┐
+ │ JWT Auth & │    │ Tenant     │   │ Audit &      │
+ │ RBAC Check │    │ Scoping    │   │ Observability│
+ │ (IMA)      │    │ Middleware │   │ Service      │
+ └─────┬──────┘    └─────┬──────┘   └───────┬──────┘
+       │                 │                  │
+       └───────┬─────────┴─────────┬────────┘
+               ▼                   ▼
+      Tenant ID / Role Claims   Action Allowed?
+        extracted from JWT       by RBAC rules
+               │                   │
+               └─────────┬─────────┘
+                         ▼
+           ┌─────────────────────────────┐
+           │ Service Router / Proxy      │
+           │ (Forward requests to each  │
+           │  tenant-scoped microservice│
+           └─────────┬──────────────────┘
+                     │
+     ┌───────────────┼──────────────────────────┐
+     ▼               ▼                          ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ Ingestion    │ │ OCR Service  │ │ Normalization│
+│ Service      │ │              │ │ Service      │
+└──────────────┘ └──────────────┘ └──────────────┘
+     │               │                  │
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ Factor       │ │ Calculation  │ │ AI Service   │
+│ Service      │ │ Service      │ │              │
+└──────────────┘ └──────────────┘ └──────────────┘
+     │               │                  │
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ Renewables   │ │ Offset       │ │ Reporting    │
+│ Service      │ │ Service      │ │ Service      │
+└──────────────┘ └──────────────┘ └──────────────┘
+     │               │                  │
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ Explainability││ Onboarding   │ │ Notification │
+│ Service       ││ Service      │ │ Service      │
+└──────────────┘ └──────────────┘ └──────────────┘
+
+Legend / Notes:
+- Gateway API verifies JWT via IMA Service
+- Extracts tenant_id and user roles → tenant scoping & RBAC
+- Denies unauthorized access immediately (zero-trust)
+- Routes request to the appropriate microservice
+- Logs all actions in Audit & Observability
+- Each service receives tenant_id in headers for filtering
+
+```
+Each microservice only processes requests if JWT + tenant + role checks pass.
+
+RBAC + tenant scoping is enforced at middleware level.
+
+Audit logs every sensitive action for compliance.
+----
+# Access Flow Example
+
+1. User login → Auth Service → issues JWT with:
+   ```json
+    {
+  "user_id": "u123",
+  "roles": ["Manager"],
+  "tenant_scope": ["divisionA", "team1"]
+}
+
+   ```
+2. Client calls Tenant Service → /tenants
+
+  Service checks JWT → extracts tenant_scope and roles
+
+  Returns only tenants within scope
+
+3. Client calls IMA Service → /users
+
+  Service checks JWT → applies RBAC filters
+
+4. All write operations → Audit Service logs user action
+----
+```css
+                ┌───────────────┐
+                │   Client App  │
+                └───────┬───────┘
+                        │
+                        ▼
+                ┌─────────────────────┐
+                │   API Gateway       │
+                │ (Separate Service)  │
+                │ - JWT Validation    │
+                │ - RBAC Enforcement  │
+                │ - Tenant Resolver   │
+                │ - Request Routing   │
+                └───────┬─────────────┘
+                        │
+       ┌────────────────┼───────────────────┐
+       ▼                ▼                   ▼
+┌──────────────┐  ┌──────────────┐   ┌──────────────--┐
+│ IMA Service  │  │ Tenant Service│   │ Other Services│
+│ - Auth       │  │ - Tenant/User│   │ (Ingestion, OCR, etc.)│
+│ - Roles/Perm │  │   Management │   │               │
+└───────┬──────┘  └──────────────┘   └──────────────┘
+        │                 │
+        ▼                 ▼
+   JWT / Role Claims   Tenant Data / User Assignment
+        │                 │
+        └─────────┬────────┘
+                  ▼
+          ┌───────────────┐
+          │ Audit Service │
+          │ Logs / OTEL   │
+          └───────────────┘
+
+```
+## Implementation Sequence Table:
+
+| Step | Service / Feature                  | Key Endpoints / Actions                                                             |
+| ---- | ---------------------------------- | ----------------------------------------------------------------------------------- |
+| 1    | Tenant Service - Core Tenant       | POST/GET/PATCH/DELETE tenants & organizations                                       |
+| 2    | IMA Service - Auth                 | POST /auth/login, POST /auth/refresh, GET /me, JWT middleware                       |
+| 3    | Tenant Service - User Assignment   | POST/GET/DELETE tenant users                                                        |
+| 4    | IMA Service - Roles & Permissions  | CRUD roles, assign permissions, assign roles to users                               |
+| 5    | **API Gateway (Separate Service)** | Subdomain-based tenant resolution, schema routing, JWT validation, RBAC enforcement |
+| 6    | Audit / Observability Service      | Log all sensitive actions, structured logging, distributed tracing                  |
