@@ -29,7 +29,7 @@ class UserRole(BaseModel):
         Optional tenant context for hierarchical multi-tenancy.
     """
 
-    __tablename__ = "user_roles"  # 🔑 Added explicit tablename
+    __tablename__ = "user_roles"
 
     __table_args__ = (
         Index("ix_user_roles_user_id", "user_id"),
@@ -37,11 +37,9 @@ class UserRole(BaseModel):
         Index("ix_user_roles_tenant_id", "tenant_id"),
     )
 
-    # 🔑 FIX: Added ondelete="CASCADE" for automatic cleanup
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    # 🔑 FIX: Added ondelete="CASCADE" for automatic cleanup
     role_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True
     )

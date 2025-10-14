@@ -11,7 +11,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import BaseModel
 
-# 🔑 NEW: Import the explicit join tables
 from .user_role import UserRole
 from .role_permission import RolePermission
 
@@ -34,7 +33,7 @@ class Role(BaseModel):
     Supports optional hierarchical inheritance via parent_role_id.
     """
 
-    __tablename__ = "roles"  # 🔑 Added explicit tablename
+    __tablename__ = "roles"
 
     __table_args__ = (
         Index("ix_roles_tenant_id", "tenant_id"),
@@ -50,24 +49,18 @@ class Role(BaseModel):
         SAEnum(RoleStatus), default=RoleStatus.ACTIVE, nullable=False
     )
 
-    # 🔑 FIX: Added ondelete="SET NULL" for hierarchical integrity
     parent_role_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("roles.id", ondelete="SET NULL"), nullable=True
     )
 
-    # Relationships
-
-    # UPDATED: Relationship uses the explicit UserRole table object
     users: Mapped[List["User"]] = relationship(
         "User", secondary=UserRole.__table__, back_populates="roles"
     )
 
-    # UPDATED: Relationship uses the explicit RolePermission table object
     permissions: Mapped[List["Permission"]] = relationship(
         "Permission", secondary=RolePermission.__table__, back_populates="roles"
     )
 
-    # Hierarchical relationships remain the same
     children: Mapped[List["Role"]] = relationship(
         "Role",
         back_populates="parent",

@@ -14,7 +14,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import BaseModel
 from ..core.security import hash_password, verify_password
 
-# 🔑 NEW: Import the explicit UserRole join model from its dedicated file
 from .user_role import UserRole
 
 if TYPE_CHECKING:
@@ -55,7 +54,6 @@ class User(BaseModel):
         DateTime(timezone=True), nullable=True
     )
 
-    # 🔑 UPDATED: Relationship now uses the explicit UserRole table object
     roles: Mapped[List["Role"]] = relationship(
         "Role", secondary=UserRole.__table__, back_populates="users"
     )

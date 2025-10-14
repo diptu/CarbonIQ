@@ -97,8 +97,6 @@ from sqlalchemy import (
     Index,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-# Note: func is now imported via 'import sqlalchemy as sa'
-
 
 from .base import BaseModel
 
@@ -114,13 +112,12 @@ class AuthToken(BaseModel):
     from BaseModel.
     """
 
-    __tablename__ = "auth_tokens"  # 🔑 Added explicit tablename
+    __tablename__ = "auth_tokens"
 
     # pylint: disable=unsubscriptable-object, not-callable
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
-    # 🔑 FIX: Added ondelete="CASCADE" for data integrity
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
@@ -131,13 +128,11 @@ class AuthToken(BaseModel):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    # audit-grade revocation timestamp
     revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     device_info: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
 
-    # 🔑 FIX: Using sa.func.now() to resolve Pylint E1102 (not-callable) warning
     issued_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -145,41 +140,32 @@ class AuthToken(BaseModel):
     )
     last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # Optional metadata fields
     session_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
-    # explicit token type (access / refresh / api_key)
     token_type: Mapped[str] = mapped_column(
         Enum("access", "refresh", "api_key", name="token_type_enum"),
         nullable=False,
         default="access",
     )
 
-    # request correlation and traceability
     correlation_id: Mapped[Optional[str]] = mapped_column(String(100), index=True, nullable=True)
 
-    # distributed tracing or log correlation
     trace_id: Mapped[Optional[str]] = mapped_column(String(100), index=True, nullable=True)
 
-    # flexible JSON metadata field
     extra: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     mfa_verified: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
 
-    # Relationship
     user: Mapped["User"] = relationship("User", back_populates="auth_tokens", lazy="joined")
 
-    # Index for cleanup / performance
     __table_args__ = (
         Index("idx_auth_token_expires_at", "expires_at"),
-        Index("idx_auth_token_jti", "jti"),  # 🔑 Added index on JTI for fast lookup
-        Index(
-            "idx_auth_token_revoked_user", "revoked", "user_id"
-        ),  # 🔑 Added index for fetching active tokens
+        Index("idx_auth_token_jti", "jti"),
+        Index("idx_auth_token_revoked_user", "revoked", "user_id"),
     )
 
     # ==============================
-    # Behavioral Methods (remain the same)
+    # Behavioral Methods
     # ==============================
 
     def revoke(self) -> None:
@@ -204,20 +190,19 @@ class AuthToken(BaseModel):
         )
 """Base ORM model and common fields for IMA service."""
 
-from __future__ import annotations  # For forward references like 'User'
+from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 import uuid
 
-# Import SQLAlchemy components explicitly to resolve Pylint E1102
 import sqlalchemy as sa
 from sqlalchemy import DateTime, String, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from .tenant_mixin import TenantMixin
 
-# Type checking import for relationships without circular import issues
+
 if TYPE_CHECKING:
     from .user import User
 
@@ -241,14 +226,12 @@ class BaseModel(DeclarativeBase, TenantMixin):
     )
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # 🔑 NEW: Tracks the user who created the record (Audit trail)
     created_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         comment="User ID who created the record",
     )
 
-    # 🔑 NEW: Tracks the user who last updated the record (Audit trail)
     updated_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
@@ -282,7 +265,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, Session, Query
 
 from .base import BaseModel
 
-# 🔑 NEW: Import the explicit RolePermission join model
 from .role_permission import RolePermission
 
 if TYPE_CHECKING:
@@ -309,11 +291,7 @@ class Permission(BaseModel):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     module: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
-    # Multi-tenant awareness
     tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(String(36), nullable=True)
-
-    # RBAC relationships
-    # 🔑 UPDATED: Relationship now uses the explicit RolePermission table object
     roles: Mapped[List["Role"]] = relationship(
         "Role",
         secondary=RolePermission.__table__,
@@ -346,7 +324,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import BaseModel
 
-# 🔑 NEW: Import the explicit join tables
 from .user_role import UserRole
 from .role_permission import RolePermission
 
@@ -369,7 +346,7 @@ class Role(BaseModel):
     Supports optional hierarchical inheritance via parent_role_id.
     """
 
-    __tablename__ = "roles"  # 🔑 Added explicit tablename
+    __tablename__ = "roles"
 
     __table_args__ = (
         Index("ix_roles_tenant_id", "tenant_id"),
@@ -385,24 +362,18 @@ class Role(BaseModel):
         SAEnum(RoleStatus), default=RoleStatus.ACTIVE, nullable=False
     )
 
-    # 🔑 FIX: Added ondelete="SET NULL" for hierarchical integrity
     parent_role_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("roles.id", ondelete="SET NULL"), nullable=True
     )
 
-    # Relationships
-
-    # UPDATED: Relationship uses the explicit UserRole table object
     users: Mapped[List["User"]] = relationship(
         "User", secondary=UserRole.__table__, back_populates="roles"
     )
 
-    # UPDATED: Relationship uses the explicit RolePermission table object
     permissions: Mapped[List["Permission"]] = relationship(
         "Permission", secondary=RolePermission.__table__, back_populates="roles"
     )
 
-    # Hierarchical relationships remain the same
     children: Mapped[List["Role"]] = relationship(
         "Role",
         back_populates="parent",
@@ -450,7 +421,7 @@ class RolePermission(BaseModel):
     Inherits all audit fields (created_at, created_by, etc.) from BaseModel.
     """
 
-    __tablename__ = "role_permissions"  # 🔑 Added explicit tablename
+    __tablename__ = "role_permissions"
 
     __table_args__ = (
         Index("ix_role_permissions_role_id", "role_id"),
@@ -458,19 +429,13 @@ class RolePermission(BaseModel):
         Index("ix_role_permissions_tenant_id", "tenant_id"),
     )
 
-    # 🔑 FIX: Added ondelete="CASCADE" for automatic cleanup
     role_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True
     )
-    # 🔑 FIX: Added ondelete="CASCADE" for automatic cleanup
     permission_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True
     )
 
-    # Note: tenant_id is inherited from BaseModel,
-    # but defined here for explicit column definition
-    # or if it needs to override the base definition.
-    # Keeping it explicit aligns with the original code.
     tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(String(36), nullable=True)
 
     def __repr__(self) -> str:
@@ -504,7 +469,7 @@ class TenantMixin:  # pylint:disable=R0903
         try:
             tenant_uuid: UUID = UUID(tenant_id)
         except ValueError:
-            tenant_uuid = UUID(int=0)  # fallback dummy UUID
+            tenant_uuid = UUID(int=0)
 
         return session.query(cls).filter(cast(cls.tenant_id, PG_UUID) == tenant_uuid)
 """User model for multi-tenant RBAC system with hierarchical tenant support."""
@@ -523,7 +488,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import BaseModel
 from ..core.security import hash_password, verify_password
 
-# 🔑 NEW: Import the explicit UserRole join model from its dedicated file
 from .user_role import UserRole
 
 if TYPE_CHECKING:
@@ -564,7 +528,6 @@ class User(BaseModel):
         DateTime(timezone=True), nullable=True
     )
 
-    # 🔑 UPDATED: Relationship now uses the explicit UserRole table object
     roles: Mapped[List["Role"]] = relationship(
         "Role", secondary=UserRole.__table__, back_populates="users"
     )
@@ -639,7 +602,7 @@ class UserRole(BaseModel):
         Optional tenant context for hierarchical multi-tenancy.
     """
 
-    __tablename__ = "user_roles"  # 🔑 Added explicit tablename
+    __tablename__ = "user_roles"
 
     __table_args__ = (
         Index("ix_user_roles_user_id", "user_id"),
@@ -647,11 +610,9 @@ class UserRole(BaseModel):
         Index("ix_user_roles_tenant_id", "tenant_id"),
     )
 
-    # 🔑 FIX: Added ondelete="CASCADE" for automatic cleanup
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    # 🔑 FIX: Added ondelete="CASCADE" for automatic cleanup
     role_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True
     )

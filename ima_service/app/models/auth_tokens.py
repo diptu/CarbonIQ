@@ -18,8 +18,6 @@ from sqlalchemy import (
     Index,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-# Note: func is now imported via 'import sqlalchemy as sa'
-
 
 from .base import BaseModel
 
@@ -35,13 +33,12 @@ class AuthToken(BaseModel):
     from BaseModel.
     """
 
-    __tablename__ = "auth_tokens"  # 🔑 Added explicit tablename
+    __tablename__ = "auth_tokens"
 
     # pylint: disable=unsubscriptable-object, not-callable
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
-    # 🔑 FIX: Added ondelete="CASCADE" for data integrity
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
@@ -52,13 +49,11 @@ class AuthToken(BaseModel):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    # audit-grade revocation timestamp
     revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     device_info: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
 
-    # 🔑 FIX: Using sa.func.now() to resolve Pylint E1102 (not-callable) warning
     issued_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -66,41 +61,32 @@ class AuthToken(BaseModel):
     )
     last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # Optional metadata fields
     session_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
-    # explicit token type (access / refresh / api_key)
     token_type: Mapped[str] = mapped_column(
         Enum("access", "refresh", "api_key", name="token_type_enum"),
         nullable=False,
         default="access",
     )
 
-    # request correlation and traceability
     correlation_id: Mapped[Optional[str]] = mapped_column(String(100), index=True, nullable=True)
 
-    # distributed tracing or log correlation
     trace_id: Mapped[Optional[str]] = mapped_column(String(100), index=True, nullable=True)
 
-    # flexible JSON metadata field
     extra: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     mfa_verified: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
 
-    # Relationship
     user: Mapped["User"] = relationship("User", back_populates="auth_tokens", lazy="joined")
 
-    # Index for cleanup / performance
     __table_args__ = (
         Index("idx_auth_token_expires_at", "expires_at"),
-        Index("idx_auth_token_jti", "jti"),  # 🔑 Added index on JTI for fast lookup
-        Index(
-            "idx_auth_token_revoked_user", "revoked", "user_id"
-        ),  # 🔑 Added index for fetching active tokens
+        Index("idx_auth_token_jti", "jti"),
+        Index("idx_auth_token_revoked_user", "revoked", "user_id"),
     )
 
     # ==============================
-    # Behavioral Methods (remain the same)
+    # Behavioral Methods
     # ==============================
 
     def revoke(self) -> None:

@@ -24,6 +24,6 @@ class TenantMixin:  # pylint:disable=R0903
         try:
             tenant_uuid: UUID = UUID(tenant_id)
         except ValueError:
-            tenant_uuid = UUID(int=0)  # fallback dummy UUID
+            tenant_uuid = UUID(int=0)
 
         return session.query(cls).filter(cast(cls.tenant_id, PG_UUID) == tenant_uuid)

@@ -69,7 +69,6 @@ class AuditLogBase(BaseModel):
             raise ValueError("Field cannot be empty or whitespace")
         return str(value).strip()
 
-    # 🔑 FIX: Using Pydantic V2 model_validator (was root_validator)
     @model_validator(mode="before")
     @classmethod
     def check_extra_is_dict(cls, values: dict) -> dict:
@@ -84,9 +83,6 @@ class AuditLogBase(BaseModel):
 class AuditLogCreate(AuditLogBase):
     """Schema for creating a new audit log entry."""
 
-    # 🔑 FIX: Removed `created_at` default from docstring/schema definition
-    # as it's handled by the ORM/DB (BaseModel), avoiding conflict.
-
 
 class AuditLogRead(AuditLogBase, ORMBaseSchema):
     """Schema for reading audit log entries. Immutable by definition."""
@@ -96,15 +92,12 @@ class AuditLogRead(AuditLogBase, ORMBaseSchema):
     model_config = {
         "from_attributes": True,
         "extra": "ignore",
-        "frozen": True,  # 🔑 FIX: Explicitly enforce immutability for audit logs
+        "frozen": True,
     }
 
 
 class AuditLogInDB(AuditLogRead):
     """Internal schema for DB-level audit logs."""
-
-    # Audit log tables should not be soft-deleted, but if BaseModel includes deleted_at,
-    # we ensure it's still present in the schema.
 
 
 __all__ = [

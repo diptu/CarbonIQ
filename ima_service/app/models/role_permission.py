@@ -20,7 +20,7 @@ class RolePermission(BaseModel):
     Inherits all audit fields (created_at, created_by, etc.) from BaseModel.
     """
 
-    __tablename__ = "role_permissions"  # 🔑 Added explicit tablename
+    __tablename__ = "role_permissions"
 
     __table_args__ = (
         Index("ix_role_permissions_role_id", "role_id"),
@@ -28,19 +28,13 @@ class RolePermission(BaseModel):
         Index("ix_role_permissions_tenant_id", "tenant_id"),
     )
 
-    # 🔑 FIX: Added ondelete="CASCADE" for automatic cleanup
     role_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True
     )
-    # 🔑 FIX: Added ondelete="CASCADE" for automatic cleanup
     permission_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True
     )
 
-    # Note: tenant_id is inherited from BaseModel,
-    # but defined here for explicit column definition
-    # or if it needs to override the base definition.
-    # Keeping it explicit aligns with the original code.
     tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(String(36), nullable=True)
 
     def __repr__(self) -> str:

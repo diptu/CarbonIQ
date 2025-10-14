@@ -1,19 +1,18 @@
 """Base ORM model and common fields for IMA service."""
 
-from __future__ import annotations  # For forward references like 'User'
+from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 import uuid
 
-# Import SQLAlchemy components explicitly to resolve Pylint E1102
 import sqlalchemy as sa
 from sqlalchemy import DateTime, String, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from .tenant_mixin import TenantMixin
 
-# Type checking import for relationships without circular import issues
+
 if TYPE_CHECKING:
     from .user import User
 
@@ -37,14 +36,12 @@ class BaseModel(DeclarativeBase, TenantMixin):
     )
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # 🔑 NEW: Tracks the user who created the record (Audit trail)
     created_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         comment="User ID who created the record",
     )
 
-    # 🔑 NEW: Tracks the user who last updated the record (Audit trail)
     updated_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,

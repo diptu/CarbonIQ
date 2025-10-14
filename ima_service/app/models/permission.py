@@ -10,7 +10,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, Session, Query
 
 from .base import BaseModel
 
-# 🔑 NEW: Import the explicit RolePermission join model
 from .role_permission import RolePermission
 
 if TYPE_CHECKING:
@@ -37,11 +36,7 @@ class Permission(BaseModel):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     module: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
-    # Multi-tenant awareness
     tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(String(36), nullable=True)
-
-    # RBAC relationships
-    # 🔑 UPDATED: Relationship now uses the explicit RolePermission table object
     roles: Mapped[List["Role"]] = relationship(
         "Role",
         secondary=RolePermission.__table__,
