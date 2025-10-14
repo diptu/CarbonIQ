@@ -26,6 +26,16 @@ API Style: REST (JSON responses)
 
 Auth: JWT + Refresh Token (issued by IMA Service)
 
+## 🔄 Sequence Flow with IMA Service
+
+1. **User Request:** A client request hits `IMA Service` using a subdomain (e.g., `acme.carboniq.ai`).
+2. **IMA → Tenant Service:** IMA calls `/tenant-service/api/v1/tenants/resolve?subdomain=acme`.
+3. **Tenant Lookup:** Tenant Service returns the corresponding `tenant_id`.
+4. **Tenant Context:** IMA Service uses the `tenant_id` for user authentication and scoping.
+5. **RBAC Enforcement:** All user actions are then checked against RBAC roles and permissions.
+
+---
+
 
 ## 🔐 Key Features
 - Tenant creation, update, and soft deletion
@@ -101,6 +111,7 @@ Auth: JWT + Refresh Token (issued by IMA Service)
 | **POST**   | `/api/v1/organizations`                  | Create organization                          | ✅ (super_admin) |
 
 ---
+
 
 🚀 Strategy Overview
 
