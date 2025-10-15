@@ -10,7 +10,6 @@ from sqlalchemy import Boolean, Integer, String, Text, ForeignKey, Index, Enum a
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import BaseModel
-
 from .user_role import UserRole
 from .role_permission import RolePermission
 
@@ -53,18 +52,28 @@ class Role(BaseModel):
         ForeignKey("roles.id", ondelete="SET NULL"), nullable=True
     )
 
-    users: Mapped[List["User"]] = relationship(
-        "User", secondary=UserRole.__table__, back_populates="roles"
+    # inside Role model
+    users = relationship(
+        "User",
+        secondary=UserRole.__table__,
+        back_populates="roles",
+        primaryjoin="Role.id == UserRole.role_id",
+        secondaryjoin="User.id == UserRole.user_id",
     )
 
     permissions: Mapped[List["Permission"]] = relationship(
-        "Permission", secondary=RolePermission.__table__, back_populates="roles"
+        "Permission",
+        secondary=RolePermission.__table__,
+        back_populates="roles",
+        lazy="selectin",
     )
 
+    # Fix for hierarchical roles with delete-orphan
     children: Mapped[List["Role"]] = relationship(
         "Role",
         back_populates="parent",
         cascade="all, delete-orphan",
+        single_parent=True,
         remote_side=[id],
     )
     parent: Mapped[Optional["Role"]] = relationship(

@@ -24,6 +24,7 @@ class Permission(BaseModel):
     from BaseModel.)
     """
 
+    __tablename__ = "permissions"
     __table_args__ = (
         Index("ix_permissions_code", "code"),
         Index("ix_permissions_module", "module"),

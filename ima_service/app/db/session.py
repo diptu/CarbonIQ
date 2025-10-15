@@ -1,3 +1,4 @@
+# app/db/session.py
 """
 Async SQLAlchemy session setup for IMA Service (Neon/Postgres).
 
@@ -14,9 +15,8 @@ from typing import AsyncIterator
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import QueuePool
 
-from app.core.config import get_settings  # type:ignore[import-not-found]
+from ..core.config import get_settings  # type:ignore[import-not-found]
 
 # -------------------------------------------------------
 # Configuration
@@ -27,12 +27,14 @@ settings = get_settings()
 # Async SQLAlchemy engine
 # -------------------------------------------------------
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    settings.DATABASE_URL,  # must use postgresql+asyncpg://...
     echo=settings.DEBUG,
-    poolclass=QueuePool,
-    pool_size=20,
-    max_overflow=10,
-    future=True,
+    pool_size=20,  # max number of persistent connections
+    max_overflow=10,  # additional temporary connections allowed beyond pool_size
+    pool_timeout=30,  # seconds to wait for connection from pool
+    pool_recycle=1800,  # recycle connection after 30 minutes
+    # asyncpg driver handles pooling internally
+    connect_args={"ssl": True},  # enable SSL for asyncpg
 )
 
 # -------------------------------------------------------
@@ -45,10 +47,6 @@ async_session_factory = sessionmaker(  # type: ignore[call-overload]
 )
 
 
-# -------------------------------------------------------
-# Async context manager for DB session
-# -------------------------------------------------------
-@asynccontextmanager
 async def get_db() -> AsyncIterator[AsyncSession]:
     """
     Provide a transactional scope around a series of database operations.

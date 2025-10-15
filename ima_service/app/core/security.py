@@ -28,13 +28,15 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    """Hash a plaintext password."""
-    return pwd_context.hash(password)
+    """Hash a plaintext password safely with bcrypt."""
+    safe_password = password.encode("utf-8")
+    return pwd_context.hash(safe_password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plaintext password against a hashed password."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify a plaintext password against a hashed password safely."""
+    safe_password = plain_password.encode("utf-8")
+    return pwd_context.verify(safe_password, hashed_password)
 
 
 # -------------------------------

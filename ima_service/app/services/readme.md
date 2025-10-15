@@ -37,3 +37,163 @@
    🔒 Strict RBAC Enforcement: Every method exposed must begin by calling rbac_service.check_access().
    🔒 Strict Tenant Scoping: Every database query must use the scope_query method.
    🔒 Implement try/except/finally logic to ensure audit_adapter.log_action is called after a successful commit AND upon catching an exception.
+
+
+# Implementaion order 
+## v1.1:
+
+```css
++------------------------+
+|      Minimal IMA Service       |
+|  (Authentication & RBAC)       |
++------------------------+
+| Endpoints (minimal subset):   |
+| 1. Auth APIs                  |
+|    - POST /auth/login         |
+|    - POST /auth/refresh       |
+| 2. User APIs                  |
+|    - GET /users/{id}          |
+|    - POST /users              |
+| 3. Roles & Permissions APIs   |
+|    - GET /roles/{id}          |
+|    - POST /roles              |
+|    - POST /roles/{id}/permissions |
++------------------------+
+           |
+           | JWTs (RS256 signed) + tenant_id + roles + permissions
+           v
++------------------------+
+|   Gateway Service       |
++------------------------+
+| Responsibilities:      |
+| - JWT validation middleware (RS256) |
+| - Tenant scoping middleware        |
+| - RBAC enforcement middleware      |
+| - Routing to microservices        |
+| - Audit logging / observability   |
+| - Optional BFF endpoints          |
++------------------------+
+           |
+           | Validated request with tenant context & RBAC enforced
+           v
++------------------------+
+|  Tenant Service        |
++------------------------+
+| Endpoints:             |
+| - POST /tenants        |
+| - GET /tenants         |
+| - GET /tenants/{id}    |
+| - PUT /tenants/{id}    |
+| - DELETE /tenants/{id} |
+| - POST /tenants/{id}/memberships |
+| Notes: Requires JWT from Minimal IMA |
+| Tenant context injected via Gateway |
+| RBAC check enforced via Gateway |
++------------------------+
+           |
+           | Tenant-aware, RBAC-secured calls
+           v
++------------------------+
+| Downstream Services    |
+| (Billing, Reporting,   |
+|  OCR, AI, Factor, etc.)|
++------------------------+
+| Responsibilities:      |
+| - Enforce tenant_id from request |
+| - Enforce RBAC if needed         |
+| - Audit all sensitive actions    |
+| - Operate without direct auth logic (relies on Gateway) |
++------------------------+
+
+```
+
+## v1.2:
+
+```css
+
++------------------------+
+|      IMA Service       |
+|  (Authentication & RBAC)  |
++------------------------+
+| Endpoints:             |
+| 1. Auth APIs           |
+|    - POST /auth/login         |
+|    - POST /auth/refresh       |
+|    - POST /auth/logout        |
+| 2. User APIs             |
+|    - GET /users               |
+|    - GET /users/{id}          |
+|    - POST /users              |
+|    - PUT /users/{id}          |
+|    - POST /users/invite       |
+|    - POST /users/{id}/deactivate |
+| 3. Roles & Permissions APIs   |
+|    - GET /roles               |
+|    - GET /roles/{id}          |
+|    - POST /roles              |
+|    - PUT /roles/{id}          |
+|    - DELETE /roles/{id}       |
+|    - POST /roles/{id}/permissions        |
+|    - DELETE /roles/{id}/permissions/{permission_id} |
+|    - GET /permissions         |
+| 4. Audit Logging (internal)   |
++------------------------+
+           |
+           | JWTs (RS256 signed) + tenant_id + roles + permissions
+           v
++------------------------+
+|   Gateway Service       |
++------------------------+
+| Responsibilities:      |
+| - JWT validation middleware (RS256) |
+| - Tenant scoping middleware        |
+| - RBAC enforcement middleware      |
+| - Routing to microservices        |
+| - Audit logging / observability   |
+| - Optional BFF endpoints          |
++------------------------+
+           |
+           | Validated request with tenant context & RBAC enforced
+           v
++------------------------+
+|  Tenant Service        |
++------------------------+
+| Endpoints:             |
+| - POST /tenants        |
+| - GET /tenants         |
+| - GET /tenants/{id}    |
+| - PUT /tenants/{id}    |
+| - DELETE /tenants/{id} |
+| - POST /tenants/{id}/memberships |
+| Notes: Requires JWT from IMA |
+| Tenant context injected via Gateway |
+| RBAC check enforced via Gateway |
++------------------------+
+           |
+           | Tenant-aware, RBAC-secured calls
+           v
++------------------------+
+| Downstream Services    |
+| (Billing, Reporting,   |
+|  OCR, AI, Factor, etc.)|
++------------------------+
+| Responsibilities:      |
+| - Enforce tenant_id from request |
+| - Enforce RBAC if needed         |
+| - Audit all sensitive actions    |
+| - Operate without needing direct auth logic (relies on Gateway) |
++------------------------+
+
+```
+
+Flow Summary:
+
+User authenticates via IMA Service → receives JWT with tenant_id, roles, permissions.
+
+Client sends request to Gateway Service → JWT validated, RBAC enforced, tenant context injected.
+
+Gateway routes request to Tenant Service or other downstream services.
+
+Tenant Service performs business logic → tenant-aware & RBAC-secured.
+
+Downstream services operate using tenant context → all actions logged to audit.

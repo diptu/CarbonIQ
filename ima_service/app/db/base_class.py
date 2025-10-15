@@ -1,37 +1,36 @@
-"""SQLAlchemy base class and timestamp mixin for all ORM models.
+"""SQLAlchemy declarative base for IMA service.
 
 Includes:
 - Declarative Base
-- TimestampMixin with created_at and updated_at columns
+- Optional TimestampMixin for convenience
 """
 
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, DateTime, text
-
-# -------------------------
-# Declarative base
-# -------------------------
-Base = declarative_base()
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import DateTime, text
 
 
 # -------------------------
-# Timestamp mixin
+# Declarative Base
 # -------------------------
+class Base(DeclarativeBase):
+    """Base class for all ORM models."""
+
+    pass
 
 
-# pylint: disable=too-few-public-methods
+# -------------------------
+# Timestamp mixin (optional)
+# -------------------------
 class TimestampMixin:
-    """Adds `created_at` and `updated_at` timestamps to a model.
+    """Adds `created_at` and `updated_at` timestamps to a model."""
 
-    Columns
-    -------
-    created_at : DateTime
-        Time when the record was created.
-    updated_at : DateTime
-        Time when the record was last updated; auto-updates on modification.
-    """
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("NOW()")
+    )
 
-    created_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
-    updated_at = Column(
-        DateTime(timezone=True), server_default=text("NOW()"), onupdate=text("NOW()")
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("NOW()"),
+        onupdate=text("NOW()"),
     )

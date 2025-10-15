@@ -78,10 +78,6 @@ class AuthTokenCreate(AuthTokenBase):
 class AuthTokenUpdate(BaseModel):
     """Schema for updating an existing authentication token."""
 
-    # 🔑 FIX: Remove immutable fields
-    # user_id: Optional[uuid.UUID] = None # Cannot change which user owns the token
-    # tenant_id: Optional[uuid.UUID] = None # Cannot change the token's tenant scope
-
     token: Optional[str] = None
     jti: Optional[str] = None
     expires_at: Optional[datetime] = None

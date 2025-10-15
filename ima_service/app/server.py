@@ -1,19 +1,12 @@
-# app/server.py
-
-"""
-Entrypoint for IMA Service.
-Sets up FastAPI, CORS, OpenAPI, and DB initialization.
-"""
-
+# app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
-from app.db.session import engine  # type: ignore
-from app.db.base_class import Base  # type: ignore
-
-# from app.api import api_router  # type: ignore
-from app.core.config import get_settings  # type: ignore
+from app.db.session import engine
+from app.db.base_class import Base
+from app.api import api_router
+from app.core.config import get_settings
 
 settings = get_settings()
 
@@ -35,17 +28,16 @@ app.add_middleware(
 )
 
 # ----------------------
-# Include API router if exists
+# Include API router
 # ----------------------
-# app.include_router(api_router, prefix="/api/v1")  # type: ignore
+app.include_router(api_router, prefix="/api/v1")
 
 
 # ----------------------
 # Root endpoint
 # ----------------------
 @app.get("/", summary="Health check")
-async def root() -> dict[str, str]:
-    """Health check endpoint."""
+def root():
     return {"status": "ok", "service": "IMA Service"}
 
 
@@ -53,40 +45,41 @@ async def root() -> dict[str, str]:
 # Startup event: create tables
 # ----------------------
 @app.on_event("startup")
-async def startup_event() -> None:
-    """Create tables at startup (DEV only)."""
-    if settings.DEBUG:
-        async with engine.begin() as conn:  # type: ignore
-            await conn.run_sync(Base.metadata.create_all)  # type: ignore
+async def startup_event():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 
 # ----------------------
-# Custom OpenAPI with BearerAuth
+# Custom OpenAPI for Swagger OAuth2
 # ----------------------
-def custom_openapi() -> dict:
-    """Generate OpenAPI schema with JWT Bearer."""
+def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
 
-    schema = get_openapi(
-        title=app.title,
-        version=app.version,
-        description=app.description,
-        routes=app.routes,
-    )
+    openapi_schema = get_openapi(title=app.title, version=app.version, routes=app.routes)
 
-    schema["components"]["securitySchemes"] = {
-        "BearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
+    # 1. Define the Bearer Token Security Scheme
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",  # Use the HTTP security scheme
+            "scheme": "bearer",  # Specify the authentication scheme as 'bearer'
+            "bearerFormat": "JWT",  # Optional: for documentation purposes
+            "description": "JWT Authorization header using the Bearer scheme. Example: 'Authorization: Bearer {token}'",
+        }
     }
 
-    # Apply security only to endpoints with dependencies
-    for path_item in schema["paths"].values():
+    # 2. Apply Security Globally to All Endpoints (except the health check/root)
+    # This automatically adds the padlock icon to all secured paths
+    for path_item in openapi_schema.get("paths", {}).values():
         for operation in path_item.values():
-            if "dependencies" in operation:
+            # Exclude the root health check or other public endpoints if needed
+            if "security" not in operation:
+                # Apply the security requirement
                 operation["security"] = [{"BearerAuth": []}]
 
-    app.openapi_schema = schema
+    app.openapi_schema = openapi_schema
     return app.openapi_schema
 
 
-app.openapi = custom_openapi  # type: ignore[method-assign]
+app.openapi = custom_openapi

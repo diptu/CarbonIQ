@@ -1,17 +1,22 @@
 # ima_service/app/dependency/db.py
-"""Database dependency for FastAPI routes."""
 
-from typing import AsyncIterator
-
+from typing import AsyncGenerator
+from app.db.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import async_session_factory  # type:ignore[import-not-found]
 
+async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Dependency wrapper around core get_db() for FastAPI routes.
 
-async def get_async_db() -> AsyncIterator[AsyncSession]:
-    """Provide an async SQLAlchemy session for route dependencies."""
-    async with async_session_factory() as session:
+    Handles commit/rollback automatically.
+    """
+    async for session in get_db():  # <- use async for instead of async with
         try:
             yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
         finally:
             await session.close()

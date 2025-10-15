@@ -1,0 +1,81 @@
+
+
+version: "3"
+
+vars:
+  SERVICE: "ima_service"
+  PORT: "8000"
+
+tasks:
+  setup:
+    desc: "Install Python 3.11 + sync dependencies (workspace first, fallback service)"
+    cmds:
+      - cmd: uv python install 3.11
+      - cmd: |
+          set -euxo pipefail
+          uv sync --dev --python 3.11 || uv sync --dev --python 3.11 --project "{{.SERVICE}}"
+
+  start:
+    desc: "Run dev server (reload) via run_service.py"
+    deps: [setup]
+    cmds:
+      - cmd: uv run python run_service.py --service "{{.SERVICE}}" --port "{{.PORT}}" --reload --debug
+
+  lint:
+    desc: "Ruff + Pylint (service)"
+    deps: [setup]
+    cmds:
+      - cmd: uv run ruff check "{{.SERVICE}}/app"
+      - cmd: uv run pylint "{{.SERVICE}}/app"
+
+  typecheck:
+    desc: "Mypy (service)"
+    deps: [setup]
+    cmds:
+      - cmd: uv run mypy "{{.SERVICE}}/app"
+
+  test:
+    desc: "Pytest (service)"
+    deps: [setup]
+    env:
+      IMA_ENV: test
+      IMA_JWT__SECRET_KEY: test-secret
+      IMA_REDIS_DSN: redis://localhost:6379/0
+      IMA_DB__URL: sqlite://
+    cmds:
+      - cmd: uv run pytest "{{.SERVICE}}/tests/" -q
+
+  qa:
+    desc: "Lint + typecheck + tests"
+    deps: [lint, typecheck, test]
+
+  sanity:
+    desc: "Endpoint sanity script"
+    deps: [setup]
+    cmds:
+      - cmd: uv run bash "{{.SERVICE}}/scripts/sanity.sh"
+
+  fix:
+    desc: "Auto-fix with ruff + format with black/isort"
+    deps: [setup]
+    cmds:
+      - cmd: uv run ruff check "{{.SERVICE}}/app" --fix
+      - cmd: uv run black "{{.SERVICE}}/app"
+      - cmd: uv run isort "{{.SERVICE}}/app"
+
+  kill-port:
+    desc: "Kill process on PORT (default: 8000)"
+    vars:
+      PORT: "{{.PORT}}"
+    cmds:
+      - cmd: |
+          lsof -ti:"{{.PORT}}" | xargs -r kill -9 || true
+
+  clean:
+    desc: "Remove caches"
+    cmds:
+      - cmd: rm -rf .mypy_cache .pytest_cache .ruff_cache "{{.SERVICE}}/.pytest_cache" || true
+      - cmd: |
+          find . -type d -name "__pycache__" -prune -exec rm -rf {} + || true
+      - cmd: |
+          find . -type f -name "*.py[co]" -delete || true

@@ -1,46 +1,71 @@
-"""RBAC service for managing roles and permissions."""
-
+from __future__ import annotations
+from typing import Optional, Callable, Awaitable, Set
 from uuid import UUID
 
-from .crud_service import CRUDService
 from .role_service import RoleService
+from .crud_service import CRUDService
 from ..models.role import Role
 from ..models.permission import Permission
+from ..models.user import User
 
 
-# pylint:disable=R0903
+class PermissionError(Exception):
+    """Raised when a user lacks a required permission."""
+
+    pass
+
+
+PolicyHook = Callable[[str, str, Optional[str]], Awaitable[bool]]
+
+
 class RBACService:
-    """Service to manage RBAC: roles, permissions, and assignments."""
+    """Central service for enforcing roles and permissions."""
 
     def __init__(
         self,
         role_service: RoleService,
-        role_crud: CRUDService[Role],
         permission_crud: CRUDService[Permission],
+        policy_hook: Optional[PolicyHook] = None,
     ) -> None:
         self.role_service = role_service
-        self.role_crud = role_crud
+        self.db = role_service.db
         self.permission_crud = permission_crud
+        self.policy_hook = policy_hook
 
-    async def assign_permission_to_role(
-        self, role_id: UUID, permission_id: UUID
-    ) -> None:
-        """
-        Assign a permission object to a role within a transaction.
-        """
-        # Get Role
-        role = await self.role_crud.get_by_id(Role, str(role_id))
+    async def assign_permission_to_role(self, role_id: UUID, permission_id: UUID) -> None:
+        """Atomically link a permission to a role."""
+        role = await self.role_service.get_by_id(Role, str(role_id))
         if not role:
             raise ValueError(f"Role {role_id} not found")
 
-        # Get Permission
-        permission = await self.permission_crud.get_by_id(
-            Permission, str(permission_id)
-        )
+        permission = await self.permission_crud.get_by_id(Permission, str(permission_id))
         if not permission:
             raise ValueError(f"Permission {permission_id} not found")
 
-        # Use RoleService to add permission object
-        await self.role_service.add_permission_to_role(
-            role_id=str(role_id), permission_id=permission
-        )  # type: ignore
+        await self.role_service.link_permission(str(role_id), permission)
+
+    async def check_access(
+        self, user_id: str, permission_code: str, tenant_id: Optional[str] = None
+    ) -> None:
+        """
+        Ensure the user has the specified permission.
+        Raises PermissionError if access is denied.
+        """
+        # External policy hook can grant access before default RBAC check
+        if self.policy_hook and await self.policy_hook(user_id, permission_code, tenant_id):
+            return
+
+        user: User = await self.db.get(User, user_id)
+        if not user:
+            raise PermissionError(f"User {user_id} not found or inactive.")
+
+        for role in getattr(user, "roles", []):
+            if tenant_id and getattr(role, "tenant_id", None) != tenant_id:
+                continue
+            perms: Set[str] = await self.role_service.get_effective_permissions(role.id)
+            if permission_code in perms:
+                return
+
+        raise PermissionError(
+            f"Access denied: User {user_id} lacks '{permission_code}' permission."
+        )

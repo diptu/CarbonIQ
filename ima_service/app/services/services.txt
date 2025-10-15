@@ -1,52 +1,37 @@
-"""Audit adapter for IMA Service.
-
-Provides a reusable audit logging mechanism for all services.
-"""
-
 from __future__ import annotations
-
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Dict, Optional, Union
-
+from contextvars import ContextVar
 from ..core.logger import logger
 
-# Callable type for audit events: can be sync or async
+# Type for sync or async audit callables
 AuditCallable = Callable[[Dict[str, Any]], Union[None, Awaitable[None]]]
+
+# Context variables for automatic context injection
+current_user_id: ContextVar[Optional[str]] = ContextVar("current_user_id", default=None)
+current_tenant_id: ContextVar[Optional[str]] = ContextVar("current_tenant_id", default=None)
+current_trace_id: ContextVar[Optional[str]] = ContextVar("current_trace_id", default=None)
+current_correlation_id: ContextVar[Optional[str]] = ContextVar(
+    "current_correlation_id", default=None
+)
 
 
 class AuditAdapter:
-    """Adapter to handle audit events consistently for all services."""
+    """Consistent audit logging with context-aware metadata."""
 
     def __init__(self, audit_callable: Optional[AuditCallable] = None) -> None:
-        """
-        Initialize the AuditAdapter.
-
-        Parameters
-        ----------
-        audit_callable : Optional[AuditCallable]
-            A callable to handle audit events asynchronously or synchronously.
-        """
-        self._audit_callable: Optional[AuditCallable] = audit_callable
+        self._audit_callable = audit_callable
 
     async def log_event(self, event: Dict[str, Any]) -> None:
-        """
-        Log an audit event asynchronously.
-
-        If an audit callable is provided, use it; otherwise, fallback to the default logger.
-
-        Parameters
-        ----------
-        event : Dict[str, Any]
-            The audit event data.
-        """
+        """Send audit event to callable or default logger."""
         if self._audit_callable:
             result = self._audit_callable(event)
-            if result is not None and hasattr(result, "__await__"):
-                await result  # type: ignore
+            if hasattr(result, "__await__"):
+                await result
         else:
             logger.info("AUDIT EVENT: %s", event)
 
-    async def log(  # pylint:disable=R0913
+    async def log(
         self,
         *,
         actor_id: Optional[str] = None,
@@ -56,27 +41,12 @@ class AuditAdapter:
         status: int,
         meta: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """
-        Construct and log an audit event with standard metadata.
-
-        Parameters
-        ----------
-        actor_id : Optional[str]
-            The ID of the actor performing the action.
-        tenant_id : Optional[str]
-            The ID of the tenant.
-        action : str
-            The action performed (e.g., "login", "create").
-        resource : str
-            The resource being acted upon.
-        status : int
-            Status code of the action (e.g., 200, 401).
-        meta : Optional[Dict[str, Any]]
-            Additional metadata.
-        """
+        """Standardized log interface with auto context injection."""
         event: Dict[str, Any] = {
-            "actor_id": actor_id,
-            "tenant_id": tenant_id,
+            "actor_id": actor_id or current_user_id.get(),
+            "tenant_id": tenant_id or current_tenant_id.get(),
+            "trace_id": current_trace_id.get(),
+            "correlation_id": current_correlation_id.get(),
             "action": action,
             "resource": resource,
             "status": status,
@@ -84,118 +54,134 @@ class AuditAdapter:
             "meta": meta or {},
         }
         await self.log_event(event)
-"""Authentication service for IMA Service with secure JWT handling."""
-
 from __future__ import annotations
-from typing import Any, Dict
+from typing import Any, Dict, Optional, List
 
 from .base_service import BaseService
-from .user_serice import UserService
+from .user_service import UserService
 from ..core.security import (
     verify_password,
     create_access_token,
     create_refresh_token,
     verify_token,
 )
+from ..core.redis_adapter import RedisAdapter
 
 
 class AuthService(BaseService[Dict[str, Any]]):
-    """Handles authentication logic, JWT access/refresh tokens, and logout."""
+    """Authentication service handling JWT, refresh tokens, MFA, and token blacklisting."""
 
     def __init__(
-        self,
-        user_service: UserService,
-        tenant_id: str,
-        actor_id: str,
-        db=None,  # Optional, most operations via UserService
+        self, user_service: UserService, redis: Optional[RedisAdapter] = None, **kwargs
     ) -> None:
-        super().__init__(db=db, tenant_id=tenant_id, actor_id=actor_id)
+        super().__init__(**kwargs)
         self.user_service = user_service
+        self.redis = redis
+        self._login_attempts: Dict[str, int] = {}  # Placeholder for brute-force protection
 
-    async def login(self, credentials: Dict[str, str]) -> Dict[str, Any]:
-        """User Login"""
-        email = credentials.get("email")
-        password = credentials.get("password")
-        if not email or not password:
-            raise ValueError("Email and password are required")
-
+    async def login(self, email: str, password: str) -> Dict[str, Any]:
+        """Authenticate user and issue JWT + refresh tokens."""
         user = await self.user_service.get_by_email(email)
+
+        if self._is_user_locked(email):
+            await self._audit("login_locked", "user", 403, {"email": email})
+            raise PermissionError("Account locked due to too many failed attempts")
+
         if not user or not verify_password(password, user.password):
-            await self._audit(
-                action="login_failed",
-                resource="user",
-                status=401,
-                meta={"email": email},
-            )
+            await self._record_failed_login(email)
+            await self._audit("login_failed", "user", 401, {"email": email})
             raise ValueError("Invalid credentials")
 
-        await self._audit(
-            action="login_success",
-            resource="user",
-            status=200,
-            meta={"user_id": str(user.id), "email": user.email},
-        )
+        if not self._check_password_complexity(password):
+            raise ValueError("Password does not meet complexity requirements")
 
-        tenant_id = self.tenant_id
-        if not tenant_id:
-            raise ValueError("Tenant ID missing for token generation")
+        await self._reset_failed_login(email)
+        await self._audit("login_success", "user", 200, {"user_id": str(user.id)})
 
-        role_names = [r.name for r in user.roles]  # Convert Role objects to str
-        access_token = create_access_token(user.id, tenant_id, role_names)
-        refresh_token = create_refresh_token(user.id, tenant_id)
+        return await self.issue_tokens(user)
+
+    async def issue_tokens(self, user) -> Dict[str, str]:
+        """Generate access and refresh tokens including tenant and effective permissions."""
+        if not self.tenant_id:
+            raise ValueError("Tenant context required")
+
+        permissions: List[str] = [p.code for r in user.roles for p in r.permissions]
 
         return {
-            "user": user.__dict__,
-            "access_token": access_token,
-            "refresh_token": refresh_token,
+            "access_token": create_access_token(
+                sub=str(user.id),
+                tenant_id=self.tenant_id,
+                roles=[r.name for r in user.roles],
+                permissions=permissions,
+            ),
+            "refresh_token": create_refresh_token(sub=str(user.id), tenant_id=self.tenant_id),
         }
 
     async def refresh(self, refresh_token: str) -> Dict[str, str]:
-        """Token refresh"""
-        payload = verify_token(refresh_token)  # type: ignore
+        """Verify refresh token and issue new access token."""
+        payload = verify_token(refresh_token)
         if not payload or payload.get("type") != "refresh":
             raise ValueError("Invalid refresh token")
 
-        email = payload.get("email")
-        if not email:
-            raise ValueError("Invalid token payload")
-
-        user = await self.user_service.get_by_email(email)
+        user = await self.user_service.get_by_id(payload.get("sub"))
         if not user:
             raise ValueError("User not found")
 
-        tenant_id = payload.get("tenant_id")
-        if not tenant_id:
-            raise ValueError("Tenant ID missing for token generation")
+        self.tenant_id = payload.get("tenant_id")
+        return await self.issue_tokens(user)
 
-        role_names = [r.name for r in user.roles]  # Convert Role objects to str
-        new_access_token = create_access_token(user.id, tenant_id, role_names)  # type: ignore
-        return {"access_token": new_access_token}
+    async def revoke_token(self, jti: str, expires_in: int = 3600) -> None:
+        """Revoke a token immediately by writing JTI to Redis blacklist."""
+        if self.redis:
+            await self.redis.set_blacklist(jti, expires_in)
 
-    async def logout(self, user_id: str) -> None:
-        """User LOgout"""
-        await self._audit(
-            action="logout",
-            resource="user",
-            status=200,
-            meta={"user_id": user_id},
+    async def is_token_revoked(self, jti: str) -> bool:
+        """Check Redis blacklist for revoked token JTI."""
+        return await self.redis.is_blacklisted(jti) if self.redis else False
+
+    # --- Security Helpers ---
+
+    def _check_password_complexity(self, password: str) -> bool:
+        return (
+            len(password) >= 8
+            and any(c.islower() for c in password)
+            and any(c.isupper() for c in password)
+            and any(c.isdigit() for c in password)
+            and any(not c.isalnum() for c in password)
         )
-"""Base service providing audit and tenant context for derived services."""
 
+    async def _record_failed_login(self, email: str) -> None:
+        self._login_attempts[email] = self._login_attempts.get(email, 0) + 1
+
+    async def _reset_failed_login(self, email: str) -> None:
+        self._login_attempts.pop(email, None)
+
+    def _is_user_locked(self, email: str, max_attempts: int = 5) -> bool:
+        return self._login_attempts.get(email, 0) >= max_attempts
+
+    # --- MFA Placeholders ---
+    async def setup_mfa(self, user) -> str:
+        return "mfa-secret-placeholder"
+
+    async def verify_mfa(self, user, code: str) -> bool:
+        return True
 from __future__ import annotations
 
+from abc import ABC
 from contextlib import asynccontextmanager
-from typing import Any, Optional, TypeVar, Generic
+from functools import wraps
+from typing import Any, Optional, TypeVar, Generic, Callable
+
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import Select
 
 from .audit_adapter import AuditAdapter
 
 T = TypeVar("T")
 
-
-class BaseService(AuditAdapter, Generic[T]):
+class BaseService(AuditAdapter, Generic[T], ABC):
     """
-    Base service providing tenant context, database session,
+    Base service providing tenant context, async DB session,
     and audit logging for all derived services.
     """
 
@@ -207,43 +193,19 @@ class BaseService(AuditAdapter, Generic[T]):
         actor_id: Optional[str] = None,
         audit_adapter: Optional[AuditAdapter] = None,
     ) -> None:
-        """
-        Initialize the BaseService.
-
-        Parameters
-        ----------
-        db : AsyncSession
-            The async SQLAlchemy session.
-        tenant_id : Optional[str]
-            Tenant context for the service.
-        actor_id : Optional[str]
-            Actor (user) performing the actions.
-        audit_adapter : Optional[AuditAdapter]
-            Optional AuditAdapter to handle audit events.
-        """
-        super().__init__(
-            audit_callable=audit_adapter._audit_callable if audit_adapter else None
-        )
+        super().__init__(audit_callable=getattr(audit_adapter, "_audit_callable", None))
         self.db: AsyncSession = db
         self.tenant_id: Optional[str] = tenant_id
         self.actor_id: Optional[str] = actor_id
 
     @asynccontextmanager
     async def transaction(self) -> Any:
-        """
-        Async context manager for database transactions.
-
-        Usage:
-            async with service.transaction():
-                await service.db.execute(...)
-        """
+        """Async context manager for DB transactions."""
         async with self.db.begin():
             try:
                 yield
             except Exception:
-                await self.db.rollback()
-                raise
-            await self.db.commit()
+                raise  # rollback is automatic on exception
 
     async def _audit(
         self,
@@ -252,20 +214,7 @@ class BaseService(AuditAdapter, Generic[T]):
         status: int,
         meta: Optional[dict[str, Any]] = None,
     ) -> None:
-        """
-        Helper to log an audit event with tenant and actor context.
-
-        Parameters
-        ----------
-        action : str
-            Action performed (e.g., "create", "update").
-        resource : str
-            Resource acted upon.
-        status : int
-            Status code of the action.
-        meta : Optional[dict[str, Any]]
-            Optional additional metadata.
-        """
+        """Log an audit event with tenant and actor context."""
         await self.log(
             actor_id=self.actor_id,
             tenant_id=self.tenant_id,
@@ -274,42 +223,125 @@ class BaseService(AuditAdapter, Generic[T]):
             status=status,
             meta=meta or {},
         )
-"""Billing service placeholder for IMA Service."""
 
-from typing import Any, Optional
-from .crud_service import CRUDService
+    @property
+    def current_user_id(self) -> Optional[str]:
+        return self.actor_id
 
+    @property
+    def current_tenant_id(self) -> Optional[str]:
+        return self.tenant_id
 
-class BillingService(CRUDService[Any]):
-    """Service for managing billing operations (placeholder)."""
-
-    async def list(
-        self,
-        model: type[Any],
-        limit: int = 100,
-        offset: int = 0,
-    ) -> list[Any]:
+    def scope_query(self, query: Select) -> Select:
         """
-        List billing entries.
-
-        `model` is required to match CRUDService signature.
+        Apply tenant_id scoping to a SQLAlchemy query.
+        Assumes the first entity has a `tenant_id` column.
         """
-        return await super().list(model=model, limit=limit, offset=offset)
+        if self.tenant_id is None:
+            raise ValueError("Tenant context is required for scoped queries.")
 
-    async def get_by_id(self, model: type[Any], obj_id: str) -> Optional[Any]:
-        """Get a billing entry by ID."""
-        return await super().get_by_id(model=model, obj_id=obj_id)
+        entity = query.column_descriptions[0]["entity"]
+        if not hasattr(entity, "tenant_id"):
+            raise AttributeError(f"{entity} has no 'tenant_id' column")
 
-    async def update(self, obj: Any) -> Any:
-        """Update a billing entry."""
-        return await super().update(obj)
-"""Generic CRUD service."""
+        return query.where(entity.tenant_id == self.tenant_id)
 
+    def transactional(self, func: Callable[..., Any]) -> Callable[..., Any]:
+        """Decorator to wrap service methods in a DB transaction."""
+        @wraps(func)
+        async def wrapper(self: BaseService, *args, **kwargs):
+            async with self.transaction():
+                return await func(self, *args, **kwargs)
+        return wrapper
 from __future__ import annotations
-
-from typing import Generic, List, Optional, TypeVar
+from typing import Any, Optional, Type
 from sqlalchemy import select
 
+from .base_service import BaseService
+from .rbac_service import RBACService
+
+T = Any  # Generic ORM model placeholder
+
+
+class BillingService(BaseService[T]):
+    """Tenant-scoped, RBAC-checked, audit-logged billing service."""
+
+    def __init__(self, rbac_service: RBACService, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.rbac_service = rbac_service
+
+    async def _pre_check(self, permission: str) -> None:
+        """RBAC pre-check for the current user and tenant."""
+        await self.rbac_service.check_access(
+            self.current_user_id, permission, self.current_tenant_id
+        )
+
+    async def _execute_with_audit(self, action: str, resource: str, db_op: callable) -> Any:
+        """Wrap a DB operation with RBAC check, tenant scoping, and audit logging."""
+        await self._pre_check(action)
+        status_code = 200
+        try:
+            result = await db_op()
+            return result
+        except Exception as e:
+            status_code = 500
+            raise
+        finally:
+            await self._audit(
+                action=action,
+                resource=resource,
+                status=status_code,
+                meta={"user_id": self.current_user_id},
+            )
+
+    async def list(self, model: Type[T], limit: int = 100, offset: int = 0) -> list[T]:
+        """List tenant-scoped billing items."""
+
+        async def db_op():
+            stmt = self.scope_query(select(model).limit(limit).offset(offset))
+            result = await self.db.execute(stmt)
+            return list(result.scalars().all())
+
+        return await self._execute_with_audit("billing:list", model.__name__, db_op)
+
+    async def get_by_id(self, model: Type[T], obj_id: str) -> Optional[T]:
+        """Get a single tenant-scoped billing item."""
+
+        async def db_op():
+            stmt = self.scope_query(select(model).where(model.id == obj_id))
+            result = await self.db.execute(stmt)
+            return result.scalar_one_or_none()
+
+        return await self._execute_with_audit("billing:view", model.__name__, db_op)
+
+    async def update(self, obj: T) -> T:
+        """Update a billing object with RBAC and audit logging."""
+
+        async def db_op():
+            self.db.add(obj)
+            await self.db.flush()
+            await self.db.refresh(obj)
+            return obj
+
+        # Use transactional block for atomic update
+        try:
+            await self._pre_check("billing:update")
+            async with self.transaction():
+                result = await db_op()
+                await self._audit(action="billing:update", resource=type(obj).__name__, status=200)
+                return result
+        except Exception as e:
+            await self._audit(
+                action="billing:update",
+                resource=type(obj).__name__,
+                status=500,
+                meta={"error": str(e)},
+            )
+            raise
+from __future__ import annotations
+
+from typing import Generic, List, Optional, TypeVar, Type
+from sqlalchemy import select
 
 from .base_service import BaseService
 
@@ -317,101 +349,48 @@ T = TypeVar("T")
 
 
 class CRUDService(BaseService[T], Generic[T]):
-    """Generic CRUD operations for any SQLAlchemy model."""
+    """Generic CRUD service with tenant-scoped queries and transaction support."""
 
     async def list(
         self,
-        model: type[T],
+        model: Type[T],
         limit: int = 100,
         offset: int = 0,
     ) -> List[T]:
-        """
-        List objects of the given model with pagination.
-
-        Parameters
-        ----------
-        model : type[T]
-            SQLAlchemy model class.
-        limit : int
-            Max number of records to return.
-        offset : int
-            Number of records to skip.
-
-        Returns
-        -------
-        List[T]
-            List of model instances.
-        """
-        stmt = select(model).limit(limit).offset(offset)
+        """List objects with pagination, tenant-scoped."""
+        stmt = self.scope_query(select(model)).limit(limit).offset(offset)
         result = await self.db.execute(stmt)
-        return list(result.scalars().all())  # ensure list[T] type
+        return result.scalars().all()
 
-    async def get_by_id(self, model: type[T], obj_id: str) -> Optional[T]:
-        """
-        Get a single object by primary key.
-
-        Parameters
-        ----------
-        model : type[T]
-            SQLAlchemy model class.
-        obj_id : str
-            Primary key value.
-
-        Returns
-        -------
-        Optional[T]
-            The object if found, else None.
-        """
-        return await self.db.get(model, obj_id)
+    async def get_by_id(self, model: Type[T], obj_id: str) -> Optional[T]:
+        """Get an object by primary key, ensuring tenant scope."""
+        obj = await self.db.get(model, obj_id)
+        # Check tenant ID explicitly for SQLAlchemy's session.get() which bypasses ORM filters
+        if obj and getattr(obj, "tenant_id", None) != self.current_tenant_id:
+            return None
+        return obj
 
     async def create(self, obj: T) -> T:
-        """
-        Add a new object to the database.
-
-        Parameters
-        ----------
-        obj : T
-            The object instance to create.
-
-        Returns
-        -------
-        T
-            The created object with updated state.
-        """
-        self.db.add(obj)
-        await self.db.commit()
-        await self.db.refresh(obj)
+        """Create a new object within a transaction."""
+        async with self.transaction():
+            self.db.add(obj)
+            await self.db.flush()
+            # Refresh to ensure object is populated with DB-generated fields (like ID)
+            await self.db.refresh(obj)
         return obj
 
     async def update(self, obj: T) -> T:
-        """
-        Commit changes to an existing object.
-
-        Parameters
-        ----------
-        obj : T
-            The object instance to update.
-
-        Returns
-        -------
-        T
-            The updated object with refreshed state.
-        """
-        await self.db.commit()
-        await self.db.refresh(obj)
+        """Update an existing object within a transaction."""
+        async with self.transaction():
+            await self.db.flush()
+            # Refresh to get the latest state from the database after flush/commit
+            await self.db.refresh(obj)
         return obj
 
     async def soft_delete(self, obj: T) -> None:
-        """
-        Delete an object from the database.
-
-        Parameters
-        ----------
-        obj : T
-            The object instance to delete.
-        """
-        await self.db.delete(obj)
-        await self.db.commit()
+        """Soft-delete (or hard-delete if no SoftDeleteMixin) an object."""
+        async with self.transaction():
+            await self.db.delete(obj)
 """Tenant-scoped Permission service."""
 
 from __future__ import annotations
@@ -424,150 +403,285 @@ class PermissionService(CRUDService[Permission]):
     """Tenant-aware Permission service."""
 
     # inherits all CRUD + RLS + auditing functionality
-"""RBAC service for managing roles and permissions."""
-
+from __future__ import annotations
+from typing import Optional, Callable, Awaitable, Set
 from uuid import UUID
 
-from .crud_service import CRUDService
 from .role_service import RoleService
+from .crud_service import CRUDService
 from ..models.role import Role
 from ..models.permission import Permission
+from ..models.user import User
 
 
-# pylint:disable=R0903
+class PermissionError(Exception):
+    """Raised when a user lacks a required permission."""
+
+    pass
+
+
+PolicyHook = Callable[[str, str, Optional[str]], Awaitable[bool]]
+
+
 class RBACService:
-    """Service to manage RBAC: roles, permissions, and assignments."""
+    """Central service for enforcing roles and permissions."""
 
     def __init__(
         self,
         role_service: RoleService,
-        role_crud: CRUDService[Role],
         permission_crud: CRUDService[Permission],
+        policy_hook: Optional[PolicyHook] = None,
     ) -> None:
         self.role_service = role_service
-        self.role_crud = role_crud
+        self.db = role_service.db
         self.permission_crud = permission_crud
+        self.policy_hook = policy_hook
 
-    async def assign_permission_to_role(
-        self, role_id: UUID, permission_id: UUID
-    ) -> None:
-        """
-        Assign a permission object to a role within a transaction.
-        """
-        # Get Role
-        role = await self.role_crud.get_by_id(Role, str(role_id))
+    async def assign_permission_to_role(self, role_id: UUID, permission_id: UUID) -> None:
+        """Atomically link a permission to a role."""
+        role = await self.role_service.get_by_id(Role, str(role_id))
         if not role:
             raise ValueError(f"Role {role_id} not found")
 
-        # Get Permission
-        permission = await self.permission_crud.get_by_id(
-            Permission, str(permission_id)
-        )
+        permission = await self.permission_crud.get_by_id(Permission, str(permission_id))
         if not permission:
             raise ValueError(f"Permission {permission_id} not found")
 
-        # Use RoleService to add permission object
-        await self.role_service.add_permission_to_role(
-            role_id=str(role_id), permission_id=permission
-        )  # type: ignore
-"""Reporting service placeholder for IMA Service."""
+        await self.role_service.link_permission(str(role_id), permission)
 
-from typing import Any, Optional
-from .crud_service import CRUDService
-
-
-class ReportingService(CRUDService[Any]):
-    """Service for managing reporting operations (placeholder)."""
-
-    async def list(
-        self,
-        model: type[Any],
-        limit: int = 100,
-        offset: int = 0,
-    ) -> list[Any]:
+    async def check_access(
+        self, user_id: str, permission_code: str, tenant_id: Optional[str] = None
+    ) -> None:
         """
-        List report entries.
-
-        `model` is required to match CRUDService signature.
+        Ensure the user has the specified permission.
+        Raises PermissionError if access is denied.
         """
-        return await super().list(model=model, limit=limit, offset=offset)
+        # External policy hook can grant access before default RBAC check
+        if self.policy_hook and await self.policy_hook(user_id, permission_code, tenant_id):
+            return
 
-    async def get_by_id(self, model: type[Any], obj_id: str) -> Optional[Any]:
-        """Get a report entry by ID."""
-        return await super().get_by_id(model=model, obj_id=obj_id)
+        user: User = await self.db.get(User, user_id)
+        if not user:
+            raise PermissionError(f"User {user_id} not found or inactive.")
 
-    async def update(self, obj: Any) -> Any:
-        """Update a report entry."""
-        return await super().update(obj)
-"""Role Service"""
+        for role in getattr(user, "roles", []):
+            if tenant_id and getattr(role, "tenant_id", None) != tenant_id:
+                continue
+            perms: Set[str] = await self.role_service.get_effective_permissions(role.id)
+            if permission_code in perms:
+                return
 
-from typing import Optional
+        raise PermissionError(
+            f"Access denied: User {user_id} lacks '{permission_code}' permission."
+        )
+from __future__ import annotations
+from typing import Any, Type, Optional
+from sqlalchemy import select
 
+from .base_service import BaseService
+from .rbac_service import RBACService
+
+T = Any  # Generic ORM model placeholder
+
+
+class ReportingService(BaseService[T]):
+    """Tenant-scoped, RBAC-checked, audit-logged reporting service."""
+
+    def __init__(self, rbac_service: RBACService, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.rbac_service = rbac_service
+
+    async def _pre_check(self, permission: str) -> None:
+        await self.rbac_service.check_access(
+            self.current_user_id, permission, self.current_tenant_id
+        )
+
+    async def _execute(self, action: str, resource: str, db_op: callable) -> Any:
+        await self._pre_check(action)
+        status = 200
+        try:
+            return await db_op()
+        except Exception as e:
+            status = 500
+            raise
+        finally:
+            await self._audit(
+                action=action,
+                resource=resource,
+                status=status,
+                meta={"user_id": self.current_user_id},
+            )
+
+    async def list(self, model: Type[T], limit: int = 100, offset: int = 0) -> list[T]:
+        return await self._execute(
+            "report:list",
+            model.__name__,
+            lambda: self.db.execute(
+                self.scope_query(select(model).limit(limit).offset(offset))
+            ).then(lambda r: list(r.scalars().all())),
+        )
+
+    async def get_by_id(self, model: Type[T], obj_id: str) -> Optional[T]:
+        return await self._execute(
+            "report:view",
+            model.__name__,
+            lambda: self.db.execute(self.scope_query(select(model).where(model.id == obj_id))).then(
+                lambda r: r.scalar_one_or_none()
+            ),
+        )
+
+    async def update(self, obj: T) -> T:
+        async def op():
+            self.db.add(obj)
+            await self.db.flush()
+            await self.db.refresh(obj)
+            return obj
+
+        try:
+            await self._pre_check("report:update")
+            async with self.transaction():
+                result = await op()
+                await self._audit("report:update", type(obj).__name__, 200)
+                return result
+        except Exception as e:
+            await self._audit("report:update", type(obj).__name__, 500, meta={"error": str(e)})
+            raise
+from __future__ import annotations
+from typing import Optional, Set
 from ..models.role import Role
 from ..models.permission import Permission
 from .crud_service import CRUDService
 
 
 class RoleService(CRUDService[Role]):
-    """Service for managing roles."""
+    """Manage roles and permissions with RBAC safeguards."""
 
-    async def add_permission_to_role(
-        self, role_id: str, permission: Permission
-    ) -> None:
-        """Assign a permission object to a role (within a transaction)."""
-        async with self.transaction():
-            role: Optional[Role] = await self.get_by_id(Role, role_id)
-            if not role:
-                raise ValueError(f"Role {role_id} not found")
+    # --- Role CRUD with system role protection ---
+    async def update_role(self, role: Role) -> Role:
+        if getattr(role, "is_system_role", False):
+            raise PermissionError("System roles cannot be updated")
+        return await super().update(role)
 
-            if permission not in role.permissions:
-                role.permissions.append(permission)
-                await self.update(role)
-"""User service"""
+    async def delete_role(self, role: Role) -> None:
+        if getattr(role, "is_system_role", False):
+            raise PermissionError("System roles cannot be deleted")
+        await super().soft_delete(role)
 
+    # --- Atomic Permission Linking ---
+    @CRUDService.transactional
+    async def link_permission(self, role_id: str, permission: Permission) -> None:
+        role = await self.get_by_id(Role, role_id)
+        if not role:
+            raise ValueError(f"Role {role_id} not found")
+        if permission not in role.permissions:
+            role.permissions.append(permission)
+        await self.db.flush()
+
+    @CRUDService.transactional
+    async def unlink_permission(self, role_id: str, permission: Permission) -> None:
+        role = await self.get_by_id(Role, role_id)
+        if not role:
+            raise ValueError(f"Role {role_id} not found")
+        if permission in role.permissions:
+            role.permissions.remove(permission)
+        await self.db.flush()
+
+    # --- Effective Permissions (Hierarchy) ---
+    async def get_effective_permissions(
+        self, role_id: str, cache: Optional[dict] = None
+    ) -> Set[str]:
+        cache = cache or {}
+        if role_id in cache:
+            return cache[role_id]
+
+        role = await self.get_by_id(Role, role_id)
+        if not role:
+            return set()
+
+        perms = {p.code for p in getattr(role, "permissions", [])}
+        for parent in getattr(role, "parents", []):
+            perms |= await self.get_effective_permissions(parent.id, cache)
+
+        cache[role_id] = perms
+        return perms
+
+    # --- Historical Auditing Fields ---
+    async def set_effective_dates(self, role: Role, effective_from=None, effective_to=None) -> Role:
+        role.effective_from = effective_from
+        role.effective_to = effective_to
+        return await self.update_role(role)
 from __future__ import annotations
-
-from typing import Optional
-
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from ..models.user import User
+from typing import Optional, List
+from sqlalchemy import select, update
+from ..models.user import User, AuthToken, InvitationToken
 from .base_service import BaseService
+from .rbac_service import RBACService
 
 
 class UserService(BaseService[User]):
-    """User service with optional RLS."""
+    """Tenant-scoped user service with RBAC and lifecycle management."""
 
-    def __init__(self, db: AsyncSession, tenant_id: str, actor_id: str):
-        super().__init__(db=db, tenant_id=tenant_id, actor_id=actor_id)
-        self.rls_enabled: bool = True
+    def __init__(self, rbac_service: RBACService, **kwargs):
+        super().__init__(**kwargs)
+        self.rbac_service = rbac_service
 
+    # --- Read Methods ---
     async def get_by_email(self, email: str) -> Optional[User]:
-        """Find user by email"""
-        result = await self.db.execute(select(User).where(User.email == email))
+        stmt = select(User).where(User.email == email)
+        stmt = self.scope_query(stmt)
+        result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
-"""User service"""
 
-from __future__ import annotations
+    async def list_users(self, limit: int = 100, offset: int = 0) -> List[User]:
+        await self.rbac_service.check_access(
+            self.current_user_id, "user:list", self.current_tenant_id
+        )
+        stmt = select(User).limit(limit).offset(offset)
+        stmt = self.scope_query(stmt)
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
 
-from typing import Optional
+    # --- Write Methods ---
+    @BaseService.transactional
+    async def create_user(self, user: User) -> User:
+        await self.rbac_service.check_access(
+            self.current_user_id, "user:create", self.current_tenant_id
+        )
+        self.db.add(user)
+        await self.db.flush()
+        await self.db.refresh(user)
+        return user
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+    @BaseService.transactional
+    async def update_user(self, user: User) -> User:
+        await self.rbac_service.check_access(
+            self.current_user_id, "user:update", self.current_tenant_id
+        )
+        await self.db.flush()
+        await self.db.refresh(user)
+        return user
 
-from ..models.user import User
-from .base_service import BaseService
+    @BaseService.transactional
+    async def deactivate_user(self, user: User) -> None:
+        await self.rbac_service.check_access(
+            self.current_user_id, "user:deactivate", self.current_tenant_id
+        )
+        user.is_active = False
+        stmt = update(AuthToken).where(AuthToken.user_id == user.id).values(is_revoked=True)
+        await self.db.execute(stmt)
 
-
-class UserService(BaseService[User]):
-    """User service with optional RLS."""
-
-    def __init__(self, db: AsyncSession, tenant_id: str, actor_id: str):
-        super().__init__(db=db, tenant_id=tenant_id, actor_id=actor_id)
-        self.rls_enabled: bool = True
-
-    async def get_by_email(self, email: str) -> Optional[User]:
-        """Find user by email"""
-        result = await self.db.execute(select(User).where(User.email == email))
-        return result.scalar_one_or_none()
+    @BaseService.transactional
+    async def invite_user(self, email: str, roles: Optional[List[str]] = None) -> InvitationToken:
+        await self.rbac_service.check_access(
+            self.current_user_id, "user:invite", self.current_tenant_id
+        )
+        invite = InvitationToken(
+            email=email,
+            tenant_id=self.current_tenant_id,
+            status="PENDING",
+            invited_by_id=self.current_user_id,
+        )
+        self.db.add(invite)
+        await self.db.flush()
+        await self.db.refresh(invite)
+        return invite
