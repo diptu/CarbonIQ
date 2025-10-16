@@ -1,193 +1,161 @@
-"""AuditLog model for tracking sensitive actions in the IMA service."""
+# app/models/__init__.py
 
+"""
+Aggregate all SQLAlchemy models for easy import.
+
+This allows Alembic to detect metadata for autogenerate migrations.
+"""
+
+# Import all models here
+from ..models.user import User
+from ..models.role import Role
+from ..models.permission import Permission
+from ..models.role_permission import RolePermission
+from ..models.user_role import UserRole
+from ..models.auth_tokens import AuthToken, InvitationToken
+from ..models.audit_log import AuditLog
+
+
+# Add more imports as you create new models
+
+# Expose Base metadata
+from ..db.base_class import Base
+
+__all__ = [
+    "User",
+    "Role",
+    "Permission",
+    "RolePermission",
+    "UserRole",
+    "Base",
+]
+# audit_log.py
 from __future__ import annotations
-
 import uuid
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
+from datetime import datetime
 
-from sqlalchemy import JSON, ForeignKey, Index, Integer, String
+from sqlalchemy import ForeignKey, Index, Integer, String, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import BaseModel
 
-if TYPE_CHECKING:
-    from .user import User
-
 
 class AuditLog(BaseModel):
-    """
-    Tracks sensitive actions performed by users for audit and compliance.
-
-    Inherits all common fields (created_at, updated_at, tenant_id, created_by, updated_by)
-    from BaseModel.
-    """
-
-    __tablename__ = "audit_logs"  # 🔑 Added explicit tablename
-
-    # Audit Logs should NEVER be soft-deleted. The methods are removed below.
-    # The BaseModel's deleted_at column should be unused or configured to NOT inherit.
+    __tablename__ = "audit_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-
-    # 🔑 FIX: Foreign Key should be ON DELETE SET NULL
     user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     tenant_path: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     resource: Mapped[str] = mapped_column(String(100), nullable=False)
     method: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     endpoint: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     status_code: Mapped[int] = mapped_column(Integer, nullable=False)
-
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
     device_info: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-
-    # fields for traceability
     correlation_id: Mapped[Optional[str]] = mapped_column(String(100), index=True, nullable=True)
     trace_id: Mapped[Optional[str]] = mapped_column(String(100), index=True, nullable=True)
-
-    # flexible JSON metadata
     extra: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
-    # The inherited created_by/updated_by fields are redundant here, as the log
-    # tracks the acting user in user_id, but their presence is harmless.
+    user: Mapped[Optional["User"]] = relationship(
+        "User",
+        back_populates="audit_logs",
+        foreign_keys=[user_id],
+        lazy="joined",
+    )
 
-    # Relationships
-    user: Mapped[Optional["User"]] = relationship("User", backref="audit_logs", lazy="joined")
-
-    # Indexes for faster querying
     __table_args__ = (
         Index("ix_auditlog_user_id", "user_id"),
         Index("ix_auditlog_tenant_path", "tenant_path"),
         Index("ix_auditlog_action", "action"),
     )
-
-    # ==============================
-    # Helper Methods
-    # ==============================
-
-    # 🔑 FIX: REMOVED soft_delete and active methods.
-    # Audit logs MUST NOT be soft-deleted. If the BaseModel adds these methods,
-    # they must be overridden to raise an exception, or simply not used.
-
-    def __repr__(self) -> str:
-        return (
-            f"<AuditLog user={self.user_id} action={self.action} "
-            f"resource={self.resource} ip={self.ip_address}>"
-        )
-"""AuthToken model for managing user refresh/session tokens."""
-
+# auth_tokens.py
 from __future__ import annotations
-
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
-import sqlalchemy as sa
-from sqlalchemy import (
-    Boolean,
-    DateTime,
-    Enum,
-    ForeignKey,
-    String,
-    Text,
-    JSON,
-    Index,
-)
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, JSON, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import BaseModel
 
-if TYPE_CHECKING:
-    from .user import User
-
 
 class AuthToken(BaseModel):
-    """
-    Represents a user authentication or session token.
-
-    Inherits common fields (created_at, updated_at, tenant_id, created_by, updated_by)
-    from BaseModel.
-    """
-
     __tablename__ = "auth_tokens"
 
-    # pylint: disable=unsubscriptable-object, not-callable
-
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-
     token: Mapped[str] = mapped_column(Text, nullable=False)
     jti: Mapped[str] = mapped_column(String(36), nullable=False, unique=True)
-
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-
     revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    device_info: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
-
     issued_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=sa.func.now(),  # pylint: disable=E1102
+        DateTime(timezone=True), nullable=False, server_default="now()"
     )
     last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    session_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-
     token_type: Mapped[str] = mapped_column(
         Enum("access", "refresh", "api_key", name="token_type_enum"),
         nullable=False,
         default="access",
     )
 
-    correlation_id: Mapped[Optional[str]] = mapped_column(String(100), index=True, nullable=True)
-
-    trace_id: Mapped[Optional[str]] = mapped_column(String(100), index=True, nullable=True)
-
-    extra: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-
-    mfa_verified: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-
-    user: Mapped["User"] = relationship("User", back_populates="auth_tokens", lazy="joined")
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="auth_tokens",
+        foreign_keys=[user_id],
+        lazy="joined",
+    )
 
     __table_args__ = (
         Index("idx_auth_token_expires_at", "expires_at"),
         Index("idx_auth_token_jti", "jti"),
-        Index("idx_auth_token_revoked_user", "revoked", "user_id"),
     )
 
-    # ==============================
-    # Behavioral Methods
-    # ==============================
-
     def revoke(self) -> None:
-        """Revoke this token and mark revocation timestamp."""
         self.revoked = True
         self.revoked_at = datetime.now(timezone.utc)
         self.touch()
 
     def is_active(self) -> bool:
-        """Return True if token is active and not expired."""
         return not self.revoked and datetime.now(timezone.utc) < self.expires_at
 
-    def mark_used(self) -> None:
-        """Mark this token as recently used."""
-        self.last_used_at = datetime.now(timezone.utc)
-        self.touch()
 
-    def __repr__(self) -> str:
-        return (
-            f"<AuthToken user_id={self.user_id} "
-            f"jti={self.jti} type={self.token_type} revoked={self.revoked}>"
-        )
+class InvitationToken(BaseModel):
+    __tablename__ = "invitation_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    tenant_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    token: Mapped[str] = mapped_column(
+        String(36), nullable=False, default=lambda: str(uuid.uuid4())
+    )
+    status: Mapped[str] = mapped_column(
+        Enum("PENDING", "ACCEPTED", "REVOKED", name="invite_status_enum"),
+        nullable=False,
+        default="PENDING",
+    )
+    invited_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default="now()"
+    )
+    accepted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    inviter: Mapped[Optional["User"]] = relationship(
+        "User",
+        back_populates="invitations",
+        foreign_keys=[invited_by_id],
+        lazy="joined",
+    )
+# app/models/base.py
 """Base ORM model and common fields for IMA service."""
 
 from __future__ import annotations
@@ -198,31 +166,35 @@ import uuid
 
 import sqlalchemy as sa
 from sqlalchemy import DateTime, String, ForeignKey
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, Session
 
+from ..db.base_class import Base
 from .tenant_mixin import TenantMixin
-
 
 if TYPE_CHECKING:
     from .user import User
 
 
-class BaseModel(DeclarativeBase, TenantMixin):
+class BaseModel(Base, TenantMixin):
     """
-    Base class for ORM models with timestamps, full user-based audit fields,
-    soft-delete, and optional tenant scoping.
+    Base class for ORM models with:
+    - Timestamps: created_at, updated_at
+    - Soft delete: deleted_at
+    - Tenant-aware filtering: tenant_id
+    - Audit fields: created_by, updated_by
     """
 
+    __abstract__ = True  # <-- THIS prevents SQLAlchemy from mapping it as a table
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        server_default=sa.func.now(),  # pylint: disable=E1102
+        server_default=sa.func.now(),  # type: ignore
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        server_default=sa.func.now(),  # pylint: disable=E1102
-        server_onupdate=sa.func.now(),  # pylint: disable=E1102
+        server_default=sa.func.now(),  # type: ignore
+        server_onupdate=sa.func.now(),  # type: ignore
     )
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -238,20 +210,35 @@ class BaseModel(DeclarativeBase, TenantMixin):
         comment="User ID who last updated the record",
     )
 
-    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(String(36), nullable=True)
+    tenant_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
 
-    def touch(self):
-        """Update the 'updated_at' timestamp."""
+    # -------------------------
+    # Helper methods
+    # -------------------------
+    def touch(self) -> None:
+        """Update the 'updated_at' timestamp to current UTC."""
         self.updated_at = datetime.utcnow()
 
-    def soft_delete(self):
+    def soft_delete(self) -> None:
         """Mark this record as deleted (soft delete)."""
         self.deleted_at = datetime.utcnow()
         self.touch()
 
     @classmethod
-    def active(cls, session):
-        """Return only non-deleted records."""
+    def active(cls, session: Session):
+        """
+        Return only non-deleted records.
+
+        Parameters
+        ----------
+        session : Session
+            SQLAlchemy session to query.
+
+        Returns
+        -------
+        Query
+            Query filtered by `deleted_at IS NULL`.
+        """
         return session.query(cls).filter(cls.deleted_at.is_(None))
 """Permission model for the RBAC system with optional tenant scoping."""
 
@@ -279,6 +266,7 @@ class Permission(BaseModel):
     from BaseModel.)
     """
 
+    __tablename__ = "permissions"
     __table_args__ = (
         Index("ix_permissions_code", "code"),
         Index("ix_permissions_module", "module"),
@@ -323,7 +311,6 @@ from sqlalchemy import Boolean, Integer, String, Text, ForeignKey, Index, Enum a
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import BaseModel
-
 from .user_role import UserRole
 from .role_permission import RolePermission
 
@@ -366,18 +353,28 @@ class Role(BaseModel):
         ForeignKey("roles.id", ondelete="SET NULL"), nullable=True
     )
 
-    users: Mapped[List["User"]] = relationship(
-        "User", secondary=UserRole.__table__, back_populates="roles"
+    # inside Role model
+    users = relationship(
+        "User",
+        secondary=UserRole.__table__,
+        back_populates="roles",
+        primaryjoin="Role.id == UserRole.role_id",
+        secondaryjoin="User.id == UserRole.user_id",
     )
 
     permissions: Mapped[List["Permission"]] = relationship(
-        "Permission", secondary=RolePermission.__table__, back_populates="roles"
+        "Permission",
+        secondary=RolePermission.__table__,
+        back_populates="roles",
+        lazy="selectin",
     )
 
+    # Fix for hierarchical roles with delete-orphan
     children: Mapped[List["Role"]] = relationship(
         "Role",
         back_populates="parent",
         cascade="all, delete-orphan",
+        single_parent=True,
         remote_side=[id],
     )
     parent: Mapped[Optional["Role"]] = relationship(
@@ -472,14 +469,12 @@ class TenantMixin:  # pylint:disable=R0903
             tenant_uuid = UUID(int=0)
 
         return session.query(cls).filter(cast(cls.tenant_id, PG_UUID) == tenant_uuid)
-"""User model for multi-tenant RBAC system with hierarchical tenant support."""
-
+# user.py
 from __future__ import annotations
-
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Optional, List
+from typing import Optional, List
 
 from sqlalchemy import Boolean, String, Text, Index, DateTime, Enum as SQLEnum
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -487,27 +482,17 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import BaseModel
 from ..core.security import hash_password, verify_password
-
 from .user_role import UserRole
-
-if TYPE_CHECKING:
-    from .role import Role
 
 
 class UserStatus(str, Enum):
-    """Enum representing user account status."""
-
     ACTIVE = "active"
     PENDING = "pending"
     BLOCKED = "blocked"
 
 
 class User(BaseModel):
-    """
-    Represents an authenticated individual tied to a tenant in a hierarchical
-    multi-tenant SaaS application.
-    """
-
+    __tablename__ = "users"
     __table_args__ = (
         Index("ix_users_tenant_id", "tenant_id"),
         Index("ix_users_email", "email"),
@@ -528,47 +513,59 @@ class User(BaseModel):
         DateTime(timezone=True), nullable=True
     )
 
-    roles: Mapped[List["Role"]] = relationship(
-        "Role", secondary=UserRole.__table__, back_populates="users"
+    # --- Relationships ---
+    roles = relationship(
+        "Role",
+        secondary=UserRole.__table__,
+        back_populates="users",
+        primaryjoin="User.id == UserRole.user_id",
+        secondaryjoin="Role.id == UserRole.role_id",
     )
 
-    def __repr__(self) -> str:
-        """Return a string representation of the user."""
-        return f"<User {self.email} status={self.status}>"
+    auth_tokens: Mapped[list["AuthToken"]] = relationship(
+        "AuthToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="[AuthToken.user_id]",
+    )
+
+    invitations: Mapped[list["InvitationToken"]] = relationship(
+        "InvitationToken",
+        back_populates="inviter",
+        cascade="all, delete-orphan",
+        foreign_keys="[InvitationToken.invited_by_id]",
+    )
+
+    audit_logs: Mapped[list["AuditLog"]] = relationship(
+        "AuditLog",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="[AuditLog.user_id]",
+    )
 
     @hybrid_property
     def password(self) -> str:
-        """Prevent direct reading of the password hash."""
         raise AttributeError("Password is not readable")
 
-    @password.setter  # type:ignore[no-redef]
+    @password.setter
     def password(self, password: str) -> None:
-        """
-        Hash the given password and update the security stamp.
-        """
         self.password_hash = hash_password(password)
         self.security_stamp = uuid.uuid4()
 
     def verify_password(self, password: str) -> bool:
-        """
-        Verify a plaintext password against the stored hash.
-        """
         return verify_password(password, self.password_hash)
 
     def activate(self) -> None:
-        """Activate the user account and update timestamps."""
         self.is_active = True
         self.status = UserStatus.ACTIVE
         self.touch()
 
     def deactivate(self) -> None:
-        """Deactivate the user account and update timestamps."""
         self.is_active = False
         self.status = UserStatus.BLOCKED
         self.touch()
 
     def mark_login(self) -> None:
-        """Update the last login timestamp to current UTC."""
         self.last_login_at = datetime.utcnow()
         self.touch()
 """UserRole association table for RBAC system linking Users to Roles."""

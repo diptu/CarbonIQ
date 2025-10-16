@@ -62,7 +62,7 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
 
     Handles commit/rollback automatically.
     """
-    async with get_db() as session:
+    async for session in get_db():  # <- use async for instead of async with
         try:
             yield session
             await session.commit()

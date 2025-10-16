@@ -57,6 +57,8 @@ class AuditAdapter:
 from __future__ import annotations
 from typing import Any, Dict, Optional, List
 
+from sqlalchemy.orm import selectinload
+
 from .base_service import BaseService
 from .user_service import UserService
 from ..core.security import (
@@ -69,78 +71,102 @@ from ..core.redis_adapter import RedisAdapter
 
 
 class AuthService(BaseService[Dict[str, Any]]):
-    """Authentication service handling JWT, refresh tokens, MFA, and token blacklisting."""
+    """
+    Authentication service handling:
+      - User authentication
+      - JWT + Refresh token issuance
+      - Token revocation (blacklisting)
+      - Optional MFA hooks
+      - Brute-force attempt protection
+    """
 
     def __init__(
-        self, user_service: UserService, redis: Optional[RedisAdapter] = None, **kwargs
+        self,
+        user_service: UserService,
+        redis: Optional[RedisAdapter] = None,
+        max_login_attempts: int = 5,
+        lockout_duration: int = 900,  # 15 minutes
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.user_service = user_service
         self.redis = redis
-        self._login_attempts: Dict[str, int] = {}  # Placeholder for brute-force protection
+        self.max_login_attempts = max_login_attempts
+        self.lockout_duration = lockout_duration
+        self._login_attempts: Dict[str, int] = {}  # fallback if Redis not used
 
-    async def login(self, email: str, password: str) -> Dict[str, Any]:
+    # -------------------------------------------------------------------------
+    # AUTH FLOW
+    # -------------------------------------------------------------------------
+    async def login(self, email: str, password: str) -> Dict[str, str]:
         """Authenticate user and issue JWT + refresh tokens."""
+        # Eager-load roles and permissions
         user = await self.user_service.get_by_email(email)
+        if not user:
+            await self._record_failed_login(email)
+            await self._audit("login_failed", "user", 404, {"email": email})
+            raise ValueError("Invalid credentials")
 
-        if self._is_user_locked(email):
+        if await self._is_user_locked(email):
             await self._audit("login_locked", "user", 403, {"email": email})
-            raise PermissionError("Account locked due to too many failed attempts")
+            raise PermissionError("Account temporarily locked due to failed attempts")
 
-        if not user or not verify_password(password, user.password):
+        if not user.verify_password(password):
             await self._record_failed_login(email)
             await self._audit("login_failed", "user", 401, {"email": email})
             raise ValueError("Invalid credentials")
 
-        if not self._check_password_complexity(password):
-            raise ValueError("Password does not meet complexity requirements")
-
+        # Reset failed login on success
         await self._reset_failed_login(email)
         await self._audit("login_success", "user", 200, {"user_id": str(user.id)})
 
         return await self.issue_tokens(user)
 
     async def issue_tokens(self, user) -> Dict[str, str]:
-        """Generate access and refresh tokens including tenant and effective permissions."""
+        """Generate access and refresh tokens with roles."""
         if not self.tenant_id:
-            raise ValueError("Tenant context required")
+            raise ValueError("Tenant context required for token generation")
 
-        permissions: List[str] = [p.code for r in user.roles for p in r.permissions]
+        roles: List[str] = [r.name for r in user.roles]
 
-        return {
-            "access_token": create_access_token(
-                sub=str(user.id),
-                tenant_id=self.tenant_id,
-                roles=[r.name for r in user.roles],
-                permissions=permissions,
-            ),
-            "refresh_token": create_refresh_token(sub=str(user.id), tenant_id=self.tenant_id),
-        }
+        access_token = create_access_token(
+            user_id=str(user.id),  # matches core/security signature
+            tenant_id=self.tenant_id,
+            roles=roles,
+        )
+        refresh_token = create_refresh_token(
+            user_id=str(user.id),
+            tenant_id=self.tenant_id,
+        )
+
+        return {"access_token": access_token, "refresh_token": refresh_token}
 
     async def refresh(self, refresh_token: str) -> Dict[str, str]:
-        """Verify refresh token and issue new access token."""
+        """Verify refresh token and issue a new access token."""
         payload = verify_token(refresh_token)
         if not payload or payload.get("type") != "refresh":
             raise ValueError("Invalid refresh token")
 
-        user = await self.user_service.get_by_id(payload.get("sub"))
+        user = await self.user_service.get_by_id(payload.get("user_id"))
         if not user:
             raise ValueError("User not found")
 
         self.tenant_id = payload.get("tenant_id")
         return await self.issue_tokens(user)
 
+    # -------------------------------------------------------------------------
+    # TOKEN MANAGEMENT
+    # -------------------------------------------------------------------------
     async def revoke_token(self, jti: str, expires_in: int = 3600) -> None:
-        """Revoke a token immediately by writing JTI to Redis blacklist."""
         if self.redis:
             await self.redis.set_blacklist(jti, expires_in)
 
     async def is_token_revoked(self, jti: str) -> bool:
-        """Check Redis blacklist for revoked token JTI."""
         return await self.redis.is_blacklisted(jti) if self.redis else False
 
-    # --- Security Helpers ---
-
+    # -------------------------------------------------------------------------
+    # SECURITY HELPERS
+    # -------------------------------------------------------------------------
     def _check_password_complexity(self, password: str) -> bool:
         return (
             len(password) >= 8
@@ -151,15 +177,29 @@ class AuthService(BaseService[Dict[str, Any]]):
         )
 
     async def _record_failed_login(self, email: str) -> None:
-        self._login_attempts[email] = self._login_attempts.get(email, 0) + 1
+        if self.redis:
+            key = f"login_attempts:{email}"
+            attempts = await self.redis.incr(key)
+            if attempts == 1:
+                await self.redis.expire(key, self.lockout_duration)
+        else:
+            self._login_attempts[email] = self._login_attempts.get(email, 0) + 1
 
     async def _reset_failed_login(self, email: str) -> None:
-        self._login_attempts.pop(email, None)
+        if self.redis:
+            await self.redis.delete(f"login_attempts:{email}")
+        else:
+            self._login_attempts.pop(email, None)
 
-    def _is_user_locked(self, email: str, max_attempts: int = 5) -> bool:
-        return self._login_attempts.get(email, 0) >= max_attempts
+    async def _is_user_locked(self, email: str) -> bool:
+        if self.redis:
+            attempts = await self.redis.get(f"login_attempts:{email}")
+            return int(attempts or 0) >= self.max_login_attempts
+        return self._login_attempts.get(email, 0) >= self.max_login_attempts
 
-    # --- MFA Placeholders ---
+    # -------------------------------------------------------------------------
+    # MFA PLACEHOLDERS
+    # -------------------------------------------------------------------------
     async def setup_mfa(self, user) -> str:
         return "mfa-secret-placeholder"
 
@@ -170,7 +210,7 @@ from __future__ import annotations
 from abc import ABC
 from contextlib import asynccontextmanager
 from functools import wraps
-from typing import Any, Optional, TypeVar, Generic, Callable
+from typing import Any, Optional, TypeVar, Generic, Callable, Coroutine
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
@@ -178,6 +218,7 @@ from sqlalchemy.sql import Select
 from .audit_adapter import AuditAdapter
 
 T = TypeVar("T")
+
 
 class BaseService(AuditAdapter, Generic[T], ABC):
     """
@@ -198,6 +239,8 @@ class BaseService(AuditAdapter, Generic[T], ABC):
         self.tenant_id: Optional[str] = tenant_id
         self.actor_id: Optional[str] = actor_id
 
+    # --------------------------- TRANSACTION UTILS ---------------------------
+
     @asynccontextmanager
     async def transaction(self) -> Any:
         """Async context manager for DB transactions."""
@@ -206,6 +249,32 @@ class BaseService(AuditAdapter, Generic[T], ABC):
                 yield
             except Exception:
                 raise  # rollback is automatic on exception
+
+    @classmethod
+    def transactional(
+        cls, func: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None
+    ) -> Callable[..., Any]:
+        """
+        Decorator for wrapping service methods in a DB transaction.
+        Usage:
+            @CRUDService.transactional
+            async def my_method(...):
+                ...
+        """
+
+        def decorator(inner_func: Callable[..., Coroutine[Any, Any, Any]]):
+            @wraps(inner_func)
+            async def wrapper(self: BaseService, *args, **kwargs):
+                async with self.transaction():
+                    return await inner_func(self, *args, **kwargs)
+
+            return wrapper
+
+        if func:
+            return decorator(func)
+        return decorator
+
+    # ----------------------------- AUDIT UTILS -------------------------------
 
     async def _audit(
         self,
@@ -224,6 +293,8 @@ class BaseService(AuditAdapter, Generic[T], ABC):
             meta=meta or {},
         )
 
+    # -------------------------- CONTEXT PROPERTIES ---------------------------
+
     @property
     def current_user_id(self) -> Optional[str]:
         return self.actor_id
@@ -231,6 +302,8 @@ class BaseService(AuditAdapter, Generic[T], ABC):
     @property
     def current_tenant_id(self) -> Optional[str]:
         return self.tenant_id
+
+    # ---------------------------- QUERY SCOPING ------------------------------
 
     def scope_query(self, query: Select) -> Select:
         """
@@ -245,14 +318,6 @@ class BaseService(AuditAdapter, Generic[T], ABC):
             raise AttributeError(f"{entity} has no 'tenant_id' column")
 
         return query.where(entity.tenant_id == self.tenant_id)
-
-    def transactional(self, func: Callable[..., Any]) -> Callable[..., Any]:
-        """Decorator to wrap service methods in a DB transaction."""
-        @wraps(func)
-        async def wrapper(self: BaseService, *args, **kwargs):
-            async with self.transaction():
-                return await func(self, *args, **kwargs)
-        return wrapper
 from __future__ import annotations
 from typing import Any, Optional, Type
 from sqlalchemy import select
@@ -613,7 +678,11 @@ class RoleService(CRUDService[Role]):
 from __future__ import annotations
 from typing import Optional, List
 from sqlalchemy import select, update
-from ..models.user import User, AuthToken, InvitationToken
+from sqlalchemy.orm import selectinload, joinedload
+
+from ..models.user import User
+from ..models.role import Role
+from ..models.auth_tokens import AuthToken, InvitationToken
 from .base_service import BaseService
 from .rbac_service import RBACService
 
@@ -627,7 +696,27 @@ class UserService(BaseService[User]):
 
     # --- Read Methods ---
     async def get_by_email(self, email: str) -> Optional[User]:
-        stmt = select(User).where(User.email == email)
+        stmt = (
+            select(User)
+            .options(
+                selectinload(User.roles).selectinload(Role.permissions),  # class-bound attribute
+                selectinload(User.auth_tokens),
+            )
+            .where(User.email == email)
+        )
+        stmt = self.scope_query(stmt)
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_by_id(self, user_id: str) -> Optional[User]:
+        stmt = (
+            select(User)
+            .options(
+                selectinload(User.roles).selectinload(Role.permissions),  # class-bound attribute
+                selectinload(User.auth_tokens),
+            )
+            .where(User.id == user_id)
+        )
         stmt = self.scope_query(stmt)
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
@@ -636,7 +725,15 @@ class UserService(BaseService[User]):
         await self.rbac_service.check_access(
             self.current_user_id, "user:list", self.current_tenant_id
         )
-        stmt = select(User).limit(limit).offset(offset)
+        stmt = (
+            select(User)
+            .options(
+                selectinload(User.roles).selectinload(Role.permissions),
+                selectinload(User.auth_tokens),
+            )
+            .limit(limit)
+            .offset(offset)
+        )
         stmt = self.scope_query(stmt)
         result = await self.db.execute(stmt)
         return result.scalars().all()
@@ -667,7 +764,7 @@ class UserService(BaseService[User]):
             self.current_user_id, "user:deactivate", self.current_tenant_id
         )
         user.is_active = False
-        stmt = update(AuthToken).where(AuthToken.user_id == user.id).values(is_revoked=True)
+        stmt = update(AuthToken).where(AuthToken.user_id == user.id).values(revoked=True)
         await self.db.execute(stmt)
 
     @BaseService.transactional

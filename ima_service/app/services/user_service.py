@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Optional, List
 from sqlalchemy import select, update
-from sqlalchemy.orm import selectinload, joinedload
+from sqlalchemy.orm import selectinload
 
 from ..models.user import User
 from ..models.role import Role
@@ -18,16 +18,18 @@ class UserService(BaseService[User]):
         self.rbac_service = rbac_service
 
     # --- Read Methods ---
-    async def get_by_email(self, email: str) -> Optional[User]:
+    async def get_by_email(self, email: str, ignore_tenant: bool = False) -> Optional[User]:
         stmt = (
             select(User)
             .options(
-                selectinload(User.roles).selectinload(Role.permissions),  # class-bound attribute
+                selectinload(User.roles).selectinload(Role.permissions),
                 selectinload(User.auth_tokens),
             )
             .where(User.email == email)
         )
-        stmt = self.scope_query(stmt)
+        if not ignore_tenant:
+            stmt = self.scope_query(stmt)
+
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -35,7 +37,7 @@ class UserService(BaseService[User]):
         stmt = (
             select(User)
             .options(
-                selectinload(User.roles).selectinload(Role.permissions),  # class-bound attribute
+                selectinload(User.roles).selectinload(Role.permissions),
                 selectinload(User.auth_tokens),
             )
             .where(User.id == user_id)
@@ -105,3 +107,14 @@ class UserService(BaseService[User]):
         await self.db.flush()
         await self.db.refresh(invite)
         return invite
+
+    # -----------------------------
+    # Permissions Helper
+    # -----------------------------
+    async def get_user_permissions(self, user: User) -> list[str]:
+        """Return list of permission codes for a user via roles."""
+        perms = set()
+        for role in getattr(user, "roles", []):
+            for perm in getattr(role, "permissions", []):
+                perms.add(perm.code)
+        return list(perms)

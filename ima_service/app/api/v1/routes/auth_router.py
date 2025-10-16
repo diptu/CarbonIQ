@@ -1,15 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, Header
+from __future__ import annotations
+from typing import Dict, Optional
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.auth_service import AuthService
+from pydantic import BaseModel, EmailStr
+from datetime import datetime, timezone
+import uuid
+
+from app.db.session import get_db
 from app.services.user_service import UserService
 from app.services.role_service import RoleService
 from app.services.rbac_service import RBACService
 from app.services.crud_service import CRUDService
-from app.models.permission import Permission
-from app.db.session import get_db
-from pydantic import BaseModel, EmailStr
-from starlette.status import HTTP_401_UNAUTHORIZED
-from typing import Dict
+from app.services.auth_service import AuthService
 
 router = APIRouter()
 
@@ -22,32 +24,19 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class InviteRequest(BaseModel):
-    email: EmailStr
-    roles: list[str] = []
-
-
 class RefreshRequest(BaseModel):
     refresh_token: str
 
 
 # -------------------------------
-# Routes
+# Login Route
 # -------------------------------
 @router.post("/login")
 async def login(
     login_req: LoginRequest,
     db: AsyncSession = Depends(get_db),
-    x_tenant_id: str = Header(..., alias="x-tenant-id"),
-):
-    """
-    User login endpoint.
-    Returns access + refresh tokens on success.
-    """
-    email = login_req.email
-    password = login_req.password
-
-    # Initialize services
+    x_tenant_id: Optional[str] = Header(None, alias="x-tenant-id"),
+) -> Dict:
     role_service = RoleService(db=db, tenant_id=x_tenant_id)
     permission_crud = CRUDService(db=db, tenant_id=x_tenant_id)
     rbac_service = RBACService(role_service=role_service, permission_crud=permission_crud)
@@ -55,62 +44,30 @@ async def login(
     auth_service = AuthService(user_service=user_service, db=db, tenant_id=x_tenant_id)
 
     try:
-        tokens: Dict[str, str] = await auth_service.login(email=email, password=password)
-    except ValueError as ve:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=str(ve))
-    except PermissionError as pe:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=str(pe))
-
+        tokens = await auth_service.login(email=login_req.email, password=login_req.password)
+    except HTTPException as he:
+        raise he
     return tokens
 
 
+# -------------------------------
+# Refresh Token Route
+# -------------------------------
 @router.post("/refresh")
 async def refresh_token(
     req: RefreshRequest,
     db: AsyncSession = Depends(get_db),
-    x_tenant_id: str = Header(..., alias="x-tenant-id"),
-):
+    x_tenant_id: Optional[str] = Header(None, alias="x-tenant-id"),
+) -> Dict:
     role_service = RoleService(db=db, tenant_id=x_tenant_id)
     permission_crud = CRUDService(db=db, tenant_id=x_tenant_id)
     rbac_service = RBACService(role_service=role_service, permission_crud=permission_crud)
     user_service = UserService(db=db, rbac_service=rbac_service, tenant_id=x_tenant_id)
-
-    # Pass db to AuthService
     auth_service = AuthService(user_service=user_service, db=db, tenant_id=x_tenant_id)
 
     try:
-        tokens: Dict[str, str] = await auth_service.refresh(req.refresh_token)
-    except ValueError as ve:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=str(ve))
+        payload = await auth_service.refresh(req.refresh_token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    return tokens
-
-
-# @router.post("/invite")
-# async def invite_user(
-#     invite_req: InviteRequest,
-#     db: AsyncSession = Depends(get_db),
-#     x_tenant_id: str = Header(..., alias="x-tenant-id"),
-# ):
-#     """
-#     Invite a user to join the tenant.
-#     Creates an InvitationToken.
-#     """
-#     role_service = RoleService(db=db, tenant_id=x_tenant_id)
-#     permission_crud = CRUDService(db=db, tenant_id=x_tenant_id)
-#     rbac_service = RBACService(role_service=role_service, permission_crud=permission_crud)
-#     user_service = UserService(db=db, rbac_service=rbac_service, tenant_id=x_tenant_id)
-
-#     try:
-#         invite_token = await user_service.invite_user(
-#             email=invite_req.email,
-#             roles=invite_req.roles,
-#         )
-#     except PermissionError as pe:
-#         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=str(pe))
-
-#     return {
-#         "invite_token": invite_token.token,
-#         "status": invite_token.status,
-#         "tenant_id": invite_token.tenant_id,
-#     }
+    return payload
