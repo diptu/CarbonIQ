@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------
-# Multi-Tenant Authentication Test Script (Login + Refresh)
+# Multi-Tenant Authentication Test Script
+# Login → Refresh → Logout (Full Test Suite)
 # --------------------------------------------------------
 
 set -uo pipefail
 
-BASE_URL="http://127.0.0.1:8000/api/v1/auth/login"
-REFRESH_URL="http://127.0.0.1:8000/api/v1/auth/refresh"
+BASE_URL="http://127.0.0.1:8000/api/v1/auth"
+LOGIN_URL="$BASE_URL/login"
+REFRESH_URL="$BASE_URL/refresh"
+LOGOUT_URL="$BASE_URL/logout"
 PASSWORD="Hello123"
 
 # Detect color support
@@ -23,6 +26,9 @@ PASS_COUNT=0
 FAIL_COUNT=0
 RESULTS=()
 
+# -------------------------
+# Generic test functions
+# -------------------------
 run_test() {
   case_id="$1"
   description="$2"
@@ -39,7 +45,7 @@ run_test() {
   echo "Tenant:  $tenant"
   echo "Expect:  $expected_result [$expected_code]"
 
-  response=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL" \
+  response=$(curl -s -w "\n%{http_code}" -X POST "$LOGIN_URL" \
     -H "accept: application/json" \
     ${tenant:+-H "x-tenant-id: $tenant"} \
     -H "Content-Type: application/json" \
@@ -97,9 +103,43 @@ run_refresh_test() {
   echo "Response: $body"
 }
 
-# --------------------------------------------------------
+run_logout_test() {
+  case_id="$1"
+  description="$2"
+  access_token="$3"
+  refresh_token="$4"
+  expected_code="$5"
+  expected_result="$6"
+
+  echo ""
+  echo "----------------------------------------------------"
+  echo "Logout Case #$case_id: $description"
+  echo "Expect:  $expected_result [$expected_code]"
+
+  response=$(curl -s -w "\n%{http_code}" -X POST "$LOGOUT_URL" \
+    -H "accept: application/json" \
+    -H "Authorization: Bearer $access_token" \
+    ${refresh_token:+-G --data-urlencode "refresh_token=$refresh_token"} )
+
+  body=$(echo "$response" | sed '$d')
+  code=$(echo "$response" | tail -n1)
+
+  if [ "$code" = "$expected_code" ]; then
+    echo -e "Result: ${GREEN}PASS${NC} (HTTP $code)"
+    RESULTS+=("$case_id|$description|logout|N/A|PASS|$code|$body")
+    PASS_COUNT=$((PASS_COUNT+1))
+  else
+    echo -e "Result: ${RED}FAIL${NC} (Got HTTP $code)"
+    RESULTS+=("$case_id|$description|logout|N/A|FAIL|$code|$body")
+    FAIL_COUNT=$((FAIL_COUNT+1))
+  fi
+
+  echo "Response: $body"
+}
+
+# -------------------------
 # LOGIN TEST CASES
-# --------------------------------------------------------
+# -------------------------
 run_test 1 "Admin can log in" "admin@apple.com" "$PASSWORD" "apple.company" 200 "Success"
 run_test 2 "Billing user login" "billing@orchard.apple.com" "$PASSWORD" "orchard.apple.company" 200 "Success"
 run_test 3 "Admin logs into own tenant" "admin@orange.com" "$PASSWORD" "orange.company" 200 "Success"
@@ -114,52 +154,58 @@ run_test 11 "Super-admin login to any tenant" "admin@carboniq.com" "$PASSWORD" "
 run_test 12 "Super-admin login without tenant header" "admin@carboniq.com" "$PASSWORD" "" 200 "Success"
 run_test 13 "Login without tenant header (non-super-admin)" "admin@apple.com" "$PASSWORD" "" 403 "Fail"
 
-# --------------------------------------------------------
+# -------------------------
 # REFRESH TOKEN TEST CASES
-# --------------------------------------------------------
+# -------------------------
+REFRESH_TOKEN_APPLE=$(curl -s -X POST "$LOGIN_URL" \
+  -H "accept: application/json" \
+  -H "x-tenant-id: apple.company" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}" | jq -r '.data.refresh_token')
 
-# Case 14: Valid refresh (Apple)
-REFRESH_TOKEN_APPLE=$(curl -s -X POST "$BASE_URL" \
+NEW_REFRESH_TOKEN=$(curl -s -X POST "$LOGIN_URL" \
   -H "accept: application/json" \
   -H "x-tenant-id: apple.company" \
   -H "Content-Type: application/json" \
   -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}" | jq -r '.data.refresh_token')
 
 run_refresh_test 14 "Refresh token with valid token" "$REFRESH_TOKEN_APPLE" "apple.company" 200 "Success"
-
-# Case 15: Invalid token
 run_refresh_test 15 "Refresh token with invalid token" "invalid.token.value" "apple.company" 401 "Fail"
-
-# Case 16: Wrong tenant — reuse Apple token under Orange tenant
 run_refresh_test 16 "Refresh token from wrong tenant" "$REFRESH_TOKEN_APPLE" "orange.company" 403 "Fail"
-
-# Case 17: Manually revoked token
 REVOKED_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 run_refresh_test 17 "Refresh with manually revoked token" "$REVOKED_TOKEN" "apple.company" 401 "Fail"
-
-# Case 18: Token rotation — generate a new Apple token, then test reuse
-NEW_REFRESH_TOKEN=$(curl -s -X POST "$BASE_URL" \
-  -H "accept: application/json" \
-  -H "x-tenant-id: apple.company" \
-  -H "Content-Type: application/json" \
-  -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}" | jq -r '.data.refresh_token')
-
 run_refresh_test 18a "Valid rotation refresh (new token)" "$NEW_REFRESH_TOKEN" "apple.company" 200 "Success"
 run_refresh_test 18b "Reuse old refresh token after rotation" "$REFRESH_TOKEN_APPLE" "apple.company" 401 "Fail"
 
-# --------------------------------------------------------
+# -------------------------
+# LOGOUT TEST CASES
+# -------------------------
+LOGIN_RESPONSE=$(curl -s -X POST "$LOGIN_URL" \
+  -H "accept: application/json" \
+  -H "x-tenant-id: apple.company" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}")
+
+ACCESS_TOKEN_APPLE=$(echo "$LOGIN_RESPONSE" | jq -r '.data.access_token')
+REFRESH_TOKEN_APPLE=$(echo "$LOGIN_RESPONSE" | jq -r '.data.refresh_token')
+
+run_logout_test 19a "Logout a single refresh token" "$ACCESS_TOKEN_APPLE" "$REFRESH_TOKEN_APPLE" 200 "Success"
+run_logout_test 19b "Logout all refresh tokens for user" "$ACCESS_TOKEN_APPLE" "" 200 "Success"
+run_logout_test 19c "Logout with invalid access token" "invalid.access.token" "$REFRESH_TOKEN_APPLE" 401 "Fail"
+
+# -------------------------
 # SUMMARY
-# --------------------------------------------------------
+# -------------------------
 echo ""
 echo "===================================================="
 echo -e "${YELLOW}Test Summary${NC}"
 echo "===================================================="
-printf "%-3s | %-35s | %-25s | %-22s | %-6s | %-5s\n" "#" "Description" "User" "Tenant" "Result" "HTTP"
+printf "%-3s | %-35s | %-25s | %-22s | %-6s | %-5s\n" "#" "Description" "User/Action" "Tenant" "Result" "HTTP"
 echo "------------------------------------------------------------------------------------------------------------"
 for result in "${RESULTS[@]}"; do
-  IFS="|" read -r id desc email tenant status code body <<< "$result"
+  IFS="|" read -r id desc action tenant status code body <<< "$result"
   if [ "$status" = "PASS" ]; then color="$GREEN"; else color="$RED"; fi
-  printf "%-3s | %-35s | %-25s | %-22s | ${color}%-6s${NC} | %-5s\n" "$id" "$desc" "$email" "$tenant" "$status" "$code"
+  printf "%-3s | %-35s | %-25s | %-22s | ${color}%-6s${NC} | %-5s\n" "$id" "$desc" "$action" "$tenant" "$status" "$code"
 done
 echo "------------------------------------------------------------------------------------------------------------"
 echo -e "✅ Passed: ${GREEN}$PASS_COUNT${NC}   ❌ Failed: ${RED}$FAIL_COUNT${NC}"

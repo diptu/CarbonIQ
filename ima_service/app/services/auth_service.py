@@ -4,14 +4,23 @@ from typing import Any, Dict, Optional, List
 from fastapi import HTTPException
 from .base_service import BaseService
 from .user_service import UserService
-from ..core.security import create_access_token, create_refresh_token, revoke_token
+from ..core.security import (
+    create_access_token,
+    create_refresh_token,
+    revoke_token,
+    validate_refresh_token,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ..schemas.auth_tokens import TokenUser
 from app.models.auth_tokens import AuthToken
 from ..core.redis_adapter import RedisAdapter
+from app.core.exceptions import UnauthorizedException
 from datetime import datetime, timezone
 import uuid
+from app.services.audit_adapter import AuditAdapter
+
+audit_logger = AuditAdapter()
 
 
 class AuthService(BaseService[Dict[str, Any]]):
@@ -108,29 +117,57 @@ class AuthService(BaseService[Dict[str, Any]]):
             },
         }
 
-    async def revoke_single_token(self, token: str, db: AsyncSession) -> int:
-        from app.core.security import revoke_token, validate_refresh_token
+    async def revoke_single_token(self, token: str, db: AsyncSession, user_id: str) -> int:
+        """
+        Revoke a single refresh token. Skips tenant check.
+        Ensures the token belongs to the given user.
+        """
+        token_record = await validate_refresh_token(token, db, tenant_id=None)  # skip tenant check
 
-        # validate token first
-        token_record = await validate_refresh_token(
-            token, db, tenant_id="dummy"
-        )  # tenant check optional here
+        # Ensure token belongs to current user
+        if str(token_record.user_id) != str(user_id):
+            raise UnauthorizedException("Cannot revoke token of another user")
+
         await revoke_token(token_record, db)
         return 1
 
     async def revoke_all_tokens_for_user(
-        self, user_id: str, db: AsyncSession, tenant_id: Optional[str] = None
+        self,
+        user_id: str,
+        db: AsyncSession,
+        tenant_id: Optional[str] = None,  # <--- make it optional
     ) -> int:
+        """Revoke all refresh tokens for a user (optionally filtered by tenant)."""
         query = select(AuthToken).where(
-            AuthToken.user_id == str(user_id), AuthToken.revoked == False
+            AuthToken.user_id == user_id,
+            AuthToken.token_type == "refresh",
+            AuthToken.revoked == False,
         )
+
         if tenant_id:
             query = query.where(AuthToken.tenant_id == tenant_id)
+
         result = await db.execute(query)
-        tokens = result.scalars().all()
-        for t in tokens:
-            await revoke_token(t, db)
-        return len(tokens)
+        tokens: List[AuthToken] = result.scalars().all()
+
+        revoked_count = 0
+        for token in tokens:
+            token.revoked = True
+            token.revoked_at = datetime.now(timezone.utc)
+            revoked_count += 1
+
+        if revoked_count > 0:
+            await db.commit()
+            await audit_logger.log(
+                action="logout",
+                resource="auth_token",
+                status=200,
+                actor_id=user_id,
+                tenant_id=tenant_id,
+                meta={"revoked_count": revoked_count},
+            )
+
+        return revoked_count
 
     def can_login_to_tenant(self, user_tenant: Optional[str], login_tenant: str) -> bool:
         if not user_tenant:

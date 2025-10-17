@@ -105,12 +105,16 @@ def create_refresh_token(
 # ---------------------------------------------------------------------------
 
 
-async def validate_refresh_token(token_str: str, db: AsyncSession, tenant_id: str) -> AuthToken:
+async def validate_refresh_token(
+    token_str: str,
+    db: AsyncSession,
+    tenant_id: Optional[str] = None,  # optional now
+) -> AuthToken:
     """
     Validate a refresh token:
     - Decode & verify JWT
     - Ensure it exists, not expired, not revoked
-    - Ensure tenant ownership matches
+    - Optionally ensure tenant ownership matches
     Raises:
         UnauthorizedException (401)
         ForbiddenException (403)
@@ -153,8 +157,8 @@ async def validate_refresh_token(token_str: str, db: AsyncSession, tenant_id: st
         )
         raise NotFoundException("Refresh token not found")
 
-    # Tenant ownership check
-    if token_record.tenant_id != tenant_id:
+    # Tenant ownership check (optional)
+    if tenant_id is not None and token_record.tenant_id != tenant_id:
         await audit_logger.log(
             action="token_validate",
             resource="refresh_token",
@@ -187,7 +191,7 @@ async def validate_refresh_token(token_str: str, db: AsyncSession, tenant_id: st
         action="token_validate",
         resource="refresh_token",
         status=200,
-        meta={"result": "success", "tenant_id": tenant_id},
+        meta={"result": "success", "tenant_id": token_record.tenant_id},
     )
 
     return token_record
@@ -215,3 +219,26 @@ async def revoke_token(token: AuthToken, db: AsyncSession):
             "jti": token.jti,
         },
     )
+
+
+def verify_token(token_str: str) -> dict:
+    """
+    Decode and validate an access token (JWT).
+    Raises UnauthorizedException if invalid or expired.
+    Returns the decoded payload if valid.
+    """
+    try:
+        payload = jwt.decode(
+            token_str,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            audience=settings.JWT_AUDIENCE,
+            issuer=settings.JWT_ISSUER,
+        )
+        if payload.get("type") != "access":
+            raise UnauthorizedException("Token is not an access token")
+        return payload
+    except ExpiredSignatureError:
+        raise UnauthorizedException("Access token has expired")
+    except JWTError as e:
+        raise UnauthorizedException(f"Invalid access token: {e}")
