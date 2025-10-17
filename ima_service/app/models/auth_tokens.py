@@ -8,6 +8,7 @@ from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, JSON, 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import BaseModel
+from ..schemas.auth_tokens import TokenData, TokenUser
 
 
 class AuthToken(BaseModel):
@@ -51,6 +52,34 @@ class AuthToken(BaseModel):
 
     def is_active(self) -> bool:
         return not self.revoked and datetime.now(timezone.utc) < self.expires_at
+
+    def to_token_data(
+        self,
+        user: TokenUser,
+        access_token: Optional[str] = None,
+        refresh_token: Optional[str] = None,
+        expires_in: int = 900,
+    ) -> TokenData:
+        """
+        Convert AuthToken instance into a TokenData object.
+        Handles both access and refresh tokens.
+
+        Args:
+            user: TokenUser object
+            access_token: Optional string for access token
+            refresh_token: Optional string for refresh token
+            expires_in: Lifetime of access token in seconds
+
+        Returns:
+            TokenData
+        """
+        return TokenData(
+            access_token=access_token or (self.token if self.token_type == "access" else None),
+            refresh_token=refresh_token or (self.token if self.token_type == "refresh" else None),
+            token_type="bearer",
+            expires_in=expires_in,
+            user=user,
+        )
 
 
 class InvitationToken(BaseModel):

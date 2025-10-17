@@ -10,7 +10,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import BaseModel
-from ..core.security import hash_password, verify_password
+from app.core.password import hash_password, verify_password
 from .user_role import UserRole
 
 

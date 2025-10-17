@@ -1,3 +1,4 @@
+# app/schemas/auth_token.py
 """Pydantic schemas for authentication tokens and API response format.
 
 Includes base, create, update, read, and internal DB schemas
@@ -21,7 +22,9 @@ class TokenUser(BaseModel):
     id: uuid.UUID
     email: str
     full_name: Optional[str]
-    tenant_id: Optional[uuid.UUID]
+    # tenant_id: Optional[uuid.UUID]
+    tenant_id: Optional[str]
+
     roles: List[str] = []
     permissions: List[str] = []
 
@@ -63,8 +66,8 @@ class AuthTokenBase(BaseModel):
     expires_at: datetime = Field(..., description="Expiration timestamp")
     revoked: bool = Field(default=False, description="Whether token is revoked")
     revoked_at: Optional[datetime] = Field(None, description="Timestamp when revoked")
-    device_info: Optional[str] = Field(None, description="Device or client info")
-    ip_address: Optional[str] = Field(None, description="IP address of request origin")
+    # device_info: Optional[str] = Field(None, description="Device or client info")
+    # ip_address: Optional[str] = Field(None, description="IP address of request origin")
     issued_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_used_at: Optional[datetime] = Field(None, description="Last time token was used")
     session_type: Optional[str] = Field(None, description="Optional session type")
@@ -73,7 +76,7 @@ class AuthTokenBase(BaseModel):
     trace_id: Optional[str] = Field(None, description="Distributed trace ID")
     extra: Optional[Dict] = Field(default_factory=dict)
     mfa_verified: Optional[bool] = Field(None)
-    tenant_id: Optional[uuid.UUID] = Field(None, description="Tenant context")
+    tenant_id: Optional[str] = Field(None, description="Tenant context")
 
     @field_validator("token")
     @classmethod

@@ -3,6 +3,7 @@ from typing import Optional, Set
 from ..models.role import Role
 from ..models.permission import Permission
 from .crud_service import CRUDService
+from sqlalchemy import select
 
 
 class RoleService(CRUDService[Role]):
@@ -18,6 +19,28 @@ class RoleService(CRUDService[Role]):
         if getattr(role, "is_system_role", False):
             raise PermissionError("System roles cannot be deleted")
         await super().soft_delete(role)
+
+    async def get_user_roles(self, user_id: str) -> list[str]:
+        """Return a list of role names assigned to a user."""
+        stmt = (
+            select(Role)
+            .join(Role.users)  # assuming a many-to-many relationship Role.users -> User.roles
+            .where(Role.users.any(id=user_id))
+        )
+        result = await self.db.execute(stmt)
+        roles = result.scalars().all()
+        return [role.name for role in roles]
+
+    async def get_user_permissions(self, user_id: str) -> list[str]:
+        """Return a list of all permission codes assigned to the user via roles."""
+        stmt = (
+            select(Permission.code)
+            .join(Permission.roles)
+            .join(Role.users)
+            .where(Role.users.any(id=user_id))
+        )
+        result = await self.db.execute(stmt)
+        return list({row[0] for row in result.all()})  # unique permission codes
 
     # --- Atomic Permission Linking ---
     @CRUDService.transactional

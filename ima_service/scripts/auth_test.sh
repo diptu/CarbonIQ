@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------
-# Multi-Tenant Authentication Test Script
+# Multi-Tenant Authentication Test Script (Login + Refresh)
 # --------------------------------------------------------
 
 set -uo pipefail
@@ -61,6 +61,42 @@ run_test() {
   echo "Response: $body"
 }
 
+run_refresh_test() {
+  case_id="$1"
+  description="$2"
+  refresh_token="$3"
+  tenant="$4"
+  expected_code="$5"
+  expected_result="$6"
+
+  echo ""
+  echo "----------------------------------------------------"
+  echo "Refresh Case #$case_id: $description"
+  echo "Tenant:  $tenant"
+  echo "Expect:  $expected_result [$expected_code]"
+
+  response=$(curl -s -w "\n%{http_code}" -X POST "$REFRESH_URL" \
+    -H "accept: application/json" \
+    ${tenant:+-H "x-tenant-id: $tenant"} \
+    -H "Content-Type: application/json" \
+    -d "{\"refresh_token\": \"$refresh_token\"}")
+
+  body=$(echo "$response" | sed '$d')
+  code=$(echo "$response" | tail -n1)
+
+  if [ "$code" = "$expected_code" ]; then
+    echo -e "Result: ${GREEN}PASS${NC} (HTTP $code)"
+    RESULTS+=("$case_id|$description|refresh|$tenant|PASS|$code|$body")
+    PASS_COUNT=$((PASS_COUNT+1))
+  else
+    echo -e "Result: ${RED}FAIL${NC} (Got HTTP $code)"
+    RESULTS+=("$case_id|$description|refresh|$tenant|FAIL|$code|$body")
+    FAIL_COUNT=$((FAIL_COUNT+1))
+  fi
+
+  echo "Response: $body"
+}
+
 # --------------------------------------------------------
 # LOGIN TEST CASES
 # --------------------------------------------------------
@@ -76,21 +112,40 @@ run_test 9 "Admin login to unrelated tenant" "admin@apple.com" "$PASSWORD" "oran
 run_test 10 "Regular user cannot login to parent tenant" "billing@orchard.apple.com" "$PASSWORD" "apple.company" 403 "Fail"
 run_test 11 "Super-admin login to any tenant" "admin@carboniq.com" "$PASSWORD" "orange.company" 200 "Success"
 run_test 12 "Super-admin login without tenant header" "admin@carboniq.com" "$PASSWORD" "" 200 "Success"
-un_test 13 "Login without tenant header (non-super-admin)" "admin@apple.com" "$PASSWORD" "" 403 "Fail"
+run_test 13 "Login without tenant header (non-super-admin)" "admin@apple.com" "$PASSWORD" "" 403 "Fail"
 
 # --------------------------------------------------------
-# REFRESH TOKEN TEST CASES (optional)
+# REFRESH TOKEN TEST CASES
 # --------------------------------------------------------
-# REFRESH_TOKEN=$(curl -s -X POST "$BASE_URL" \
-#   -H "accept: application/json" \
-#   -H "x-tenant-id: apple.company" \
-#   -H "Content-Type: application/json" \
-#   -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}" | jq -r '.refresh_token')
-#
-# run_refresh_test 14 "Refresh token with valid token" "$REFRESH_TOKEN" "apple.company" 200 "Success"
-# run_refresh_test 15 "Refresh token with invalid token" "invalid.token.value" "apple.company" 401 "Fail"
-# run_refresh_test 16 "Refresh token from wrong tenant" "$REFRESH_TOKEN" "orange.company" 403 "Fail"
-# run_refresh_test 17 "Refresh token for inactive user" "$REFRESH_TOKEN" "apple.company" 403 "Fail"
+
+# Case 14: Valid refresh (Apple)
+REFRESH_TOKEN_APPLE=$(curl -s -X POST "$BASE_URL" \
+  -H "accept: application/json" \
+  -H "x-tenant-id: apple.company" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}" | jq -r '.data.refresh_token')
+
+run_refresh_test 14 "Refresh token with valid token" "$REFRESH_TOKEN_APPLE" "apple.company" 200 "Success"
+
+# Case 15: Invalid token
+run_refresh_test 15 "Refresh token with invalid token" "invalid.token.value" "apple.company" 401 "Fail"
+
+# Case 16: Wrong tenant — reuse Apple token under Orange tenant
+run_refresh_test 16 "Refresh token from wrong tenant" "$REFRESH_TOKEN_APPLE" "orange.company" 403 "Fail"
+
+# Case 17: Manually revoked token
+REVOKED_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+run_refresh_test 17 "Refresh with manually revoked token" "$REVOKED_TOKEN" "apple.company" 401 "Fail"
+
+# Case 18: Token rotation — generate a new Apple token, then test reuse
+NEW_REFRESH_TOKEN=$(curl -s -X POST "$BASE_URL" \
+  -H "accept: application/json" \
+  -H "x-tenant-id: apple.company" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}" | jq -r '.data.refresh_token')
+
+run_refresh_test 18a "Valid rotation refresh (new token)" "$NEW_REFRESH_TOKEN" "apple.company" 200 "Success"
+run_refresh_test 18b "Reuse old refresh token after rotation" "$REFRESH_TOKEN_APPLE" "apple.company" 401 "Fail"
 
 # --------------------------------------------------------
 # SUMMARY

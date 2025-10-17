@@ -1,9 +1,14 @@
+# app/services/auth_service.py
 from __future__ import annotations
 from typing import Any, Dict, Optional, List
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 from .base_service import BaseService
 from .user_service import UserService
-from ..core.security import verify_password, create_access_token, create_refresh_token
+from ..core.security import create_access_token, create_refresh_token, revoke_token
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from ..schemas.auth_tokens import TokenUser
+from app.models.auth_tokens import AuthToken
 from ..core.redis_adapter import RedisAdapter
 from datetime import datetime, timezone
 import uuid
@@ -26,16 +31,13 @@ class AuthService(BaseService[Dict[str, Any]]):
         self._login_attempts: Dict[str, int] = {}
 
     async def login(self, email: str, password: str) -> Dict[str, Any]:
-        # Fetch user ignoring tenant for super-user login
         user = await self.user_service.get_by_email(email, ignore_tenant=True)
-
         if not user:
             await self._record_failed_login(email)
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
         is_super_user = getattr(user, "is_super_user", False)
 
-        # Tenant validation
         if self.tenant_id:
             if not is_super_user and not self.can_login_to_tenant(user.tenant_id, self.tenant_id):
                 await self._record_failed_login(email)
@@ -69,32 +71,66 @@ class AuthService(BaseService[Dict[str, Any]]):
         roles: list[str] = [r.name for r in getattr(user, "roles", [])]
         permissions: list[str] = await self.user_service.get_user_permissions(user)
 
-        access_token = create_access_token(
-            user_id=str(user.id), tenant_id=self.tenant_id, roles=roles
+        # 1️⃣ Create JWT tokens (returns AuthToken objects)
+        access_token_record = create_access_token(
+            user_id=user.id, tenant_id=self.tenant_id, roles=roles
         )
-        refresh_token = create_refresh_token(user_id=str(user.id), tenant_id=self.tenant_id)
+        refresh_token_record = create_refresh_token(user_id=user.id, tenant_id=self.tenant_id)
+
+        # 2️⃣ Store refresh token in DB
+        self.db.add(refresh_token_record)
+        await self.db.commit()
+        await self.db.refresh(refresh_token_record)
+
+        # 3️⃣ Prepare user object for response
+        token_user = TokenUser(
+            id=user.id,
+            email=user.email,
+            full_name=getattr(user, "full_name", None),
+            tenant_id=self.tenant_id,
+            roles=roles,
+            permissions=permissions,
+        )
+
+        # 4️⃣ Convert AuthToken objects to TokenData
+        token_data = access_token_record.to_token_data(
+            user=token_user,
+            refresh_token=refresh_token_record.token,
+            expires_in=900,
+        )
 
         return {
             "success": True,
-            "data": {
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "token_type": "bearer",
-                "expires_in": 900,
-                "user": {
-                    "id": str(user.id),
-                    "email": user.email,
-                    "full_name": getattr(user, "full_name", None),
-                    "tenant_id": getattr(user, "tenant_id", None),
-                    "roles": roles,
-                    "permissions": permissions,
-                },
-            },
+            "data": token_data,
             "meta": {
                 "request_id": f"req_{str(uuid.uuid4())[:8]}",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         }
+
+    async def revoke_single_token(self, token: str, db: AsyncSession) -> int:
+        from app.core.security import revoke_token, validate_refresh_token
+
+        # validate token first
+        token_record = await validate_refresh_token(
+            token, db, tenant_id="dummy"
+        )  # tenant check optional here
+        await revoke_token(token_record, db)
+        return 1
+
+    async def revoke_all_tokens_for_user(
+        self, user_id: str, db: AsyncSession, tenant_id: Optional[str] = None
+    ) -> int:
+        query = select(AuthToken).where(
+            AuthToken.user_id == str(user_id), AuthToken.revoked == False
+        )
+        if tenant_id:
+            query = query.where(AuthToken.tenant_id == tenant_id)
+        result = await db.execute(query)
+        tokens = result.scalars().all()
+        for t in tokens:
+            await revoke_token(t, db)
+        return len(tokens)
 
     def can_login_to_tenant(self, user_tenant: Optional[str], login_tenant: str) -> bool:
         if not user_tenant:
