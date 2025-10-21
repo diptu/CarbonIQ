@@ -8,7 +8,7 @@ from typing import Any, Optional, TypeVar, Generic, Callable, Coroutine
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
-from .audit_adapter import AuditAdapter
+from app.core.audit_adapter import AuditAdapter
 
 T = TypeVar("T")
 

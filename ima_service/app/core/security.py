@@ -12,7 +12,7 @@ from app.core.exceptions import (
     ForbiddenException,
     NotFoundException,
 )
-from app.services.audit_adapter import AuditAdapter
+from app.core.audit_adapter import AuditAdapter
 
 # Initialize
 settings = get_settings()

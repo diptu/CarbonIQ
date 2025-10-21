@@ -15,7 +15,9 @@ app = FastAPI(
     description="Tenant-aware Role-Based Access Control service",
     version="1.0.0",
 )
+from app.core.middleware import ContextMiddleware
 
+app.add_middleware(ContextMiddleware)
 # ----------------------
 # CORS middleware
 # ----------------------
