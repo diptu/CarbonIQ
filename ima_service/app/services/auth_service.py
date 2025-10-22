@@ -158,6 +158,24 @@ class AuthService(BaseService[Dict[str, Any]]):
 
         return 1
 
+    # -------------------------------
+    # Rotate refresh token
+    # -------------------------------
+    async def rotate_refresh_token(self, token_record, db: AsyncSession):
+        # Revoke old token
+        await revoke_token(token_record, db)
+
+        # Create new refresh token
+        new_token = create_refresh_token(
+            user_id=token_record.user_id, tenant_id=token_record.tenant_id
+        )
+        db.add(new_token)
+        await db.commit()
+        await db.refresh(new_token)
+        new_token.last_used_at = datetime.now(timezone.utc)
+        await db.commit()
+        return new_token
+
     async def revoke_all_tokens_for_user(
         self,
         user_id: str,

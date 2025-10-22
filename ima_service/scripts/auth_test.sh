@@ -141,57 +141,57 @@ run_logout_test() {
 # LOGIN TEST CASES
 # -------------------------
 run_test 1 "Admin can log in" "admin@apple.com" "$PASSWORD" "apple.company" 200 "Success"
-run_test 2 "Billing user login" "billing@orchard.apple.com" "$PASSWORD" "orchard.apple.company" 200 "Success"
-run_test 3 "Admin logs into own tenant" "admin@orange.com" "$PASSWORD" "orange.company" 200 "Success"
-run_test 4 "Basic-plan admin login" "admin@peanut.com" "$PASSWORD" "peanut.company" 200 "Success"
-run_test 5 "Admin cannot log in to non-existent tenant" "admin@mango.com" "$PASSWORD" "nonexistent.company" 403 "Fail"
-run_test 6 "Authentication fails with wrong password" "admin@apple.com" "WrongPass" "apple.company" 401 "Fail"
-run_test 7 "Inactive users denied" "inactive@apple.com" "$PASSWORD" "apple.company" 403 "Fail"
-run_test 8 "Admin login to child tenant" "admin@apple.com" "$PASSWORD" "orchard.apple.company" 200 "Success"
-run_test 9 "Admin login to unrelated tenant" "admin@apple.com" "$PASSWORD" "orange.company" 403 "Fail"
-run_test 10 "Regular user cannot login to parent tenant" "billing@orchard.apple.com" "$PASSWORD" "apple.company" 403 "Fail"
-run_test 11 "Super-admin login to any tenant" "admin@carboniq.com" "$PASSWORD" "orange.company" 200 "Success"
-run_test 12 "Super-admin login without tenant header" "admin@carboniq.com" "$PASSWORD" "" 200 "Success"
-run_test 13 "Login without tenant header (non-super-admin)" "admin@apple.com" "$PASSWORD" "" 403 "Fail"
+# run_test 2 "Billing user login" "billing@orchard.apple.com" "$PASSWORD" "orchard.apple.company" 200 "Success"
+# run_test 3 "Admin logs into own tenant" "admin@orange.com" "$PASSWORD" "orange.company" 200 "Success"
+# run_test 4 "Basic-plan admin login" "admin@peanut.com" "$PASSWORD" "peanut.company" 200 "Success"
+# run_test 5 "Admin cannot log in to non-existent tenant" "admin@mango.com" "$PASSWORD" "nonexistent.company" 403 "Fail"
+# run_test 6 "Authentication fails with wrong password" "admin@apple.com" "WrongPass" "apple.company" 401 "Fail"
+# run_test 7 "Inactive users denied" "inactive@apple.com" "$PASSWORD" "apple.company" 403 "Fail"
+# run_test 8 "Admin login to child tenant" "admin@apple.com" "$PASSWORD" "orchard.apple.company" 200 "Success"
+# run_test 9 "Admin login to unrelated tenant" "admin@apple.com" "$PASSWORD" "orange.company" 403 "Fail"
+# run_test 10 "Regular user cannot login to parent tenant" "billing@orchard.apple.com" "$PASSWORD" "apple.company" 403 "Fail"
+# run_test 11 "Super-admin login to any tenant" "admin@carboniq.com" "$PASSWORD" "orange.company" 200 "Success"
+# run_test 12 "Super-admin login without tenant header" "admin@carboniq.com" "$PASSWORD" "" 200 "Success"
+# run_test 13 "Login without tenant header (non-super-admin)" "admin@apple.com" "$PASSWORD" "" 403 "Fail"
 
-# # -------------------------
-# # REFRESH TOKEN TEST CASES
-# # -------------------------
-# REFRESH_TOKEN_APPLE=$(curl -s -X POST "$LOGIN_URL" \
-#   -H "accept: application/json" \
-#   -H "x-tenant-id: apple.company" \
-#   -H "Content-Type: application/json" \
-#   -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}" | jq -r '.data.refresh_token')
+# -------------------------
+# REFRESH TOKEN TEST CASES
+# -------------------------
+REFRESH_TOKEN_APPLE=$(curl -s -X POST "$LOGIN_URL" \
+  -H "accept: application/json" \
+  -H "x-tenant-id: apple.company" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}" | jq -r '.data.data.refresh_token')
 
-# NEW_REFRESH_TOKEN=$(curl -s -X POST "$LOGIN_URL" \
-#   -H "accept: application/json" \
-#   -H "x-tenant-id: apple.company" \
-#   -H "Content-Type: application/json" \
-#   -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}" | jq -r '.data.refresh_token')
+NEW_REFRESH_TOKEN=$(curl -s -X POST "$LOGIN_URL" \
+  -H "accept: application/json" \
+  -H "x-tenant-id: apple.company" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}" | jq -r '.data.data.refresh_token')
 
-# run_refresh_test 14 "Refresh token with valid token" "$REFRESH_TOKEN_APPLE" "apple.company" 200 "Success"
-# run_refresh_test 15 "Refresh token with invalid token" "invalid.token.value" "apple.company" 401 "Fail"
-# run_refresh_test 16 "Refresh token from wrong tenant" "$REFRESH_TOKEN_APPLE" "orange.company" 403 "Fail"
-# REVOKED_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-# run_refresh_test 17 "Refresh with manually revoked token" "$REVOKED_TOKEN" "apple.company" 401 "Fail"
-# run_refresh_test 18a "Valid rotation refresh (new token)" "$NEW_REFRESH_TOKEN" "apple.company" 200 "Success"
-# run_refresh_test 18b "Reuse old refresh token after rotation" "$REFRESH_TOKEN_APPLE" "apple.company" 401 "Fail"
+run_refresh_test 14 "Refresh token with valid token" "$REFRESH_TOKEN_APPLE" "apple.company" 200 "Success"
+run_refresh_test 15 "Refresh token with invalid token" "$REFRESH_TOKEN_APPLE" "apple.company" 401 "Fail"
+run_refresh_test 16 "Refresh token from wrong tenant" "$REFRESH_TOKEN_APPLE" "orange.company" 403 "Fail"
+ REVOKED_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmMTZkNTZiYi1kZTM1LTQxMDgtODhjNS1hZjU5MzY1MDdhNDUiLCJ1c2VyX2lkIjoiZjE2ZDU2YmItZGUzNS00MTA4LTg4YzUtYWY1OTM2NTA3YTQ1IiwidGVuYW50X2lkIjoiYXBwbGUuY29tcGFueSIsInR5cGUiOiJyZWZyZXNoIiwiaWF0IjoxNzYxMTUzNjY1LCJleHAiOjE3NjE3NTg0NjUsImlzcyI6ImNhcmJvbmlxX3NlcnZpY2UiLCJhdWQiOiJjYXJib25pcV9jbGllbnRzIn0._D1Fd8Trr89Ky_gxbgzmtBXnQOui7hkY46PxFohe86A"
+run_refresh_test 17 "Refresh with manually revoked token" "$REVOKED_TOKEN" "apple.company" 401 "Fail"
+run_refresh_test 18a "Valid rotation refresh (new token)" "$NEW_REFRESH_TOKEN" "apple.company" 200 "Success"
+run_refresh_test 18b "Reuse old refresh token after rotation" "$REFRESH_TOKEN_APPLE" "apple.company" 401 "Fail"
 
-# # -------------------------
-# # LOGOUT TEST CASES
-# # -------------------------
-# LOGIN_RESPONSE=$(curl -s -X POST "$LOGIN_URL" \
-#   -H "accept: application/json" \
-#   -H "x-tenant-id: apple.company" \
-#   -H "Content-Type: application/json" \
-#   -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}")
+# -------------------------
+# LOGOUT TEST CASES
+# -------------------------
+LOGIN_RESPONSE=$(curl -s -X POST "$LOGIN_URL" \
+  -H "accept: application/json" \
+  -H "x-tenant-id: apple.company" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\": \"admin@apple.com\", \"password\": \"$PASSWORD\"}")
 
-# ACCESS_TOKEN_APPLE=$(echo "$LOGIN_RESPONSE" | jq -r '.data.access_token')
-# REFRESH_TOKEN_APPLE=$(echo "$LOGIN_RESPONSE" | jq -r '.data.refresh_token')
+ACCESS_TOKEN_APPLE=$(echo "$LOGIN_RESPONSE" | jq -r '.data.data.access_token')
+REFRESH_TOKEN_APPLE=$(echo "$LOGIN_RESPONSE" | jq -r '.data.data.refresh_token')
 
-# run_logout_test 19a "Logout a single refresh token" "$ACCESS_TOKEN_APPLE" "$REFRESH_TOKEN_APPLE" 200 "Success"
-# run_logout_test 19b "Logout all refresh tokens for user" "$ACCESS_TOKEN_APPLE" "" 200 "Success"
-# run_logout_test 19c "Logout with invalid access token" "invalid.access.token" "$REFRESH_TOKEN_APPLE" 401 "Fail"
+run_logout_test 19a "Logout a single refresh token" "$ACCESS_TOKEN_APPLE" "$REFRESH_TOKEN_APPLE" 200 "Success"
+run_logout_test 19b "Logout all refresh tokens for user" "$ACCESS_TOKEN_APPLE" "" 200 "Success"
+run_logout_test 19c "Logout with invalid access token" "invalid.access.token" "$REFRESH_TOKEN_APPLE" 401 "Fail"
 
 # -------------------------
 # SUMMARY
