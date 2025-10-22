@@ -139,10 +139,6 @@ class AuthService(BaseService[Dict[str, Any]]):
         return {
             "success": True,
             "data": token_data,
-            "meta": {
-                "request_id": f"req_{str(uuid.uuid4())[:8]}",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            },
         }
 
     async def revoke_single_token(self, token: str, db: AsyncSession, user_id: str) -> int:
