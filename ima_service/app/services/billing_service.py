@@ -1,5 +1,6 @@
+# app/services/billing_service.py
 from __future__ import annotations
-from typing import Any, Optional, Type
+from typing import Any, Optional, Type, Callable, Awaitable
 from sqlalchemy import select
 
 from .base_service import BaseService
@@ -15,14 +16,19 @@ class BillingService(BaseService[T]):
         super().__init__(**kwargs)
         self.rbac_service = rbac_service
 
+    # ----------------------------- RBAC & AUDIT ------------------------------
     async def _pre_check(self, permission: str) -> None:
         """RBAC pre-check for the current user and tenant."""
         await self.rbac_service.check_access(
             self.current_user_id, permission, self.current_tenant_id
         )
 
-    async def _execute_with_audit(self, action: str, resource: str, db_op: callable) -> Any:
-        """Wrap a DB operation with RBAC check, tenant scoping, and audit logging."""
+    async def _execute_with_audit(
+        self, action: str, resource: str, db_op: Callable[[], Awaitable[Any]]
+    ) -> Any:
+        """
+        Wrap a DB operation with RBAC check, tenant scoping, and audit logging.
+        """
         await self._pre_check(action)
         status_code = 200
         try:
@@ -39,8 +45,9 @@ class BillingService(BaseService[T]):
                 meta={"user_id": self.current_user_id},
             )
 
+    # ----------------------------- READ METHODS ------------------------------
     async def list(self, model: Type[T], limit: int = 100, offset: int = 0) -> list[T]:
-        """List tenant-scoped billing items."""
+        """List tenant-scoped billing items with pagination."""
 
         async def db_op():
             stmt = self.scope_query(select(model).limit(limit).offset(offset))
@@ -50,7 +57,7 @@ class BillingService(BaseService[T]):
         return await self._execute_with_audit("billing:list", model.__name__, db_op)
 
     async def get_by_id(self, model: Type[T], obj_id: str) -> Optional[T]:
-        """Get a single tenant-scoped billing item."""
+        """Get a single tenant-scoped billing item by ID."""
 
         async def db_op():
             stmt = self.scope_query(select(model).where(model.id == obj_id))
@@ -59,8 +66,9 @@ class BillingService(BaseService[T]):
 
         return await self._execute_with_audit("billing:view", model.__name__, db_op)
 
+    # ----------------------------- WRITE METHODS -----------------------------
     async def update(self, obj: T) -> T:
-        """Update a billing object with RBAC and audit logging."""
+        """Update a billing object with transactional safety, RBAC, and audit logging."""
 
         async def db_op():
             self.db.add(obj)
@@ -68,7 +76,6 @@ class BillingService(BaseService[T]):
             await self.db.refresh(obj)
             return obj
 
-        # Use transactional block for atomic update
         try:
             await self._pre_check("billing:update")
             async with self.transaction():

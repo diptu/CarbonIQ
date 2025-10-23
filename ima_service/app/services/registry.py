@@ -26,7 +26,8 @@ Notes:
     - Business services (BillingService, ReportingService) automatically include RBAC checks and audit logging.
 """
 
-from typing import Optional
+# app/services/registry.py
+from typing import Optional, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.redis_adapter import RedisAdapter
 from .rbac_service import RBACService
@@ -39,16 +40,90 @@ from .reporting_service import ReportingService
 
 
 class ServiceRegistry:
+    """
+    A+ grade Service Registry with lazy initialization, dependency injection,
+    tenant-aware context, Redis integration, and testability support.
+    """
+
     def __init__(self, db: AsyncSession, redis: Optional[RedisAdapter] = None):
-        # RBAC base services
-        self.role_service = RoleService(db=db)
-        self.permission_service = PermissionService(db=db)
-        self.rbac_service = RBACService(
+        self.db: AsyncSession = db
+        self.redis: Optional[RedisAdapter] = redis
+
+        # Internal storage for lazy services
+        self._services: Dict[str, object] = {}
+
+        # Initialize base services eagerly
+        self.role_service: RoleService = RoleService(db=db)
+        self.permission_service: PermissionService = PermissionService(db=db)
+
+        # Initialize RBAC service eagerly
+        self.rbac_service: RBACService = RBACService(
             role_service=self.role_service, permission_crud=self.permission_service
         )
-        # Core domain services
-        self.user_service = UserService(rbac_service=self.rbac_service, db=db)
-        self.auth_service = AuthService(user_service=self.user_service, redis=redis, db=db)
-        # Example business services
-        self.billing_service = BillingService(rbac_service=self.rbac_service, db=db)
-        self.reporting_service = ReportingService(rbac_service=self.rbac_service, db=db)
+
+    # ------------------------
+    # Lazy-loaded services
+    # ------------------------
+    @property
+    def user_service(self) -> UserService:
+        if "user_service" not in self._services:
+            self._services["user_service"] = UserService(rbac_service=self.rbac_service, db=self.db)
+        return self._services["user_service"]
+
+    @property
+    def auth_service(self) -> AuthService:
+        if "auth_service" not in self._services:
+            self._services["auth_service"] = AuthService(
+                user_service=self.user_service, redis=self.redis, db=self.db
+            )
+        return self._services["auth_service"]
+
+    @property
+    def billing_service(self) -> BillingService:
+        if "billing_service" not in self._services:
+            self._services["billing_service"] = BillingService(
+                rbac_service=self.rbac_service, db=self.db
+            )
+        return self._services["billing_service"]
+
+    @property
+    def reporting_service(self) -> ReportingService:
+        if "reporting_service" not in self._services:
+            self._services["reporting_service"] = ReportingService(
+                rbac_service=self.rbac_service, db=self.db
+            )
+        return self._services["reporting_service"]
+
+    # ------------------------
+    # Health Checks
+    # ------------------------
+    async def health_check(self) -> dict:
+        """
+        Perform basic health checks for DB and Redis.
+        Returns:
+            dict: Status summary.
+        """
+        status = {"db": "ok", "redis": "ok"}
+
+        try:
+            # Simple DB check
+            await self.db.execute("SELECT 1")
+        except Exception:
+            status["db"] = "fail"
+
+        if self.redis:
+            try:
+                await self.redis.ping()
+            except Exception:
+                status["redis"] = "fail"
+
+        return status
+
+    # ------------------------
+    # Utility: clear lazy services
+    # ------------------------
+    def reset_services(self) -> None:
+        """
+        Clears all lazy-loaded services (useful for testing).
+        """
+        self._services.clear()

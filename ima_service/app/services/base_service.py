@@ -1,9 +1,10 @@
+# app/services/base_service.py
 from __future__ import annotations
 
 from abc import ABC
 from contextlib import asynccontextmanager
 from functools import wraps
-from typing import Any, Optional, TypeVar, Generic, Callable, Coroutine
+from typing import Any, Optional, TypeVar, Generic, Callable, Coroutine, AsyncIterator
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
@@ -15,8 +16,14 @@ T = TypeVar("T")
 
 class BaseService(AuditAdapter, Generic[T], ABC):
     """
-    Base service providing tenant context, async DB session,
-    and audit logging for all derived services.
+    Base service providing:
+      - Tenant and actor context
+      - Async DB session with transaction helpers
+      - Audit logging utilities
+      - Tenant-scoped query support
+
+    All derived services should inherit from this to enforce
+    consistent transaction, audit, and multi-tenant behavior.
     """
 
     def __init__(
@@ -32,16 +39,23 @@ class BaseService(AuditAdapter, Generic[T], ABC):
         self.tenant_id: Optional[str] = tenant_id
         self.actor_id: Optional[str] = actor_id
 
-    # --------------------------- TRANSACTION UTILS ---------------------------
+    # --------------------------- TRANSACTION UTILITIES ---------------------------
 
     @asynccontextmanager
-    async def transaction(self) -> Any:
-        """Async context manager for DB transactions."""
+    async def transaction(self) -> AsyncIterator[None]:
+        """
+        Async context manager for database transactions.
+        Rolls back automatically on exception.
+        Usage:
+            async with service.transaction():
+                ...
+        """
         async with self.db.begin():
             try:
                 yield
             except Exception:
-                raise  # rollback is automatic on exception
+                # Automatic rollback handled by SQLAlchemy async session
+                raise
 
     @classmethod
     def transactional(
@@ -50,7 +64,7 @@ class BaseService(AuditAdapter, Generic[T], ABC):
         """
         Decorator for wrapping service methods in a DB transaction.
         Usage:
-            @CRUDService.transactional
+            @BaseService.transactional
             async def my_method(...):
                 ...
         """
@@ -63,11 +77,9 @@ class BaseService(AuditAdapter, Generic[T], ABC):
 
             return wrapper
 
-        if func:
-            return decorator(func)
-        return decorator
+        return decorator(func) if func else decorator
 
-    # ----------------------------- AUDIT UTILS -------------------------------
+    # ----------------------------- AUDIT UTILITIES -------------------------------
 
     async def _audit(
         self,
@@ -76,7 +88,15 @@ class BaseService(AuditAdapter, Generic[T], ABC):
         status: int,
         meta: Optional[dict[str, Any]] = None,
     ) -> None:
-        """Log an audit event with tenant and actor context."""
+        """
+        Log an audit event with tenant and actor context.
+
+        Args:
+            action (str): Action being performed.
+            resource (str): Resource name (usually model or service name).
+            status (int): HTTP-like status code.
+            meta (Optional[dict]): Additional metadata for audit.
+        """
         await self.log(
             actor_id=self.actor_id,
             tenant_id=self.tenant_id,
@@ -90,18 +110,26 @@ class BaseService(AuditAdapter, Generic[T], ABC):
 
     @property
     def current_user_id(self) -> Optional[str]:
+        """Return current actor/user ID."""
         return self.actor_id
 
     @property
     def current_tenant_id(self) -> Optional[str]:
+        """Return current tenant ID."""
         return self.tenant_id
 
     # ---------------------------- QUERY SCOPING ------------------------------
 
     def scope_query(self, query: Select) -> Select:
         """
-        Apply tenant_id scoping to a SQLAlchemy query.
-        Assumes the first entity has a `tenant_id` column.
+        Apply tenant_id scoping to a SQLAlchemy Select query.
+
+        Raises:
+            ValueError: If tenant context is not set.
+            AttributeError: If the model has no 'tenant_id' column.
+
+        Returns:
+            Select: SQLAlchemy query scoped to the tenant.
         """
         if self.tenant_id is None:
             raise ValueError("Tenant context is required for scoped queries.")
