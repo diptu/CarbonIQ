@@ -141,18 +141,18 @@ run_logout_test() {
 # LOGIN TEST CASES
 # -------------------------
 run_test 1 "Admin can log in" "admin@apple.com" "$PASSWORD" "apple.company" 200 "Success"
-# run_test 2 "Billing user login" "billing@orchard.apple.com" "$PASSWORD" "orchard.apple.company" 200 "Success"
-# run_test 3 "Admin logs into own tenant" "admin@orange.com" "$PASSWORD" "orange.company" 200 "Success"
-# run_test 4 "Basic-plan admin login" "admin@peanut.com" "$PASSWORD" "peanut.company" 200 "Success"
-# run_test 5 "Admin cannot log in to non-existent tenant" "admin@mango.com" "$PASSWORD" "nonexistent.company" 403 "Fail"
-# run_test 6 "Authentication fails with wrong password" "admin@apple.com" "WrongPass" "apple.company" 401 "Fail"
-# run_test 7 "Inactive users denied" "inactive@apple.com" "$PASSWORD" "apple.company" 403 "Fail"
-# run_test 8 "Admin login to child tenant" "admin@apple.com" "$PASSWORD" "orchard.apple.company" 200 "Success"
-# run_test 9 "Admin login to unrelated tenant" "admin@apple.com" "$PASSWORD" "orange.company" 403 "Fail"
-# run_test 10 "Regular user cannot login to parent tenant" "billing@orchard.apple.com" "$PASSWORD" "apple.company" 403 "Fail"
-# run_test 11 "Super-admin login to any tenant" "admin@carboniq.com" "$PASSWORD" "orange.company" 200 "Success"
-# run_test 12 "Super-admin login without tenant header" "admin@carboniq.com" "$PASSWORD" "" 200 "Success"
-# run_test 13 "Login without tenant header (non-super-admin)" "admin@apple.com" "$PASSWORD" "" 403 "Fail"
+run_test 2 "Billing user login" "billing@orchard.apple.com" "$PASSWORD" "orchard.apple.company" 200 "Success"
+run_test 3 "Admin logs into own tenant" "admin@orange.com" "$PASSWORD" "orange.company" 200 "Success"
+run_test 4 "Basic-plan admin login" "admin@peanut.com" "$PASSWORD" "peanut.company" 200 "Success"
+run_test 5 "Admin cannot log in to non-existent tenant" "admin@mango.com" "$PASSWORD" "nonexistent.company" 403 "Fail"
+run_test 6 "Authentication fails with wrong password" "admin@apple.com" "WrongPass" "apple.company" 401 "Fail"
+run_test 7 "Inactive users denied" "inactive@apple.com" "$PASSWORD" "apple.company" 403 "Fail"
+run_test 8 "Admin login to child tenant" "admin@apple.com" "$PASSWORD" "orchard.apple.company" 200 "Success"
+run_test 9 "Admin login to unrelated tenant" "admin@apple.com" "$PASSWORD" "orange.company" 403 "Fail"
+run_test 10 "Regular user cannot login to parent tenant" "billing@orchard.apple.com" "$PASSWORD" "apple.company" 403 "Fail"
+run_test 11 "Super-admin login to any tenant" "admin@carboniq.com" "$PASSWORD" "orange.company" 200 "Success"
+run_test 12 "Super-admin login without tenant header" "admin@carboniq.com" "$PASSWORD" "" 200 "Success"
+run_test 13 "Login without tenant header (non-super-admin)" "admin@apple.com" "$PASSWORD" "" 403 "Fail"
 
 # -------------------------
 # REFRESH TOKEN TEST CASES

@@ -1,5 +1,4 @@
-# ima_service/app/core/settings.py
-
+# app/core/config.py
 """Application configuration settings for the IMA Service.
 
 Centralized configuration for database, JWT, Redis, CORS, and audit logging.
@@ -9,7 +8,6 @@ Notes
 - Loads from environment variables and optional `.env` file.
 - Cached via functools.lru_cache for efficiency.
 - Supports JWT, Redis, audit logging, and multi-tenant defaults.
-- Type-checked and PEP8-compliant.
 """
 
 from __future__ import annotations
@@ -27,6 +25,12 @@ ENV_FILE = BASE_DIR / ".env"
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
+
+    # -----------------------------
+    # Service
+    # -----------------------------
+    SERVICE_NAME: str = Field(default="ima_service", description="Service name for logging/metrics")
+    SERVICE_VERSION: str = Field(default="1.0.0", description="Service version for logs/tracing")
 
     # -----------------------------
     # Database
@@ -49,12 +53,30 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = Field(default="HS256", description="JWT signing algorithm")
     JWT_ISSUER: str = Field(default="ima_service", description="JWT issuer")
     JWT_AUDIENCE: str = Field(default="ima_clients", description="JWT audience")
+    JWT_REFRESH_ROTATION_ENABLED: bool = Field(
+        default=False, description="Enable refresh token rotation on use"
+    )
 
     # -----------------------------
     # Redis
     # -----------------------------
     REDIS_URL: Optional[str] = Field(
         default=None, description="Redis URL for caching or token blacklisting"
+    )
+    REDIS_TOKEN: Optional[str] = Field(default=None, description="Redis connection token")
+    REDIS_MAX_CONNECTIONS: int = Field(default=10, description="Max Redis connections in pool")
+
+    # -----------------------------
+    # Token cleanup
+    # -----------------------------
+    TOKEN_CLEANUP_ON_SHUTDOWN: bool = Field(
+        default=True, description="Whether to cleanup expired/revoked tokens on shutdown"
+    )
+    TOKEN_CLEANUP_REVOKED_RETENTION_DAYS: int = Field(
+        default=30, description="Number of days to retain revoked tokens before deletion"
+    )
+    TOKEN_CLEANUP_ACCESS_TOKENS: bool = Field(
+        default=False, description="Whether to also cleanup expired access tokens on shutdown"
     )
 
     # -----------------------------

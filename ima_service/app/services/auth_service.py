@@ -18,14 +18,14 @@ from ..schemas.auth_tokens import TokenUser
 from app.models.auth_tokens import AuthToken
 from app.core.redis_adapter import RedisAdapter
 from app.core.exceptions import UnauthorizedException
-from app.core.audit_adapter import (
-    audit_logger,
+from app.core.context import (
     current_user_id,
     current_email,
     current_roles,
     current_permissions,
     current_tenant_id,
 )
+from app.core.audit_adapter import audit_logger
 
 
 class AuthService(BaseService[Dict[str, Any]]):
