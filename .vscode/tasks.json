@@ -1,0 +1,53 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "pytest",
+            "type": "shell",
+            "command": "${workspaceFolder}/.venv/bin/pytest",
+            "args": [
+                "-q"
+            ],
+            "group": "test",
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "pylint",
+            "type": "shell",
+            "command": "${workspaceFolder}/.venv/bin/pylint",
+            "args": [
+                "your_package_name"
+            ],
+            "presentation": {
+                "reveal": "always"
+            }
+        },
+        {
+            "label": "mypy",
+            "type": "shell",
+            "command": "${workspaceFolder}/.venv/bin/mypy",
+            "args": [
+                "your_package_name"
+            ],
+            "presentation": {
+                "reveal": "always"
+            }
+        },
+        {
+            "label": "isort",
+            "type": "shell",
+            "command": "${workspaceFolder}/.venv/bin/isort",
+            "args": [
+                "--profile",
+                "black",
+                "."
+            ],
+            "presentation": {
+                "reveal": "always"
+            }
+        }
+    ]
+}
