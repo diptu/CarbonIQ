@@ -28,7 +28,7 @@ class RolePermissionCreate(RolePermissionBase):
 # -----------------------------
 # Response
 # -----------------------------
-class RolePermissionOut(RolePermissionBase):
+class RolePermissionRead(RolePermissionBase):
     """Schema for returning role-permission assignments."""
 
     id: UUID

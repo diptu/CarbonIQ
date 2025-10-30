@@ -52,11 +52,13 @@ class RolePermission(BaseModel):  # pylint: disable=too-few-public-methods
 
     # Relationships
     role = relationship(
-        "Role", back_populates="permissions", comment="Role object linked to this association"
+        "Role",
+        back_populates="permissions",
     )
 
     permission = relationship(
-        "Permission", back_populates="roles", comment="Permission object linked to this association"
+        "Permission",
+        back_populates="roles",
     )
 
     def __repr__(self) -> str:

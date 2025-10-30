@@ -57,14 +57,12 @@ class Role(BaseModel):  # pylint: disable=too-few-public-methods
         "UserRole",
         back_populates="role",
         cascade="all, delete-orphan",
-        comment="List of users assigned to this role",
     )
 
     permissions: Mapped[list["UserPermission"]] = relationship(
         "UserPermission",
         back_populates="role",
         cascade="all, delete-orphan",
-        comment="List of permissions assigned to this role",
     )
 
     def __repr__(self) -> str:

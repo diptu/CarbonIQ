@@ -11,9 +11,9 @@
     "editor.formatOnSave": true,
     // Remove unused imports + auto-fix issues on save
     "editor.codeActionsOnSave": {
-        "ruff.organizeImports": true,
-        "source.organizeImports": true,
-        "source.fixAll": true
+        "ruff.organizeImports": "explicit",
+        "source.organizeImports": "explicit",
+        "source.fixAll": "explicit"
     },
     // --- Linting ---
     "python.linting.enabled": true,

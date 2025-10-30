@@ -57,14 +57,12 @@ class Permission(BaseModel):  # pylint: disable=too-few-public-methods
         "RolePermission",
         back_populates="permission",
         cascade="all, delete",
-        comment="List of roles that have this permission",
     )
 
     users = relationship(
         "UserPermission",
         back_populates="permission",
         cascade="all, delete",
-        comment="List of users that have this permission directly",
     )
 
     def __repr__(self) -> str:

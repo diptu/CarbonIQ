@@ -1,4 +1,5 @@
 """User model definition for the user_service."""
+
 from __future__ import annotations
 
 from sqlalchemy import Boolean, Column, String
@@ -8,7 +9,7 @@ from app.db.session import engine
 from app.models.base import Base, BaseModel
 
 
-class User(BaseModel): # pylint: disable=too-few-public-methods
+class User(BaseModel):  # pylint: disable=too-few-public-methods
     """
     Core user model representing system users across tenants.
 
@@ -44,42 +45,28 @@ class User(BaseModel): # pylint: disable=too-few-public-methods
         unique=True,
         nullable=False,
         index=True,
-        comment="User's unique email address for login"
+        comment="User's unique email address for login",
     )
 
     # Hashed password
     hashed_password = Column(
-        String(255),
-        nullable=False,
-        comment="Hashed password for user authentication"
+        String(255), nullable=False, comment="Hashed password for user authentication"
     )
 
     # Optional full name
-    full_name = Column(
-        String(255),
-        nullable=True,
-        comment="Optional full name of the user"
-    )
+    full_name = Column(String(255), nullable=True, comment="Optional full name of the user")
 
     # Active status
-    is_active = Column(
-        Boolean,
-        default=True,
-        comment="Indicates if the user account is active"
-    )
+    is_active = Column(Boolean, default=True, comment="Indicates if the user account is active")
 
     # Email verification status
     is_verified = Column(
-        Boolean,
-        default=False,
-        comment="Indicates if the user's email has been verified"
+        Boolean, default=False, comment="Indicates if the user's email has been verified"
     )
 
     # Superuser flag
     is_superuser = Column(
-        Boolean,
-        default=False,
-        comment="Indicates if the user has superuser privileges"
+        Boolean, default=False, comment="Indicates if the user has superuser privileges"
     )
 
     # Relationships
@@ -87,18 +74,19 @@ class User(BaseModel): # pylint: disable=too-few-public-methods
         "UserRole",
         back_populates="user",
         cascade="all, delete",
-        comment="List of roles assigned to the user"
+        # comment="List of roles assigned to the user"
     )
 
     permissions = relationship(
         "UserPermission",
         back_populates="user",
         cascade="all, delete",
-        comment="List of permissions directly assigned to the user"
+        # comment="List of permissions directly assigned to the user"
     )
 
     def __repr__(self) -> str:
         return f"<User(email={self.email!r}, active={self.is_active})>"
+
 
 # Create table(s) in the database
 Base.metadata.create_all(bind=engine)

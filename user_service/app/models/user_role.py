@@ -51,11 +51,13 @@ class UserRole(BaseModel):  # pylint: disable=too-few-public-methods
 
     # Relationships
     user = relationship(
-        "User", back_populates="roles", comment="User object linked to this association"
+        "User",
+        back_populates="roles",
     )
 
     role = relationship(
-        "Role", back_populates="users", comment="Role object linked to this association"
+        "Role",
+        back_populates="users",
     )
 
     def __repr__(self) -> str:

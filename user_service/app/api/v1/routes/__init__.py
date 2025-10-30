@@ -1,0 +1,6 @@
+from .permission import router as permissoion_router
+from .role import router as role_router
+from .role_permission import router as role_permission_router
+from .user import router as user_router
+from .user_permission import router as user_permission_router
+from .user_role import router as user_role_router
