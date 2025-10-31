@@ -1,5 +1,6 @@
 """CRUD operations for the RolePermission model."""
 
+from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -11,11 +12,13 @@ from app.schemas.role_permission import RolePermissionCreate
 class RolePermissionCRUD:
     """Provides CRUD operations for RolePermission entities."""
 
-    def get(self, db: Session, role_permission_id: UUID):
+    def get(self, db: Session, role_permission_id: UUID) -> Optional[RolePermission]:
         """Retrieve a role-permission mapping by its unique ID."""
         return db.query(RolePermission).filter(RolePermission.id == role_permission_id).first()
 
-    def get_by_role_permission(self, db: Session, role_id: UUID, permission_id: UUID):
+    def get_by_role_permission(
+        self, db: Session, role_id: UUID, permission_id: UUID
+    ) -> Optional[RolePermission]:
         """Retrieve a specific role-permission relationship by role and permission IDs."""
         return (
             db.query(RolePermission)
@@ -26,11 +29,11 @@ class RolePermissionCRUD:
             .first()
         )
 
-    def get_all(self, db: Session, skip: int = 0, limit: int = 100):
+    def get_all(self, db: Session, skip: int = 0, limit: int = 100) -> List[RolePermission]:
         """Return a paginated list of all role-permission relationships."""
         return db.query(RolePermission).offset(skip).limit(limit).all()
 
-    def create(self, db: Session, obj_in: RolePermissionCreate):
+    def create(self, db: Session, obj_in: RolePermissionCreate) -> Optional[RolePermission]:
         """Create a new role-permission relationship, avoiding duplicates."""
         existing = self.get_by_role_permission(db, obj_in.role_id, obj_in.permission_id)
         if existing:
@@ -41,7 +44,7 @@ class RolePermissionCRUD:
         db.refresh(db_obj)
         return db_obj
 
-    def delete(self, db: Session, role_permission_id: UUID):
+    def delete(self, db: Session, role_permission_id: UUID) -> Optional[RolePermission]:
         """Delete a role-permission relationship by its ID."""
         db_obj = self.get(db, role_permission_id)
         if db_obj:

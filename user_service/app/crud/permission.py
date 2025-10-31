@@ -1,5 +1,8 @@
+# pylint: disable=duplicate-code
+
 """CRUD operations for the Permission model."""
 
+from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -11,19 +14,19 @@ from app.schemas.permission import PermissionCreate, PermissionUpdate
 class PermissionCRUD:
     """Provides CRUD operations for Permission entities."""
 
-    def get(self, db: Session, permission_id: UUID):
+    def get(self, db: Session, permission_id: UUID) -> Optional[Permission]:
         """Retrieve a permission by its unique ID."""
         return db.query(Permission).filter(Permission.id == permission_id).first()
 
-    def get_by_name(self, db: Session, name: str):
+    def get_by_name(self, db: Session, name: str) -> Optional[Permission]:
         """Retrieve a permission by its name."""
         return db.query(Permission).filter(Permission.name == name).first()
 
-    def get_all(self, db: Session, skip: int = 0, limit: int = 100):
+    def get_all(self, db: Session, skip: int = 0, limit: int = 100) -> List[Permission]:
         """Return a paginated list of all permissions."""
         return db.query(Permission).offset(skip).limit(limit).all()
 
-    def create(self, db: Session, obj_in: PermissionCreate):
+    def create(self, db: Session, obj_in: PermissionCreate) -> Optional[Permission]:
         """Create a new permission record."""
         db_obj = Permission(name=obj_in.name, description=obj_in.description)
         db.add(db_obj)
@@ -31,7 +34,9 @@ class PermissionCRUD:
         db.refresh(db_obj)
         return db_obj
 
-    def update(self, db: Session, db_obj: Permission, obj_in: PermissionUpdate):
+    def update(
+        self, db: Session, db_obj: Permission, obj_in: PermissionUpdate
+    ) -> Optional[Permission]:
         """Update an existing permission's details."""
         update_data = obj_in.dict(exclude_unset=True)
         for field, value in update_data.items():
@@ -40,7 +45,7 @@ class PermissionCRUD:
         db.refresh(db_obj)
         return db_obj
 
-    def delete(self, db: Session, permission_id: UUID):
+    def delete(self, db: Session, permission_id: UUID) -> Optional[Permission]:
         """Delete a permission by its ID."""
         db_obj = self.get(db, permission_id)
         if db_obj:
