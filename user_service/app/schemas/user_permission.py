@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class UserPermissionBase(BaseModel):
@@ -20,3 +20,4 @@ class UserPermissionRead(UserPermissionBase):
     """Schema for reading a user-permission relationship, includes ID."""
 
     id: UUID
+    model_config = ConfigDict(from_attributes=True)  # enable ORM parsing

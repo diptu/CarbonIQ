@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: Optional[str] = None
+    ALGORITHM: str = "HS256"
 
     # Database
     DATABASE_URL: Optional[str] = None

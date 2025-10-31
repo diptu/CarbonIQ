@@ -6,7 +6,6 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models.user_permission import UserPermission
-from app.schemas.user_permission import UserPermissionCreate
 
 
 class UserPermissionCRUD:
@@ -33,8 +32,8 @@ class UserPermissionCRUD:
         """Return a paginated list of all user-permission relationships."""
         return db.query(UserPermission).offset(skip).limit(limit).all()
 
-    def create(self, db: Session, obj_in: UserPermissionCreate) -> Optional[UserPermission]:
-        """Create a new user-permission relationship, avoiding duplicates."""
+    # def create(self, db: Session, obj_in: UserPermissionCreate) -> Optional[UserPermission]:
+    #     """Create a new user-permission relationship, avoiding duplicates."""
 
 
 user_permission_crud = UserPermissionCRUD()

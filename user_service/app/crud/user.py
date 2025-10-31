@@ -27,7 +27,7 @@ class UserCRUD:
         """Return a paginated list of users."""
         return db.query(User).offset(skip).limit(limit).all()
 
-    def create(self, db: Session, obj_in: UserCreate) -> Optional[User]:
+    def create(self, db: Session, obj_in: UserCreate) -> User:
         """Create a new user with a hashed password."""
         hashed_password = pwd_context.hash(obj_in.password)
         db_obj = User(
