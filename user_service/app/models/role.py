@@ -2,18 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import engine
 
 from .base import Base, BaseModel
-
-if TYPE_CHECKING:
-    from app.models.user_permission import UserPermission
-    from app.models.user_role import UserRole
 
 
 class Role(BaseModel):  # pylint: disable=too-few-public-methods
@@ -52,15 +46,8 @@ class Role(BaseModel):  # pylint: disable=too-few-public-methods
         Text, nullable=True, comment="Optional description explaining the purpose of the role"
     )
 
-    # Relationships
-    users: Mapped[list["UserRole"]] = relationship(
-        "UserRole",
-        back_populates="role",
-        cascade="all, delete-orphan",
-    )
-
-    permissions: Mapped[list["UserPermission"]] = relationship(
-        "UserPermission",
+    assignments = relationship(
+        "UserRolePermission",
         back_populates="role",
         cascade="all, delete-orphan",
     )

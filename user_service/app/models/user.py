@@ -68,20 +68,11 @@ class User(BaseModel):  # pylint: disable=too-few-public-methods
     is_superuser = Column(
         Boolean, default=False, comment="Indicates if the user has superuser privileges"
     )
-
-    # Relationships
-    roles = relationship(
-        "UserRole",
+    # single association
+    assignments = relationship(
+        "UserRolePermission",
         back_populates="user",
-        cascade="all, delete",
-        # comment="List of roles assigned to the user"
-    )
-
-    permissions = relationship(
-        "UserPermission",
-        back_populates="user",
-        cascade="all, delete",
-        # comment="List of permissions directly assigned to the user"
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:

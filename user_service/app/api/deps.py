@@ -40,10 +40,18 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 def require_permissions(permissions: List[str]) -> Callable[[User], User]:
-    """Dependency to check if the current_user has all required permissions."""
+    """
+    Dependency to check if the current_user has all required permissions.
+
+    Works with unified UserRolePermission table:
+    - Permissions can come from roles or direct user assignment.
+    """
 
     def checker(current_user: User = Depends(get_current_user)) -> User:
-        user_perms = [p.permission.name for p in current_user.permissions]  # update name if needed
+        # Gather all permissions from current_user assignments
+        user_perms = {a.permission.name for a in current_user.assignments if a.permission}
+
+        # Check if any required permission is missing
         missing = [perm for perm in permissions if perm not in user_perms]
         if missing:
             raise HTTPException(

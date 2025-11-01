@@ -52,17 +52,10 @@ class Permission(BaseModel):  # pylint: disable=too-few-public-methods
         Text, nullable=True, comment="Optional description explaining the purpose of the permission"
     )
 
-    # Relationships
-    roles = relationship(
-        "RolePermission",
+    assignments = relationship(
+        "UserRolePermission",
         back_populates="permission",
-        cascade="all, delete",
-    )
-
-    users = relationship(
-        "UserPermission",
-        back_populates="permission",
-        cascade="all, delete",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:

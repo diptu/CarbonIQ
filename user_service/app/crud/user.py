@@ -64,5 +64,36 @@ class UserCRUD:
         """Check if a plaintext password matches a hashed password."""
         return bool(pwd_context.verify(plain_password, hashed_password))
 
+    def get_permissions(self, user: User) -> List[str]:
+        """
+        Retrieve all permission names assigned to the user,
+        including those inherited from roles via the unified assignments table.
+        """
+        return list({a.permission.name for a in user.assignments if a.permission})
+
+    def get_roles(self, user: User) -> List[str]:
+        """
+        Retrieve all role names assigned to the user via the unified assignments table.
+        """
+        return list({a.role.name for a in user.assignments if a.role})
+
+    def activate_user(self, db: Session, user_id: UUID) -> Optional[User]:
+        """Activate a user account."""
+        user = self.get(db, user_id)
+        if user:
+            user.is_active = True
+            db.commit()
+            db.refresh(user)
+        return user
+
+    def deactivate_user(self, db: Session, user_id: UUID) -> Optional[User]:
+        """Deactivate a user account."""
+        user = self.get(db, user_id)
+        if user:
+            user.is_active = False
+            db.commit()
+            db.refresh(user)
+        return user
+
 
 user_crud = UserCRUD()
