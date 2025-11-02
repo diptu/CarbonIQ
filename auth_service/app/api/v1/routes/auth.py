@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.jwt_utils import create_access_token, create_refresh_token, decode_token
-from app.core.response import build_response_from_request
 from app.crud.token_blacklist import token_blacklist_crud
 from app.db.session import get_db
 from app.schemas.auth import LoginRequest, RefreshRequest
@@ -23,8 +22,20 @@ AUTH_AUDIENCE = settings.AUTH_AUDIENCE
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def _calculate_expiration(payload: dict) -> tuple[int, int]:
+    """Helper to convert exp to UNIX timestamp and calculate expires_in."""
+    now_ts = int(datetime.utcnow().timestamp())
+    exp = (
+        int(payload["exp"].timestamp())
+        if hasattr(payload["exp"], "timestamp")
+        else int(payload["exp"])
+    )
+    expires_in = max(exp - now_ts, 0)
+    return exp, expires_in
+
+
 @router.post("/login")
-def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
+def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)) -> Any:
     """
     Authenticate a user via User Service and return JWT with RBAC info
     and token expiry included in the response.
@@ -54,7 +65,7 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
     permissions = sorted(user_data.get("permissions", []))
     tenant_id = user_data.get("tenant_id")
 
-    # Create JWT tokens and get payload to extract expiration
+    # Create JWT tokens and payloads
     access_token, access_payload = create_access_token(
         sub=user_id,
         iss=AUTH_ISSUER,
@@ -66,22 +77,8 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
     )
     refresh_token, refresh_payload = create_refresh_token(sub=user_id, return_payload=True)
 
-    # Convert datetime to UNIX timestamps if payload exp is datetime
-    access_exp = (
-        int(access_payload["exp"].timestamp())
-        if hasattr(access_payload["exp"], "timestamp")
-        else int(access_payload["exp"])
-    )
-    refresh_exp = (
-        int(refresh_payload["exp"].timestamp())
-        if hasattr(refresh_payload["exp"], "timestamp")
-        else int(refresh_payload["exp"])
-    )
-
-    # Calculate expires_in in seconds
-    now_ts = int(datetime.utcnow().timestamp())
-    access_expires_in = access_exp - now_ts
-    refresh_expires_in = refresh_exp - now_ts
+    access_exp, access_expires_in = _calculate_expiration(access_payload)
+    refresh_exp, refresh_expires_in = _calculate_expiration(refresh_payload)
 
     return {
         "trace_id": str(uuid.uuid4()),
@@ -115,7 +112,7 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
 @router.post("/refresh")
 def refresh_token(request: Request, payload: RefreshRequest, db: Session = Depends(get_db)) -> Any:
     """
-    Issue new tokens using a valid refresh token.
+    Issue new tokens using a valid refresh token and return structured response.
     """
     try:
         token_payload = decode_token(payload.refresh_token)
@@ -123,8 +120,7 @@ def refresh_token(request: Request, payload: RefreshRequest, db: Session = Depen
 
         if token_blacklist_crud.is_blacklisted(db, jti):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token blacklisted",
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token blacklisted"
             )
 
         user_id = token_payload.get("sub")
@@ -135,30 +131,48 @@ def refresh_token(request: Request, payload: RefreshRequest, db: Session = Depen
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token payload")
 
-        access_token = create_access_token(
+        # Generate new tokens
+        access_token, access_payload = create_access_token(
             sub=user_id,
             iss=AUTH_ISSUER,
             aud=AUTH_AUDIENCE,
             roles=roles,
             permissions=permissions,
             tenant_id=tenant_id,
+            return_payload=True,
         )
-        new_refresh_token = create_refresh_token(sub=user_id)
+        new_refresh_token, refresh_payload = create_refresh_token(sub=user_id, return_payload=True)
 
-        return build_response_from_request(
-            request,
-            data={
+        access_exp, access_expires_in = _calculate_expiration(access_payload)
+        refresh_exp, refresh_expires_in = _calculate_expiration(refresh_payload)
+
+        return {
+            "trace_id": str(uuid.uuid4()),
+            "correlation_id": str(uuid.uuid4()),
+            "timestamp": datetime.utcnow().isoformat(),
+            "success": True,
+            "user_id": user_id,
+            "tenant_id": tenant_id,
+            "roles": roles,
+            "permissions": permissions,
+            "data": {
                 "sub": user_id,
                 "iss": AUTH_ISSUER,
                 "aud": AUTH_AUDIENCE,
                 "access_token": access_token,
                 "refresh_token": new_refresh_token,
+                "access_exp": access_exp,
+                "refresh_exp": refresh_exp,
+                "access_expires_in": access_expires_in,
+                "refresh_expires_in": refresh_expires_in,
                 "token_type": "bearer",
-                "roles": roles,
-                "permissions": permissions,
-                "tenant_id": tenant_id,
             },
-        )
+            "error": None,
+            "meta": {
+                "api_version": "v1",
+                "request_path": str(request.url.path),
+            },
+        }
 
     except JWTError as exc:
         raise HTTPException(status_code=401, detail="Invalid or expired token") from exc
@@ -172,13 +186,24 @@ def logout(request: Request, payload: RefreshRequest, db: Session = Depends(get_
     try:
         token_payload = decode_token(payload.refresh_token)
         jti = token_payload.get("jti", str(uuid.uuid4()))
-
         token_blacklist_crud.add(db, jti)
 
-        return build_response_from_request(
-            request,
-            data={"detail": "Successfully logged out"},
-        )
+        return {
+            "trace_id": str(uuid.uuid4()),
+            "correlation_id": str(uuid.uuid4()),
+            "timestamp": datetime.utcnow().isoformat(),
+            "success": True,
+            "user_id": token_payload.get("sub"),
+            "tenant_id": token_payload.get("tenant_id"),
+            "roles": token_payload.get("roles", []),
+            "permissions": token_payload.get("permissions", []),
+            "data": {"detail": "Successfully logged out"},
+            "error": None,
+            "meta": {
+                "api_version": "v1",
+                "request_path": str(request.url.path),
+            },
+        }
 
-    except JWTError as exc:
-        raise HTTPException(status_code=401, detail="Invalid token") from exc
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
