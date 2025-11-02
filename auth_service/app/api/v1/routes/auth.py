@@ -1,6 +1,7 @@
 """Authentication routes for login, token refresh, and logout."""
 
 import uuid
+from datetime import datetime
 from typing import Any
 
 import requests
@@ -23,13 +24,11 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login")
-@router.post("/login")
-def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)) -> Any:
+def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
     """
-    Authenticate a user by calling the User Service.
-    Returns rich JWT with sub, iss, aud, roles, permissions, tenant_id, etc.
+    Authenticate a user via User Service and return JWT with RBAC info
+    and token expiry included in the response.
     """
-
     # Call User Service to verify credentials
     try:
         response = requests.post(
@@ -49,40 +48,68 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
             detail="Invalid email or password",
         )
 
-    # User service returns full RBAC info now
-    user_response = response.json().get("data", {})
+    user_data = response.json().get("data", {})
+    user_id = str(user_data.get("id"))
+    roles = sorted(user_data.get("roles", []))
+    permissions = sorted(user_data.get("permissions", []))
+    tenant_id = user_data.get("tenant_id")
 
-    user_id = str(user_response.get("id"))
-    roles = user_response.get("roles", [])
-    permissions = user_response.get("permissions", [])
-    tenant_id = user_response.get("tenant_id")
-
-    # Create JWT tokens with RBAC claims
-    access_token = create_access_token(
+    # Create JWT tokens and get payload to extract expiration
+    access_token, access_payload = create_access_token(
         sub=user_id,
         iss=AUTH_ISSUER,
         aud=AUTH_AUDIENCE,
         roles=roles,
         permissions=permissions,
         tenant_id=tenant_id,
+        return_payload=True,
     )
-    refresh_token = create_refresh_token(sub=user_id)
+    refresh_token, refresh_payload = create_refresh_token(sub=user_id, return_payload=True)
 
-    # Return standardized API response with trace/correlation info
-    return build_response_from_request(
-        request,
-        data={
+    # Convert datetime to UNIX timestamps if payload exp is datetime
+    access_exp = (
+        int(access_payload["exp"].timestamp())
+        if hasattr(access_payload["exp"], "timestamp")
+        else int(access_payload["exp"])
+    )
+    refresh_exp = (
+        int(refresh_payload["exp"].timestamp())
+        if hasattr(refresh_payload["exp"], "timestamp")
+        else int(refresh_payload["exp"])
+    )
+
+    # Calculate expires_in in seconds
+    now_ts = int(datetime.utcnow().timestamp())
+    access_expires_in = access_exp - now_ts
+    refresh_expires_in = refresh_exp - now_ts
+
+    return {
+        "trace_id": str(uuid.uuid4()),
+        "correlation_id": str(uuid.uuid4()),
+        "timestamp": datetime.utcnow().isoformat(),
+        "success": True,
+        "user_id": user_id,
+        "tenant_id": tenant_id,
+        "roles": roles,
+        "permissions": permissions,
+        "data": {
             "sub": user_id,
             "iss": AUTH_ISSUER,
             "aud": AUTH_AUDIENCE,
             "access_token": access_token,
             "refresh_token": refresh_token,
+            "access_exp": access_exp,
+            "refresh_exp": refresh_exp,
+            "access_expires_in": access_expires_in,
+            "refresh_expires_in": refresh_expires_in,
             "token_type": "bearer",
-            "roles": roles,
-            "permissions": permissions,
-            "tenant_id": tenant_id,
         },
-    )
+        "error": None,
+        "meta": {
+            "api_version": "v1",
+            "request_path": str(request.url.path),
+        },
+    }
 
 
 @router.post("/refresh")
