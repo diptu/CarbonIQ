@@ -4,9 +4,11 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+import anyio
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jose import JWTError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -36,36 +38,32 @@ def _calculate_expiration(payload: dict) -> tuple[int, int]:
 
 @router.post("/login")
 def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)) -> Any:
-    """
-    Authenticate a user via User Service and return JWT with RBAC info
-    and token expiry included in the response.
-    """
-    # Call User Service to verify credentials
+    """Authenticate user and return JWT tokens with RBAC, tenant info, iat and jti."""
     try:
         response = requests.post(
             f"{USER_SERVICE_URL}/users/verify",
             json={"email": payload.email, "password": payload.password},
             timeout=5,
         )
+        response.raise_for_status()
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="User service unavailable",
         ) from exc
 
-    if response.status_code != 200:
+    user_data = response.json().get("data", {})
+    if not user_data:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
         )
 
-    user_data = response.json().get("data", {})
     user_id = str(user_data.get("id"))
     roles = sorted(user_data.get("roles", []))
     permissions = sorted(user_data.get("permissions", []))
     tenant_id = user_data.get("tenant_id")
 
-    # Create JWT tokens and payloads
+    # Create JWT tokens
     access_token, access_payload = create_access_token(
         sub=user_id,
         iss=AUTH_ISSUER,
@@ -93,6 +91,12 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
             "sub": user_id,
             "iss": AUTH_ISSUER,
             "aud": AUTH_AUDIENCE,
+            "jti": access_payload["jti"],
+            "iat": int(
+                access_payload["iat"].timestamp()
+                if hasattr(access_payload["iat"], "timestamp")
+                else access_payload["iat"]
+            ),
             "access_token": access_token,
             "refresh_token": refresh_token,
             "access_exp": access_exp,
@@ -102,25 +106,27 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
             "token_type": "bearer",
         },
         "error": None,
-        "meta": {
-            "api_version": "v1",
-            "request_path": str(request.url.path),
-        },
+        "meta": {"api_version": "v1", "request_path": str(request.url.path)},
     }
 
 
 @router.post("/refresh")
-def refresh_token(request: Request, payload: RefreshRequest, db: Session = Depends(get_db)) -> Any:
+async def refresh_token(
+    request: Request, payload: RefreshRequest, db: Session = Depends(get_db)
+) -> Any:
     """
-    Issue new tokens using a valid refresh token and return structured response.
+    Refresh an access token using a valid, non-blacklisted refresh token.
     """
     try:
         token_payload = decode_token(payload.refresh_token)
         jti = token_payload.get("jti", str(uuid.uuid4()))
 
-        if token_blacklist_crud.is_blacklisted(db, jti):
+        # Check if refresh token is blacklisted
+        is_bl = await anyio.to_thread.run_sync(token_blacklist_crud.is_blacklisted, db, jti)
+        if is_bl:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token blacklisted"
+                status_code=401,
+                detail=f"Refresh token with jti={jti} is blacklisted",
             )
 
         user_id = token_payload.get("sub")
@@ -131,7 +137,6 @@ def refresh_token(request: Request, payload: RefreshRequest, db: Session = Depen
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token payload")
 
-        # Generate new tokens
         access_token, access_payload = create_access_token(
             sub=user_id,
             iss=AUTH_ISSUER,
@@ -159,6 +164,7 @@ def refresh_token(request: Request, payload: RefreshRequest, db: Session = Depen
                 "sub": user_id,
                 "iss": AUTH_ISSUER,
                 "aud": AUTH_AUDIENCE,
+                "jti": jti,
                 "access_token": access_token,
                 "refresh_token": new_refresh_token,
                 "access_exp": access_exp,
@@ -174,19 +180,32 @@ def refresh_token(request: Request, payload: RefreshRequest, db: Session = Depen
             },
         }
 
-    except JWTError as exc:
-        raise HTTPException(status_code=401, detail="Invalid or expired token") from exc
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
 @router.post("/logout")
-def logout(request: Request, payload: RefreshRequest, db: Session = Depends(get_db)) -> Any:
+async def logout(request: Request, payload: RefreshRequest, db: Session = Depends(get_db)) -> Any:
     """
     Blacklist a refresh token so it cannot be reused.
+    Raises exception if token is already blacklisted.
     """
     try:
         token_payload = decode_token(payload.refresh_token)
         jti = token_payload.get("jti", str(uuid.uuid4()))
-        token_blacklist_crud.add(db, jti)
+
+        # Run DB insert in thread-safe context
+        def blacklist_token():
+            token_blacklist_crud.add(db, jti)
+
+        try:
+            await anyio.to_thread.run_sync(blacklist_token)
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail=f"Token with jti={jti} is already blacklisted",
+            )
 
         return {
             "trace_id": str(uuid.uuid4()),
