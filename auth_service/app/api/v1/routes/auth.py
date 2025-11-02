@@ -1,33 +1,40 @@
 """Authentication routes for login, token refresh, and logout."""
 
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jose import JWTError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.jwt_utils import create_access_token, create_refresh_token, decode_token
+from app.core.response import build_response_from_request
 from app.crud.token_blacklist import token_blacklist_crud
 from app.db.session import get_db
-from app.schemas.auth import LoginRequest, RefreshRequest, Token
+from app.schemas.auth import LoginRequest, RefreshRequest
 
-USER_SERVICE_URL = "http://user-service:8001"
+USER_SERVICE_URL = settings.USER_SERVICE_URL
+AUTH_ISSUER = settings.AUTH_ISSUER
+AUTH_AUDIENCE = settings.AUTH_AUDIENCE
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/login", response_model=Token)
-def login(request: LoginRequest, db: Session = Depends(get_db)) -> Dict[str, Any]:  # pylint: disable=unused-argument
+@router.post("/login")
+@router.post("/login")
+def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)) -> Any:
     """
     Authenticate a user by calling the User Service.
-    Returns access and refresh tokens if credentials are valid.
+    Returns rich JWT with sub, iss, aud, roles, permissions, tenant_id, etc.
     """
+
+    # Call User Service to verify credentials
     try:
         response = requests.post(
             f"{USER_SERVICE_URL}/users/verify",
-            json={"email": request.email, "password": request.password},
+            json={"email": payload.email, "password": payload.password},
             timeout=5,
         )
     except requests.RequestException as exc:
@@ -42,61 +49,109 @@ def login(request: LoginRequest, db: Session = Depends(get_db)) -> Dict[str, Any
             detail="Invalid email or password",
         )
 
-    user_data = response.json()
-    user_id = str(user_data.get("id"))
+    # User service returns full RBAC info now
+    user_response = response.json().get("data", {})
 
-    access_token = create_access_token(user_id)
-    new_refresh_token = create_refresh_token(user_id)
+    user_id = str(user_response.get("id"))
+    roles = user_response.get("roles", [])
+    permissions = user_response.get("permissions", [])
+    tenant_id = user_response.get("tenant_id")
 
-    return {
-        "access_token": access_token,
-        "refresh_token": new_refresh_token,
-        "token_type": "bearer",
-    }
+    # Create JWT tokens with RBAC claims
+    access_token = create_access_token(
+        sub=user_id,
+        iss=AUTH_ISSUER,
+        aud=AUTH_AUDIENCE,
+        roles=roles,
+        permissions=permissions,
+        tenant_id=tenant_id,
+    )
+    refresh_token = create_refresh_token(sub=user_id)
+
+    # Return standardized API response with trace/correlation info
+    return build_response_from_request(
+        request,
+        data={
+            "sub": user_id,
+            "iss": AUTH_ISSUER,
+            "aud": AUTH_AUDIENCE,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "roles": roles,
+            "permissions": permissions,
+            "tenant_id": tenant_id,
+        },
+    )
 
 
-@router.post("/refresh", response_model=Token)
-def refresh_token(request: RefreshRequest, db: Session = Depends(get_db)) -> Dict[str, Any]:
+@router.post("/refresh")
+def refresh_token(request: Request, payload: RefreshRequest, db: Session = Depends(get_db)) -> Any:
     """
     Issue new tokens using a valid refresh token.
     """
     try:
-        payload = decode_token(request.refresh_token)
-        jti = payload.get("jti", str(uuid.uuid4()))
+        token_payload = decode_token(payload.refresh_token)
+        jti = token_payload.get("jti", str(uuid.uuid4()))
 
         if token_blacklist_crud.is_blacklisted(db, jti):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token blacklisted"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token blacklisted",
             )
 
-        user_id = payload.get("sub")
+        user_id = token_payload.get("sub")
+        roles = token_payload.get("roles", [])
+        permissions = token_payload.get("permissions", [])
+        tenant_id = token_payload.get("tenant_id")
+
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token payload")
 
-        access_token = create_access_token(user_id)
-        new_refresh_token = create_refresh_token(user_id)
+        access_token = create_access_token(
+            sub=user_id,
+            iss=AUTH_ISSUER,
+            aud=AUTH_AUDIENCE,
+            roles=roles,
+            permissions=permissions,
+            tenant_id=tenant_id,
+        )
+        new_refresh_token = create_refresh_token(sub=user_id)
 
-        return {
-            "access_token": access_token,
-            "refresh_token": new_refresh_token,
-            "token_type": "bearer",
-        }
+        return build_response_from_request(
+            request,
+            data={
+                "sub": user_id,
+                "iss": AUTH_ISSUER,
+                "aud": AUTH_AUDIENCE,
+                "access_token": access_token,
+                "refresh_token": new_refresh_token,
+                "token_type": "bearer",
+                "roles": roles,
+                "permissions": permissions,
+                "tenant_id": tenant_id,
+            },
+        )
 
     except JWTError as exc:
         raise HTTPException(status_code=401, detail="Invalid or expired token") from exc
 
 
 @router.post("/logout")
-def logout(request: RefreshRequest, db: Session = Depends(get_db)) -> Dict[str, Any]:
+def logout(request: Request, payload: RefreshRequest, db: Session = Depends(get_db)) -> Any:
     """
     Blacklist a refresh token so it cannot be reused.
     """
     try:
-        payload = decode_token(request.refresh_token)
-        jti = payload.get("jti", str(uuid.uuid4()))
+        token_payload = decode_token(payload.refresh_token)
+        jti = token_payload.get("jti", str(uuid.uuid4()))
 
         token_blacklist_crud.add(db, jti)
-        return {"detail": "Successfully logged out"}
+
+        return build_response_from_request(
+            request,
+            data={"detail": "Successfully logged out"},
+        )
 
     except JWTError as exc:
         raise HTTPException(status_code=401, detail="Invalid token") from exc

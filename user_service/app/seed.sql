@@ -2,30 +2,39 @@
 --  Core User, Roles, Permissions
 -- ================================
 
--- 1️⃣ Insert Admin User
-INSERT INTO users (
-    id,
-    email,
-    hashed_password,
-    full_name,
-    is_active,
-    is_verified,
-    is_superuser,
-    created_at,
-    updated_at
-) VALUES (
-    gen_random_uuid(),
-    'admin@carboniq.com',
-    '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK',
-    'Nazmul Alam',
-    TRUE,
-    FALSE,
-    TRUE,
-    now(),
-    now()
-)
+-- 1️⃣ Insert Users
+-- ============================================================
+-- 6️⃣ Tenant Users
+-- ============================================================
+
+-- Apple Parent Tenant Users
+INSERT INTO users (id, email, hashed_password, full_name, is_active, is_verified, is_superuser, created_at, updated_at)
+VALUES
+    (gen_random_uuid(), 'admin@apple.com', '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK', 'Apple Admin', TRUE, TRUE, FALSE, now(), now()),
+    (gen_random_uuid(), 'billing@apple.com', '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK', 'Apple Billing', TRUE, TRUE, FALSE, now(), now()),
+    (gen_random_uuid(), 'member@apple.com', '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK', 'Apple Member', TRUE, TRUE, FALSE, now(), now()),
+    (gen_random_uuid(), 'viewer@apple.com', '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK', 'Apple Viewer', TRUE, TRUE, FALSE, now(), now())
 ON CONFLICT (email) DO NOTHING;
 
+
+-- Orchard Apple Sub-Tenant Users
+INSERT INTO users (id, email, hashed_password, full_name, is_active, is_verified, is_superuser, created_at, updated_at)
+VALUES
+    (gen_random_uuid(), 'admin@orchardapple.com', '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK', 'Orchard Apple Admin', TRUE, TRUE, FALSE, now(), now()),
+    (gen_random_uuid(), 'billing@orchardapple.com', '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK', 'Orchard Apple Billing', TRUE, TRUE, FALSE, now(), now()),
+    (gen_random_uuid(), 'member@orchardapple.com', '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK', 'Orchard Apple Member', TRUE, TRUE, FALSE, now(), now()),
+    (gen_random_uuid(), 'viewer@orchardapple.com', '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK', 'Orchard Apple Viewer', TRUE, TRUE, FALSE, now(), now())
+ON CONFLICT (email) DO NOTHING;
+
+
+-- Orange Parent Tenant Users
+INSERT INTO users (id, email, hashed_password, full_name, is_active, is_verified, is_superuser, created_at, updated_at)
+VALUES
+    (gen_random_uuid(), 'admin@orrange.com', '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK', 'Orange Admin', TRUE, TRUE, FALSE, now(), now()),
+    (gen_random_uuid(), 'billing@orrange.com', '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK', 'Orange Billing', TRUE, TRUE, FALSE, now(), now()),
+    (gen_random_uuid(), 'member@orrange.com', '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK', 'Orange Member', TRUE, TRUE, FALSE, now(), now()),
+    (gen_random_uuid(), 'viewer@orrange.com', '$2b$12$L.M7HdQH4lz1Fppq9wWGBupqKA44WnPePTINB1Jf6tFxRjtdi03UK', 'Orange Viewer', TRUE, TRUE, FALSE, now(), now())
+ON CONFLICT (email) DO NOTHING;
 
 -- 2️⃣ Insert Roles
 INSERT INTO roles (id, name, description)
@@ -40,79 +49,66 @@ ON CONFLICT (name) DO NOTHING;
 -- 3️⃣ Insert Permissions
 INSERT INTO permissions (id, name, description)
 VALUES
-    (gen_random_uuid(), 'user.create', 'Create new users in the system'),
-    (gen_random_uuid(), 'user.read', 'View and list users'),
-    (gen_random_uuid(), 'user.update', 'Update existing user data'),
-    (gen_random_uuid(), 'user.delete', 'Remove users from the system'),
+    (gen_random_uuid(), 'user.create', 'Create new users'),
+    (gen_random_uuid(), 'user.read', 'View users'),
+    (gen_random_uuid(), 'user.update', 'Update users'),
+    (gen_random_uuid(), 'user.delete', 'Delete users'),
 
-    (gen_random_uuid(), 'role.create', 'Create new roles'),
-    (gen_random_uuid(), 'role.read', 'View existing roles'),
-    (gen_random_uuid(), 'role.update', 'Modify role details'),
-    (gen_random_uuid(), 'role.delete', 'Delete roles from the system'),
+    (gen_random_uuid(), 'role.create', 'Create roles'),
+    (gen_random_uuid(), 'role.read', 'View roles'),
+    (gen_random_uuid(), 'role.update', 'Edit roles'),
+    (gen_random_uuid(), 'role.delete', 'Delete roles'),
 
-    (gen_random_uuid(), 'permission.read', 'List available permissions'),
+    (gen_random_uuid(), 'permission.read', 'View permissions'),
 
-    (gen_random_uuid(), 'tenant.manage', 'Manage tenant-level configuration'),
-    (gen_random_uuid(), 'billing.manage', 'Handle billing and subscription management')
+    (gen_random_uuid(), 'tenant.manage', 'Manage tenant'),
+    (gen_random_uuid(), 'billing.manage', 'Manage billing')
 ON CONFLICT (name) DO NOTHING;
 
 
--- 4️⃣ Assign TENANT_ADMIN Role to Admin User WITH ALL PERMISSIONS
+
+-- ============================================================
+-- 4️⃣ Assign Admin → TENANT_ADMIN role with ALL permissions
+-- ============================================================
+-- Map each tenant-admin to TENANT_ADMIN
 INSERT INTO user_role_permissions (id, user_id, role_id, permission_id)
-SELECT
-    gen_random_uuid(),
-    u.id,
-    r.id,
-    p.id
+SELECT gen_random_uuid(), u.id, r.id, p.id
 FROM users u
-CROSS JOIN roles r
+JOIN roles r ON r.name = 'TENANT_ADMIN'
 CROSS JOIN permissions p
-WHERE u.email = 'admin@carboniq.com'
-  AND r.name = 'TENANT_ADMIN'
+WHERE u.email IN ('admin@apple.com', 'admin@orchardapple.com', 'admin@orrange.com')
 ON CONFLICT DO NOTHING;
 
 
--- 5️⃣ Direct extra permissions for Admin (optional, can be NULL role_id)
--- Example: direct permissions bypassing role (role_id can be NULL)
+-- Billing admins
 INSERT INTO user_role_permissions (id, user_id, role_id, permission_id)
-VALUES
-    (gen_random_uuid(),
-     (SELECT id FROM users WHERE email = 'admin@carboniq.com' LIMIT 1),
-     NULL,
-     (SELECT id FROM permissions WHERE name = 'user.create' LIMIT 1)
-    ),
-    (gen_random_uuid(),
-     (SELECT id FROM users WHERE email = 'admin@carboniq.com' LIMIT 1),
-     NULL,
-     (SELECT id FROM permissions WHERE name = 'user.read' LIMIT 1)
-    )
+SELECT gen_random_uuid(), u.id, r.id, p.id
+FROM users u
+JOIN roles r ON r.name = 'BILLING_ADMIN'
+CROSS JOIN (
+    SELECT id FROM permissions WHERE name IN ('billing.manage','user.read','permission.read')
+) p
+WHERE u.email IN ('billing@apple.com', 'billing@orchardapple.com', 'billing@orrange.com')
 ON CONFLICT DO NOTHING;
 
+-- Members
+INSERT INTO user_role_permissions (id, user_id, role_id, permission_id)
+SELECT gen_random_uuid(), u.id, r.id, p.id
+FROM users u
+JOIN roles r ON r.name = 'MEMBER'
+CROSS JOIN (
+    SELECT id FROM permissions WHERE name IN ('user.read','permission.read')
+) p
+WHERE u.email IN ('member@apple.com', 'member@orchardapple.com', 'member@orrange.com')
+ON CONFLICT DO NOTHING;
 
--- -- ========================================
--- -- Optional: Tenant Bootstrap (multi-tenant)
--- -- ========================================
-
--- -- Create the default tenant
--- INSERT INTO tenants (id, name, domain, schema_name, created_at, updated_at)
--- VALUES (
---     gen_random_uuid(),
---     'CarbonIQ Global',
---     'carboniq.com',
---     'tenant_carboniq',
---     now(),
---     now()
--- )
--- ON CONFLICT (domain) DO NOTHING;
-
-
--- -- Add admin user as a member of the default tenant
--- INSERT INTO tenant_memberships (id, tenant_id, user_id, role_id, created_at)
--- VALUES (
---     gen_random_uuid(),
---     (SELECT id FROM tenants WHERE domain = 'carboniq.com' LIMIT 1),
---     (SELECT id FROM users WHERE email = 'admin@carboniq.com' LIMIT 1),
---     (SELECT id FROM roles WHERE name = 'TENANT_ADMIN' LIMIT 1),
---     now()
--- )
--- ON CONFLICT DO NOTHING;
+-- Viewers (read-only)
+INSERT INTO user_role_permissions (id, user_id, role_id, permission_id)
+SELECT gen_random_uuid(), u.id, r.id, p.id
+FROM users u
+JOIN roles r ON r.name = 'VIEWER'
+CROSS JOIN (
+    SELECT id FROM permissions WHERE name IN ('permission.read')
+) p
+WHERE u.email IN ('viewer@apple.com', 'viewer@orchardapple.com', 'viewer@orrange.com')
+ON CONFLICT DO NOTHING;
