@@ -13,17 +13,18 @@ class Settings(BaseSettings):
     """App settings loaded from environment variables."""
 
     # General App Config
-    APP_NAME: str = "multi_tenant_saas"
+    APP_NAME: str = "carboniq"
     APP_ENV: str = "development"
     DEBUG: bool = True
 
-    # # Security
-    # SECRET_KEY: Optional[str] = None
-    # ALGORITHM: str = "HS256"
-
-    # Database
-    DATABASE_URL: Optional[str] = None
-    READ_REPLICA_URL: Optional[str] = None
+    # Security
+    SECRET_KEY: Optional[str] = None
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    USER_SERVICE_URL: str = "http://0.0.0.0:8000"
+    AUTH_ISSUER: str = "auth.carboniq.com"
+    AUTH_AUDIENCE: str = "api.carboniq.com"
 
     # Pydantic v2 config
     model_config = SettingsConfigDict(env_file=str(ENV_FILE), extra="ignore")
@@ -33,6 +34,5 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # Runtime validation for required fields
-
-if not settings.DATABASE_URL:
-    raise ValueError("DATABASE_URL must be set in environment variables")
+if not settings.SECRET_KEY:
+    raise ValueError("SECRET_KEY must be set in environment variables")

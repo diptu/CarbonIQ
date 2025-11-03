@@ -2,9 +2,10 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, cast
 
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
+from jose.exceptions import ExpiredSignatureError, JWTError
 
-from app.core.config import settings
+from shared_service.app.core.config import settings
 
 
 def create_access_token(
@@ -58,9 +59,17 @@ def decode_token(
 ) -> Dict[str, Any]:
     secret_key = secret_key or settings.SECRET_KEY
     algorithm = algorithm or settings.ALGORITHM
+    audience = settings.AUTH_AUDIENCE
 
     try:
-        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
+        payload = jwt.decode(
+            token, secret_key, algorithms=[algorithm], audience=audience
+        )
+        print("✅ JWT decoded successfully:", payload)
         return cast(Dict[str, Any], payload)
+    except ExpiredSignatureError:
+        print("❌ Token expired")
+        raise
     except JWTError as exc:
-        raise JWTError(f"Invalid or expired token: {exc}") from exc
+        print("❌ JWT decode error:", exc)
+        raise

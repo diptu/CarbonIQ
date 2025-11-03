@@ -5,8 +5,8 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.user_role_permission import UserRolePermission
-from app.schemas.user_role_permission import UserRolePermissionCreate
+from user_service.app.models.user_role_permission import UserRolePermission
+from user_service.app.schemas.user_role_permission import UserRolePermissionCreate
 
 
 class UserRolePermissionCRUD:

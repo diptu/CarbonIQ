@@ -7,8 +7,8 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.permission import Permission
-from app.schemas.permission import PermissionCreate, PermissionUpdate
+from user_service.app.models.permission import Permission
+from user_service.app.schemas.permission import PermissionCreate, PermissionUpdate
 
 
 class PermissionCRUD:

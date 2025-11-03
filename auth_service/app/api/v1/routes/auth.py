@@ -8,14 +8,18 @@ import anyio
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jose import JWTError
+from shared_service.app.core.config import settings
+from shared_service.app.utils.jwt_utils import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.core.jwt_utils import create_access_token, create_refresh_token, decode_token
-from app.crud.token_blacklist import token_blacklist_crud
-from app.db.session import get_db
-from app.schemas.auth import LoginRequest, RefreshRequest
+from auth_service.app.crud.token_blacklist import token_blacklist_crud
+from auth_service.app.db.session import get_db
+from auth_service.app.schemas.auth import LoginRequest, RefreshRequest
 
 USER_SERVICE_URL = settings.USER_SERVICE_URL
 AUTH_ISSUER = settings.AUTH_ISSUER

@@ -4,7 +4,7 @@ CRUD operations for token blacklist management.
 
 from sqlalchemy.orm import Session
 
-from app.models.token_blacklist import TokenBlacklist
+from auth_service.app.models.token_blacklist import TokenBlacklist
 
 
 class TokenBlacklistCRUD:

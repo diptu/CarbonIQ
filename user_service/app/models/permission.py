@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Column, String, Text
 from sqlalchemy.orm import relationship
 
-from app.db.session import engine
+from user_service.app.db.session import engine
 
 from .base import Base, BaseModel
 

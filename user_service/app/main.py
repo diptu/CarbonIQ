@@ -3,9 +3,9 @@
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
-from app.api.v1.routes import user_router
-from app.db.session import engine
-from app.models.base import Base
+from user_service.app.api.v1.routes import user_router
+from user_service.app.db.session import engine
+from user_service.app.models.base import Base
 
 # Create tables
 Base.metadata.create_all(bind=engine)

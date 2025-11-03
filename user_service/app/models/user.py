@@ -5,8 +5,8 @@ from __future__ import annotations
 from sqlalchemy import Boolean, Column, String
 from sqlalchemy.orm import relationship
 
-from app.db.session import engine
-from app.models.base import Base, BaseModel
+from user_service.app.db.session import engine
+from user_service.app.models.base import Base, BaseModel
 
 
 class User(BaseModel):  # pylint: disable=too-few-public-methods

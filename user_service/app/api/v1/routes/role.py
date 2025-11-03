@@ -4,12 +4,12 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from shared_service.app.core.deps import require_permissions
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_permissions
-from app.crud.role import role_crud
-from app.db.session import get_db
-from app.schemas.role import RoleCreate, RoleOut, RoleUpdate
+from user_service.app.crud.role import role_crud
+from user_service.app.db.session import get_db
+from user_service.app.schemas.role import RoleCreate, RoleOut, RoleUpdate
 
 router = APIRouter(prefix="/roles", tags=["roles"])
 

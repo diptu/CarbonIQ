@@ -6,14 +6,14 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from shared_service.app.core.deps import get_current_user, require_permissions
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_permissions
-from app.core.response import build_response_from_request
-from app.crud.user import user_crud
-from app.db.session import get_db
-from app.models.user import User
-from app.schemas.user import UserCreate
+from user_service.app.core.response import build_response_from_request
+from user_service.app.crud.user import user_crud
+from user_service.app.db.session import get_db
+from user_service.app.models.user import User
+from user_service.app.schemas.user import UserCreate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -27,17 +27,22 @@ class LoginRequest(BaseModel):
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# ---------------------
+# create users
+# ---------------------
+
 
 @router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(permissions=["user.create"]))],
+    openapi_extra={"security": [{"BearerAuth": []}]},
 )
 def create_user(
     request: Request,
     user_in: UserCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    # current_user: User = Depends(get_current_user),
 ) -> Any:
     """Create a new user if the email is not already registered."""
     db_user: Optional[User] = user_crud.get_by_email(db, user_in.email)
@@ -57,6 +62,9 @@ def create_user(
     )
 
 
+# ---------------------
+# List users
+# ---------------------
 @router.get(
     "/",
     dependencies=[Depends(require_permissions(permissions=["user.read"]))],
@@ -79,6 +87,9 @@ def list_users(
     )
 
 
+# ---------------------
+# verify user
+# ---------------------
 @router.post("/verify")
 def verify_user(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
     """

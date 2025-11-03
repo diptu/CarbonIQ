@@ -6,8 +6,8 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.role import Role
-from app.schemas.role import RoleCreate, RoleUpdate
+from user_service.app.models.role import Role
+from user_service.app.schemas.role import RoleCreate, RoleUpdate
 
 
 class RoleCRUD:

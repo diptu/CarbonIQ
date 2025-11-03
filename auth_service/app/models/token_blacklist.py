@@ -7,12 +7,11 @@ from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from app.db.session import engine
+from auth_service.app.db.session import engine
 
 
-class Base(DeclarativeBase): # pylint: disable=too-few-public-methods
+class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
     """Base class for SQLAlchemy models."""
-
 
 
 class TokenBlacklist(Base):  # pylint: disable=too-few-public-methods
@@ -24,27 +23,27 @@ class TokenBlacklist(Base):  # pylint: disable=too-few-public-methods
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
-        comment="Primary key: unique identifier for each blacklist record"
+        comment="Primary key: unique identifier for each blacklist record",
     )
 
     jti: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         unique=True,
         nullable=False,
-        comment="JWT ID (jti) of the blacklisted token"
+        comment="JWT ID (jti) of the blacklisted token",
     )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),  # pylint: disable=not-callable
-        comment="Timestamp when the token was blacklisted"
+        comment="Timestamp when the token was blacklisted",
     )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),  # pylint: disable=not-callable
         onupdate=func.now(),  # pylint: disable=not-callable
-        comment="Timestamp when the token record was last updated"
+        comment="Timestamp when the token record was last updated",
     )
 
 

@@ -4,8 +4,8 @@ from sqlalchemy import Column, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.db.session import engine
-from app.models.base import BaseModel
+from user_service.app.db.session import engine
+from user_service.app.models.base import BaseModel
 
 from .base import Base, BaseModel
 

@@ -17,14 +17,14 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     DEBUG: bool = True
 
-    # Security
-    SECRET_KEY: Optional[str] = None
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    USER_SERVICE_URL: str = "http://0.0.0.0:8000"
-    AUTH_ISSUER: str = "auth.carboniq.com"
-    AUTH_AUDIENCE: str = "api.carboniq.com"
+    # # Security
+    # SECRET_KEY: Optional[str] = None
+    # ALGORITHM: str = "HS256"
+    # ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    # REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    # USER_SERVICE_URL: str = "http://0.0.0.0:8000"
+    # AUTH_ISSUER: str = "auth.carboniq.com"
+    # AUTH_AUDIENCE: str = "api.carboniq.com"
 
     # Database
     DATABASE_URL: Optional[str] = None
@@ -37,8 +37,6 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # Runtime validation for required fields
-if not settings.SECRET_KEY:
-    raise ValueError("SECRET_KEY must be set in environment variables")
 
 if not settings.DATABASE_URL:
     raise ValueError("DATABASE_URL must be set in environment variables")

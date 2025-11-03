@@ -6,9 +6,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.crud.user_role_permission import user_role_permission_crud
-from app.db.session import get_db
-from app.schemas.user_role_permission import UserRolePermissionCreate, UserRolePermissionRead
+from user_service.app.crud.user_role_permission import user_role_permission_crud
+from user_service.app.db.session import get_db
+from user_service.app.schemas.user_role_permission import (
+    UserRolePermissionCreate,
+    UserRolePermissionRead,
+)
 
 router = APIRouter(prefix="/user-role-permissions", tags=["user_role_permissions"])
 

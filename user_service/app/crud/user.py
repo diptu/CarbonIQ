@@ -6,8 +6,8 @@ from uuid import UUID
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate
+from user_service.app.models.user import User
+from user_service.app.schemas.user import UserCreate, UserUpdate
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

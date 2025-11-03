@@ -1,10 +1,9 @@
-"""Utility functions for creating and decoding JWT tokens with RBAC and tenant claims."""
-
 import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, cast
 
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
+from jose.exceptions import ExpiredSignatureError, JWTError
 
 from app.core.config import settings
 
@@ -18,25 +17,21 @@ def create_access_token(
     tenant_id: Optional[str] = None,
     return_payload: bool = False,
 ) -> Any:
-    """
-    Generate a JWT access token with RBAC, tenant, issuer, and audience claims.
-
-    Args:
-        return_payload (bool): If True, returns (token, payload) instead of just token.
-    """
     expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     payload: Dict[str, Any] = {
         "sub": sub,
         "iss": iss,
         "aud": aud,
         "exp": expire,
+        "iat": datetime.utcnow(),
         "jti": str(uuid.uuid4()),
+        "type": "access",
         "roles": roles or [],
         "permissions": permissions or [],
         "tenant_id": tenant_id,
     }
 
-    token: str = cast(str, jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM))
+    token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return (token, payload) if return_payload else token
 
 
@@ -44,20 +39,16 @@ def create_refresh_token(
     sub: str,
     return_payload: bool = False,
 ) -> Any:
-    """
-    Generate a JWT refresh token with expiration time in days and unique JTI.
-
-    Args:
-        return_payload (bool): If True, returns (token, payload) instead of just token.
-    """
     expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    payload: Dict[str, Any] = {
+    payload = {
         "sub": sub,
         "exp": expire,
+        "iat": datetime.utcnow(),
         "jti": str(uuid.uuid4()),
+        "type": "refresh",
     }
 
-    token: str = cast(str, jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM))
+    token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return (token, payload) if return_payload else token
 
 
@@ -66,21 +57,16 @@ def decode_token(
     secret_key: Optional[str] = None,
     algorithm: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """
-    Decode a JWT token and return its payload.
-
-    Args:
-        secret_key (Optional[str]): Secret key for decoding. Defaults to settings.SECRET_KEY.
-        algorithm (Optional[str]): Algorithm for decoding. Defaults to settings.ALGORITHM.
-
-    Raises:
-        JWTError: If the token is invalid or expired.
-    """
     secret_key = secret_key or settings.SECRET_KEY
     algorithm = algorithm or settings.ALGORITHM
 
     try:
-        payload: Any = jwt.decode(token, secret_key, algorithms=[algorithm])
+        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
+        print("✅ JWT decoded successfully:", payload)
         return cast(Dict[str, Any], payload)
+    except ExpiredSignatureError:
+        print("❌ Token expired")
+        raise
     except JWTError as exc:
-        raise JWTError(f"Invalid or expired token: {exc}") from exc
+        print("❌ JWT decode error:", exc)
+        raise
