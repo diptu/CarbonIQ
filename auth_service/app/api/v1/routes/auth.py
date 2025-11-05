@@ -1,3 +1,4 @@
+# auth_service/app/api/v1/routes/auth.py
 """Authentication routes for login, token refresh, and logout."""
 
 import uuid

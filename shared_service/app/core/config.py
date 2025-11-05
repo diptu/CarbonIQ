@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     USER_SERVICE_URL: str = "http://0.0.0.0:8000"
+    AUDIT_SERVICE_URL: str = "http://localhost:8003"
     AUTH_ISSUER: str = "auth.carboniq.com"
     AUTH_AUDIENCE: str = "api.carboniq.com"
 
