@@ -77,7 +77,7 @@ class UserCRUD:
         """
         return list({a.role.name for a in user.assignments if a.role})
 
-    def activate_user(self, db: Session, user_id: UUID) -> Optional[User]:
+    def activate(self, db: Session, user_id: UUID) -> Optional[User]:
         """Activate a user account."""
         user = self.get(db, user_id)
         if user:
@@ -86,7 +86,7 @@ class UserCRUD:
             db.refresh(user)
         return user
 
-    def deactivate_user(self, db: Session, user_id: UUID) -> Optional[User]:
+    def deactivate(self, db: Session, user_id: UUID) -> Optional[User]:
         """Deactivate a user account."""
         user = self.get(db, user_id)
         if user:
@@ -94,6 +94,10 @@ class UserCRUD:
             db.commit()
             db.refresh(user)
         return user
+
+    def count(self, db: Session) -> int:
+        """Return total number of users."""
+        return db.query(User).count()
 
 
 user_crud = UserCRUD()

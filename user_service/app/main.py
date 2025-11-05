@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
-from user_service.app.api.v1.routes import user_router
+from user_service.app.api.v1.routes import role_router, user_router
 from user_service.app.db.session import engine
 from user_service.app.models.base import Base
 
@@ -15,7 +15,7 @@ app = FastAPI(title="User Service", version="1.0.0")
 
 # Include routers
 app.include_router(user_router)
-# app.include_router(role_router)
+app.include_router(role_router)
 # app.include_router(permissoion_router)
 # app.include_router(user_role_router)
 # app.include_router(role_permission_router)
