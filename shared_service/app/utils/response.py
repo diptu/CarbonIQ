@@ -60,6 +60,12 @@ class APIResponse(BaseModel):
     )
 
 
+from datetime import datetime
+from typing import Any, Dict, Optional
+
+from shared_service.app.utils.response import APIResponse, MetaInfo, UserContext
+
+
 def build_api_response(
     request: Request,
     current_user: User,
@@ -71,13 +77,12 @@ def build_api_response(
 ) -> APIResponse:
     """
     Builds a standardized APIResponse object.
-    Automatically extracts roles and permissions from current_user.
+    Automatically extracts roles and permissions from current_user using cached properties.
     Automatically generates trace_id and correlation_id if missing.
     """
-    roles = list({a.role.name for a in current_user.assignments if a.role})
-    permissions = list(
-        {a.permission.name for a in current_user.assignments if a.permission}
-    )
+    # Use cached properties for efficiency
+    roles = current_user.roles_cached
+    permissions = current_user.permissions_cached
 
     return APIResponse(
         trace_id=getattr(request.state, "trace_id", str(uuid.uuid4())),

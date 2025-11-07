@@ -1,4 +1,8 @@
 #!/bin/bash
+# ===============================
+# User API Test Script (Local)
+# ===============================
+
 # ===== Cross-platform millisecond timestamp =====
 timestamp_ms() {
   python3 - << 'EOF'
@@ -9,17 +13,26 @@ EOF
 
 START_TIME=$(timestamp_ms)
 
+# ===============================
+# Config - Detect localhost URLs
+# ===============================
+# Avoid using 0.0.0.0 in client requests
+USER_URL="${USER_URL:-http://localhost:8000}"
+AUTH_URL="${AUTH_URL:-http://localhost:8001}"
 
-USER_URL="http://localhost:8000"
-AUTH_URL="http://localhost:8001"
-EMAIL="admin@carboniq.com"
+EMAIL="admin@apple.com"
 PASSWORD="Hello123"
 
 # Generate random test user email
 RANDOM_SUFFIX=$(date +%s%N | sha256sum | head -c 6)
 TEST_USER_EMAIL="testuser_${RANDOM_SUFFIX}@example.com"
 
+# ===============================
+# LOGIN
+# ===============================
 echo "=== LOGIN ==="
+echo "Trying login via $AUTH_URL/auth/login"
+
 LOGIN_RESPONSE=$(curl -s -X POST "$AUTH_URL/auth/login" \
   -H "Content-Type: application/json" \
   -d "{\"email\": \"$EMAIL\", \"password\": \"$PASSWORD\"}")
@@ -35,6 +48,9 @@ fi
 
 AUTH_HEADER="Authorization: Bearer $ACCESS_TOKEN"
 
+# ===============================
+# LIST USERS
+# ===============================
 echo
 echo "=== LIST USERS ==="
 LIST_RESPONSE=$(curl -s -X GET "$USER_URL/users/?skip=0&limit=5" \
@@ -48,12 +64,18 @@ if [[ -z "$USER_ID" ]]; then
   exit 1
 fi
 
+# ===============================
+# GET SINGLE USER
+# ===============================
 echo
 echo "=== GET SINGLE USER ==="
 curl -s -X GET "$USER_URL/users/$USER_ID" \
   -H "$AUTH_HEADER" \
   -H "accept: application/json" | jq .
 
+# ===============================
+# CREATE USER
+# ===============================
 echo
 echo "=== CREATE USER ==="
 CREATE_RESPONSE=$(curl -s -X POST "$USER_URL/users/" \
@@ -72,6 +94,9 @@ if [[ -z "$NEW_USER_ID" ]]; then
   exit 1
 fi
 
+# ===============================
+# UPDATE USER
+# ===============================
 echo
 echo "=== UPDATE USER ==="
 curl -s -X PUT "$USER_URL/users/$NEW_USER_ID" \
@@ -83,6 +108,9 @@ curl -s -X PUT "$USER_URL/users/$NEW_USER_ID" \
         \"is_superuser\": false
       }" | jq .
 
+# ===============================
+# ACTIVATE USER
+# ===============================
 echo
 echo "=== ACTIVATE USER ==="
 ACTIVATE_RESPONSE=$(curl -s -X POST "$USER_URL/users/$NEW_USER_ID/activate" \
@@ -90,6 +118,9 @@ ACTIVATE_RESPONSE=$(curl -s -X POST "$USER_URL/users/$NEW_USER_ID/activate" \
   -H "Content-Type: application/json")
 echo "$ACTIVATE_RESPONSE" | jq . 2>/dev/null || echo "Raw response: $ACTIVATE_RESPONSE"
 
+# ===============================
+# DEACTIVATE USER
+# ===============================
 echo
 echo "=== DEACTIVATE USER ==="
 DEACTIVATE_RESPONSE=$(curl -s -X POST "$USER_URL/users/$NEW_USER_ID/deactivate" \
@@ -97,6 +128,9 @@ DEACTIVATE_RESPONSE=$(curl -s -X POST "$USER_URL/users/$NEW_USER_ID/deactivate" 
   -H "Content-Type: application/json")
 echo "$DEACTIVATE_RESPONSE" | jq . 2>/dev/null || echo "Raw response: $DEACTIVATE_RESPONSE"
 
+# ===============================
+# DELETE USER
+# ===============================
 echo
 echo "=== DELETE USER ==="
 DELETE_RESPONSE=$(curl -s -X DELETE "$USER_URL/users/$NEW_USER_ID" \
@@ -104,12 +138,10 @@ DELETE_RESPONSE=$(curl -s -X DELETE "$USER_URL/users/$NEW_USER_ID" \
   -H "Content-Type: application/json")
 echo "$DELETE_RESPONSE" | jq . 2>/dev/null || echo "Raw response: $DELETE_RESPONSE"
 
-
-# =============================
+# ===============================
 # ✅ FINAL EXECUTION TIME
-# =============================
+# ===============================
 END_TIME=$(timestamp_ms)
-
 TOTAL_MS=$((END_TIME - START_TIME))
 SECONDS=$(echo "scale=2; $TOTAL_MS / 1000" | bc)
 MINUTES=$(echo "scale=2; $SECONDS / 60" | bc)

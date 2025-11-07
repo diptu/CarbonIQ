@@ -1,66 +1,31 @@
-"""Permission model definition for the user_service."""
-
+# user_service/app/models/permission.py
 from __future__ import annotations
-
-from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, String, Text
 from sqlalchemy.orm import relationship
 
-from user_service.app.db.session import engine
-
-from .base import Base, BaseModel
-
-if TYPE_CHECKING:
-    pass
+from user_service.app.models.base import BaseModel
 
 
-class Permission(BaseModel):  # pylint: disable=too-few-public-methods
-    """
-    Represents an action or capability that can be assigned to a role or user.
-
-    Attributes
-    ----------
-    id : UUID
-        Unique identifier for the permission, automatically generated using UUID4.
-    name : str
-        Name of the permission (e.g., 'create_user', 'delete_tenant', 'view_reports').
-        Must be unique and not nullable.
-    description : str | None
-        Optional textual description of what this permission allows.
-    roles : list[RolePermission]
-        Relationship to RolePermission linking roles assigned with this permission.
-        Cascade deletes so related RolePermission entries are removed when a Permission is deleted.
-    users : list[UserPermission]
-        Relationship to UserPermission linking users assigned with this permission.
-        Cascade deletes so related UserPermission entries are removed when a Permission is deleted.
-    """
-
+class Permission(BaseModel):
     __tablename__ = "permissions"
 
-    # Name of the permission
-    name = Column(
-        String(100),
-        unique=True,
-        nullable=False,
-        index=True,
-        comment="Permission name, must be unique (e.g., 'create_user', 'view_reports')",
+    name = Column(String(100), unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+
+    # association table link
+    role_permissions = relationship(
+        "RolePermission", back_populates="permission", cascade="all, delete-orphan"
     )
 
-    # Optional description
-    description = Column(
-        Text, nullable=True, comment="Optional description explaining the purpose of the permission"
+    # many-to-many to Role
+    roles = relationship(
+        "Role",
+        secondary="role_permissions",
+        back_populates="permissions",
+        lazy="selectin",
+        viewonly=True,
     )
 
-    assignments = relationship(
-        "UserRolePermission",
-        back_populates="permission",
-        cascade="all, delete-orphan",
-    )
-
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f"<Permission(name={self.name!r})>"
-
-
-# Create table(s) in the database
-Base.metadata.create_all(bind=engine)

@@ -1,4 +1,4 @@
-"""Configuration settings for the User microservice."""
+"""Configuration settings for the shared microservice."""
 
 from pathlib import Path
 from typing import Optional
@@ -22,8 +22,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    USER_SERVICE_URL: str = "http://0.0.0.0:8000"
-    AUDIT_SERVICE_URL: str = "http://localhost:8003"
+    USER_SERVICE_URL: Optional[str] = None
+    AUTH_SERVICE_URL: Optional[str] = None
+    AUDIT_SERVICE_URL: Optional[str] = None
     AUTH_ISSUER: str = "auth.carboniq.com"
     AUTH_AUDIENCE: str = "api.carboniq.com"
 

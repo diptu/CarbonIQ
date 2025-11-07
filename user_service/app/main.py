@@ -6,8 +6,9 @@ from shared_service.app.middleware.request_context import RequestContextMiddlewa
 
 from user_service.app.api.v1.routes import (
     permissoion_router,
+    role_permission_router,
     role_router,
-    user_role_permission_router,
+    user_role_router,
     user_router,
 )
 from user_service.app.db.session import engine
@@ -23,7 +24,8 @@ app.add_middleware(RequestContextMiddleware)
 app.include_router(user_router)
 app.include_router(role_router)
 app.include_router(permissoion_router)
-app.include_router(user_role_permission_router)
+app.include_router(user_role_router)
+app.include_router(role_permission_router)
 
 
 # -------------------------------------------------------------------

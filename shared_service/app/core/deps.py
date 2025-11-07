@@ -23,6 +23,7 @@ def get_current_user(
     """
     Return the current authenticated user and cache it per request.
     Reduces redundant DB queries within the same request.
+    Uses cached roles/permissions from the User model.
     """
     # Return cached user if already fetched
     if hasattr(request.state, "current_user"):
@@ -60,14 +61,12 @@ def get_current_user(
 def require_permissions(permissions: List[str]) -> Callable[[User], User]:
     """
     Dependency to check if the current_user has all required permissions.
-    Works with unified UserRolePermission table.
+    Uses cached permissions from the User model for efficiency.
     """
 
     def checker(current_user: User = Depends(get_current_user)) -> User:
-        # Collect permissions assigned to the user
-        user_perms = {
-            a.permission.name for a in current_user.assignments if a.permission
-        }
+        # Use cached permissions
+        user_perms = set(current_user.permissions_cached)
 
         # Raise 403 if any required permission is missing
         missing = [perm for perm in permissions if perm not in user_perms]
@@ -85,9 +84,12 @@ def require_permissions(permissions: List[str]) -> Callable[[User], User]:
 # Cached current_user to avoid repeated DB hits
 # ---------------------------------------------------
 def get_cached_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+    """
+    Returns the cached current_user if available; otherwise fetches via get_current_user.
+    """
     if hasattr(request.state, "current_user"):
         return request.state.current_user
 
-    user = get_current_user(db=db)
+    user = get_current_user(request=request, db=db)
     request.state.current_user = user
     return user

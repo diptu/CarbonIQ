@@ -1,83 +1,42 @@
-"""User model definition for the user_service."""
-
+# user_service/app/models/user.py
 from __future__ import annotations
 
 from sqlalchemy import Boolean, Column, String
 from sqlalchemy.orm import relationship
 
-from user_service.app.db.session import engine
-from user_service.app.models.base import Base, BaseModel
+from user_service.app.models.base import BaseModel
 
 
-class User(BaseModel):  # pylint: disable=too-few-public-methods
-    """
-    Core user model representing system users across tenants.
-
-    Attributes
-    ----------
-    id : UUID
-        Unique identifier for the user, automatically generated using UUID4.
-    email : str
-        User's email address, must be unique and not nullable.
-    hashed_password : str
-        User's hashed password for authentication.
-    full_name : str | None
-        Optional full name of the user.
-    is_active : bool
-        Indicates whether the user account is active.
-    is_verified : bool
-        Indicates whether the user's email has been verified.
-    is_superuser : bool
-        Indicates whether the user has superuser privileges.
-    roles : list[UserRole]
-        Relationship linking the user to their assigned roles.
-        Cascade deletes so related UserRole entries are removed when a User is deleted.
-    permissions : list[UserPermission]
-        Relationship linking the user to directly assigned permissions.
-        Cascade deletes so related UserPermission entries are removed when a User is deleted.
-    """
-
+class User(BaseModel):
     __tablename__ = "users"
 
-    # Email of the user
-    email = Column(
-        String(255),
-        unique=True,
-        nullable=False,
-        index=True,
-        comment="User's unique email address for login",
-    )
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(255), nullable=True)
+    is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+    is_superuser = Column(Boolean, default=False)
 
-    # Hashed password
-    hashed_password = Column(
-        String(255), nullable=False, comment="Hashed password for user authentication"
-    )
-
-    # Optional full name
-    full_name = Column(String(255), nullable=True, comment="Optional full name of the user")
-
-    # Active status
-    is_active = Column(Boolean, default=True, comment="Indicates if the user account is active")
-
-    # Email verification status
-    is_verified = Column(
-        Boolean, default=False, comment="Indicates if the user's email has been verified"
-    )
-
-    # Superuser flag
-    is_superuser = Column(
-        Boolean, default=False, comment="Indicates if the user has superuser privileges"
-    )
-    # single association
-    assignments = relationship(
-        "UserRolePermission",
+    # --- Relationships ---
+    roles = relationship(
+        "UserRole",
         back_populates="user",
         cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
-    def __repr__(self) -> str:
+    # cached properties
+    @property
+    def roles_cached(self) -> list[str]:
+        return sorted({ur.role.name for ur in self.roles if ur.role})
+
+    @property
+    def permissions_cached(self) -> list[str]:
+        perms = set()
+        for ur in self.roles:
+            for p in ur.role.permissions:
+                perms.add(p.name)
+        return sorted(perms)
+
+    def __repr__(self):
         return f"<User(email={self.email!r}, active={self.is_active})>"
-
-
-# Create table(s) in the database
-Base.metadata.create_all(bind=engine)

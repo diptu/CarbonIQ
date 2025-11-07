@@ -30,9 +30,21 @@ class LoginRequest(BaseModel):
 
 
 def extract_roles_permissions(user: User):
-    """Deduplicate and return sorted roles and permissions."""
-    roles = sorted({a.role.name for a in user.assignments if a.role})
-    permissions = sorted({a.permission.name for a in user.assignments if a.permission})
+    """
+    Return sorted roles and permissions for a user.
+
+    - Roles come from user_roles.
+    - Permissions come from role_permissions linked to each role.
+    """
+    roles = user.roles_cached
+    permissions = user.permissions_cached
+
+    # for role in user.roles:
+    #     for rp in role.role_permissions:
+    #         if rp.permission:
+    #             permissions_set.add(rp.permission.name)
+
+    # permissions = sorted(permissions_set)
     return roles, permissions
 
 
@@ -155,6 +167,7 @@ async def verify_user(
         raise HTTPException(status_code=400, detail="Email and password are required")
 
     user = user_crud.get_by_email(db, email)
+    print(f"user: {user}")
     if not user or not pwd_context.verify(password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
