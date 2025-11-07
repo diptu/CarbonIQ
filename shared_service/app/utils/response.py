@@ -4,7 +4,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from fastapi import Request
 from pydantic import BaseModel, Field
+
+from user_service.app.models.user import User
 
 
 class UserContext(BaseModel):
@@ -54,4 +57,43 @@ class APIResponse(BaseModel):
     meta: MetaInfo = Field(default_factory=MetaInfo)
     error: Optional[Dict[str, Any]] = Field(
         default=None, description="Error details, if any."
+    )
+
+
+def build_api_response(
+    request: Request,
+    current_user: User,
+    result: Any = None,
+    status_code: int = 200,
+    success: bool = True,
+    error: Optional[Dict[str, Any]] = None,
+    meta_extra: Optional[Dict[str, Any]] = None,
+) -> APIResponse:
+    """
+    Builds a standardized APIResponse object.
+    Automatically extracts roles and permissions from current_user.
+    Automatically generates trace_id and correlation_id if missing.
+    """
+    roles = list({a.role.name for a in current_user.assignments if a.role})
+    permissions = list(
+        {a.permission.name for a in current_user.assignments if a.permission}
+    )
+
+    return APIResponse(
+        trace_id=getattr(request.state, "trace_id", str(uuid.uuid4())),
+        correlation_id=getattr(request.state, "correlation_id", str(uuid.uuid4())),
+        timestamp=datetime.now(timezone.utc),
+        path=request.url.path,
+        method=request.method,
+        status_code=status_code,
+        success=success,
+        user_context=UserContext(
+            user_id=str(current_user.id),
+            tenant_id=getattr(current_user, "tenant_id", None),
+            roles=roles,
+            permissions=permissions,
+        ),
+        result=result,
+        meta=MetaInfo(**(meta_extra or {})),
+        error=error,
     )

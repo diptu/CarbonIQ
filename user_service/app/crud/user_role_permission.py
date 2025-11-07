@@ -6,7 +6,10 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from user_service.app.models.user_role_permission import UserRolePermission
-from user_service.app.schemas.user_role_permission import UserRolePermissionCreate
+from user_service.app.schemas.user_role_permission import (
+    UserRolePermissionCreate,
+    UserRolePermissionUpdate,
+)
 
 
 class UserRolePermissionCRUD:
@@ -61,6 +64,14 @@ class UserRolePermissionCRUD:
         if db_obj:
             db.delete(db_obj)
             db.commit()
+        return db_obj
+
+    def update(self, db: Session, db_obj: UserRolePermission, obj_in: UserRolePermissionUpdate):
+        db_obj.user_id = obj_in.user_id
+        db_obj.role_id = obj_in.role_id
+        db_obj.permission_id = obj_in.permission_id
+        db.commit()
+        db.refresh(db_obj)
         return db_obj
 
 

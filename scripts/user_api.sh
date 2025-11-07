@@ -1,4 +1,14 @@
 #!/bin/bash
+# ===== Cross-platform millisecond timestamp =====
+timestamp_ms() {
+  python3 - << 'EOF'
+import time
+print(int(time.time() * 1000))
+EOF
+}
+
+START_TIME=$(timestamp_ms)
+
 
 USER_URL="http://localhost:8000"
 AUTH_URL="http://localhost:8001"
@@ -19,7 +29,7 @@ echo "$LOGIN_RESPONSE" | jq .
 ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.data.access_token // empty')
 
 if [[ -z "$ACCESS_TOKEN" ]]; then
-  echo "Login failed, aborting tests."
+  echo "❌ Login failed, aborting tests."
   exit 1
 fi
 
@@ -34,7 +44,7 @@ echo "$LIST_RESPONSE" | jq .
 
 USER_ID=$(echo "$LIST_RESPONSE" | jq -r '.result.users[0].id // empty')
 if [[ -z "$USER_ID" ]]; then
-  echo "No users found to test further endpoints."
+  echo "⚠️ No users found to test further endpoints."
   exit 1
 fi
 
@@ -58,7 +68,7 @@ echo "$CREATE_RESPONSE" | jq .
 
 NEW_USER_ID=$(echo "$CREATE_RESPONSE" | jq -r '.result.id // empty')
 if [[ -z "$NEW_USER_ID" ]]; then
-  echo "Failed to create new user, skipping update/activate/deactivate/delete tests."
+  echo "❌ Failed to create new user, skipping update/activate/deactivate/delete tests."
   exit 1
 fi
 
@@ -93,3 +103,17 @@ DELETE_RESPONSE=$(curl -s -X DELETE "$USER_URL/users/$NEW_USER_ID" \
   -H "$AUTH_HEADER" \
   -H "Content-Type: application/json")
 echo "$DELETE_RESPONSE" | jq . 2>/dev/null || echo "Raw response: $DELETE_RESPONSE"
+
+
+# =============================
+# ✅ FINAL EXECUTION TIME
+# =============================
+END_TIME=$(timestamp_ms)
+
+TOTAL_MS=$((END_TIME - START_TIME))
+SECONDS=$(echo "scale=2; $TOTAL_MS / 1000" | bc)
+MINUTES=$(echo "scale=2; $SECONDS / 60" | bc)
+
+echo ""
+echo "✅ Finished!"
+echo "⏱️ Total execution time: ${SECONDS}s (${TOTAL_MS}ms) (~${MINUTES} min)"

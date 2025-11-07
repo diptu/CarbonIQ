@@ -1,24 +1,25 @@
 # app/api/v1/routes/user.py
-"""User API routes for managing user creation, retrieval, and verification."""
+"""User API routes for managing users with cached current_user."""
 
-from datetime import datetime, timezone
-from typing import Any, List, Optional
+import time
+from functools import wraps
+from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from shared_service.app.core.deps import get_current_user, require_permissions
-from shared_service.app.utils.response import APIResponse, MetaInfo, UserContext
+from shared_service.app.utils.response import APIResponse, build_api_response
 from sqlalchemy.orm import Session
 
-from user_service.app.core.response import build_response_from_request
 from user_service.app.crud.user import user_crud
 from user_service.app.db.session import get_db
 from user_service.app.models.user import User
 from user_service.app.schemas.user import UserCreate
 
 router = APIRouter(prefix="/users", tags=["users"])
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class LoginRequest(BaseModel):
@@ -28,89 +29,86 @@ class LoginRequest(BaseModel):
     password: str
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+def extract_roles_permissions(user: User):
+    """Deduplicate and return sorted roles and permissions."""
+    roles = sorted({a.role.name for a in user.assignments if a.role})
+    permissions = sorted({a.permission.name for a in user.assignments if a.permission})
+    return roles, permissions
 
 
-#  ---------------------
+def request_timer(func):
+    """Decorator to measure request duration in ms and attach to meta."""
+
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        response: APIResponse = await func(*args, **kwargs)
+        response.meta.request_duration_ms = (time.perf_counter() - start_time) * 1000
+        return response
+
+    return wrapper
+
+
+def get_cached_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+    """Cache current_user per request to avoid repeated DB queries."""
+    if hasattr(request.state, "current_user"):
+        return request.state.current_user
+    user = get_current_user(db=db)
+    request.state.current_user = user
+    return user
+
+
+# ---------------------
 # Create user
 # ---------------------
 @router.post(
     "/",
     response_model=APIResponse,
-    status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permissions(permissions=["user.create"]))],
+    dependencies=[Depends(require_permissions(["user.create"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
+    status_code=status.HTTP_201_CREATED,
 )
-def create_user(
+@request_timer
+async def create_user(
     request: Request,
     user_in: UserCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> Any:
-    """Create a new user if the email is not already registered."""
-    db_user: Optional[User] = user_crud.get_by_email(db, user_in.email)
-
-    if db_user is not None:
+    current_user: User = Depends(get_cached_current_user),
+) -> APIResponse:
+    if user_crud.get_by_email(db, user_in.email):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"User with email {user_in.email} already exists.",
+            status_code=400, detail=f"User with email {user_in.email} already exists."
         )
 
-    user: User = user_crud.create(db, user_in)
+    user = user_crud.create(db, user_in)
 
-    # Build response
-    roles = list({a.role.name for a in current_user.assignments if a.role})
-    permissions = list({a.permission.name for a in current_user.assignments if a.permission})
-
-    response = APIResponse(
-        timestamp=datetime.now(timezone.utc),  # ✅ Fix: required datetime
-        trace_id=getattr(request.state, "trace_id", None),
-        correlation_id=getattr(request.state, "correlation_id", None),
-        path=request.url.path,
-        method=request.method,
-        status_code=status.HTTP_201_CREATED,
-        success=True,
-        user_context=UserContext(
-            user_id=str(current_user.id),
-            tenant_id=getattr(current_user, "tenant_id", None),
-            roles=roles,
-            permissions=permissions,
-        ),
+    return build_api_response(
+        request=request,
+        current_user=current_user,
         result={"id": str(user.id), "email": user.email},
-        meta=MetaInfo(request_duration_ms=None, source="user_service"),
+        status_code=status.HTTP_201_CREATED,
+        meta_extra={"source": "user_service"},
     )
 
-    return response
-
-
-import time
 
 # ---------------------
 # List Users
 # ---------------------
-
-
 @router.get(
     "/",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["user.read"]))],
+    dependencies=[Depends(require_permissions(["user.read"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def list_users(
+@request_timer
+async def list_users(
     request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_cached_current_user),
 ) -> APIResponse:
-    """Retrieve a paginated list of users with previous/next page info."""
-
-    start_time = time.perf_counter()  # Start measuring
-
-    # Total number of users
     total_users = user_crud.count(db)
-
-    # Fetch users
     users: List[User] = user_crud.get_all(db, skip=skip, limit=limit)
     users_data = [
         {
@@ -123,55 +121,33 @@ def list_users(
         for u in users
     ]
 
-    # Pagination calculation
-    next_page = skip + limit if skip + limit < total_users else None
-    previous_page = skip - limit if skip - limit >= 0 else None
+    pagination = {
+        "count": total_users,
+        "perPage": limit,
+        "previousPage": skip - limit if skip - limit >= 0 else None,
+        "nextPage": skip + limit if skip + limit < total_users else None,
+    }
 
-    # Deduplicate roles and permissions
-    roles = list({a.role.name for a in current_user.assignments if a.role})
-    permissions = list({a.permission.name for a in current_user.assignments if a.permission})
-
-    # Calculate request duration in milliseconds
-    request_duration_ms = (time.perf_counter() - start_time) * 1000
-
-    response = APIResponse(
-        trace_id=getattr(request.state, "trace_id", None),
-        correlation_id=getattr(request.state, "correlation_id", None),
-        timestamp=datetime.now(timezone.utc),
-        success=True,
+    return build_api_response(
+        request=request,
+        current_user=current_user,
+        result={"users": users_data, **pagination},
         status_code=status.HTTP_200_OK,
-        path=request.url.path,
-        method=request.method,
-        api_version="v1",
-        user_context=UserContext(
-            user_id=str(current_user.id),
-            tenant_id=getattr(current_user, "tenant_id", None),
-            roles=roles,
-            permissions=permissions,
-        ),
-        result={
-            "users": users_data,
-            "count": total_users,
-            "perPage": limit,
-            "previousPage": previous_page,
-            "nextPage": next_page,
-        },
-        meta=MetaInfo(request_duration_ms=request_duration_ms, source="user_service"),
+        meta_extra={"source": "user_service"},
     )
 
-    return response
-
 
 # ---------------------
-# verify user
+# Verify user
 # ---------------------
-@router.post("/verify")
-def verify_user(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
-    """
-    Verify user credentials.
-    Called by Auth Service during login.
-    Includes roles, permissions, and tenant_id for RBAC.
-    """
+@router.post("/verify", response_model=APIResponse)
+@request_timer
+async def verify_user(
+    request: Request,
+    payload: LoginRequest,
+    db: Session = Depends(get_db),
+):
+    """Verify user credentials for login, includes roles, permissions, tenant_id."""
     email = payload.email
     password = payload.password
 
@@ -182,14 +158,12 @@ def verify_user(request: Request, payload: LoginRequest, db: Session = Depends(g
     if not user or not pwd_context.verify(password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    # Extract roles and permissions from user assignments
-    roles = list({a.role.name for a in user.assignments if a.role})
-    permissions = list({a.permission.name for a in user.assignments if a.permission})
-    tenant_id = getattr(user, "tenant_id", None)
+    roles, permissions = extract_roles_permissions(user)
 
-    return build_response_from_request(
-        request,
-        data={
+    return build_api_response(
+        request=request,
+        current_user=user,
+        result={
             "id": str(user.id),
             "email": user.email,
             "is_active": user.is_active,
@@ -197,74 +171,57 @@ def verify_user(request: Request, payload: LoginRequest, db: Session = Depends(g
             "is_superuser": user.is_superuser,
             "roles": roles,
             "permissions": permissions,
-            "tenant_id": tenant_id,
+            "tenant_id": getattr(user, "tenant_id", None),
         },
+        status_code=200,
+        success=True,
+        meta_extra={"source": "user_service"},
     )
+
+
+# ---------------------
+# Shared UUID parsing and user fetching
+# ---------------------
+def fetch_user_or_404(user_id: str, db: Session) -> User:
+    try:
+        user_uuid = UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+    user = user_crud.get(db, user_uuid)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 
 # ---------------------
 # Get single user
 # ---------------------
-
-
 @router.get(
     "/{user_id}",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["user.read"]))],
+    dependencies=[Depends(require_permissions(["user.read"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def get_user(
+@request_timer
+async def get_user(
     user_id: str,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_cached_current_user),
 ):
-    """Retrieve a single user by ID."""
-    try:
-        user_uuid = UUID(user_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user ID format. Must be a valid UUID.",
-        )
-
-    user = user_crud.get(db, user_uuid)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with ID {user_id} not found",
-        )
-
-    user_data = {
-        "id": str(user.id),
-        "email": user.email,
-        "is_active": user.is_active,
-        "is_verified": user.is_verified,
-        "is_superuser": user.is_superuser,
-    }
-
-    # ✅ Deduplicate roles and permissions
-    roles = list({a.role.name for a in current_user.assignments if a.role})
-    permissions = list({a.permission.name for a in current_user.assignments if a.permission})
-
-    response = APIResponse(
-        trace_id=getattr(request.state, "trace_id", None),
-        correlation_id=getattr(request.state, "correlation_id", None),
-        path=request.url.path,
-        method=request.method,
-        status_code=status.HTTP_200_OK,
-        success=True,
-        user_context=UserContext(
-            user_id=str(current_user.id),
-            tenant_id=getattr(current_user, "tenant_id", None),
-            roles=roles,
-            permissions=permissions,
-        ),
-        result=user_data,
-        meta=MetaInfo(request_duration_ms=None, source="user_service"),
+    user = fetch_user_or_404(user_id, db)
+    return build_api_response(
+        request=request,
+        current_user=current_user,
+        result={
+            "id": str(user.id),
+            "email": user.email,
+            "is_active": user.is_active,
+            "is_verified": user.is_verified,
+            "is_superuser": user.is_superuser,
+        },
+        status_code=200,
     )
-
-    return response
 
 
 # ---------------------
@@ -273,47 +230,24 @@ def get_user(
 @router.put(
     "/{user_id}",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["user.update"]))],
+    dependencies=[Depends(require_permissions(["user.update"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def update_user(
+@request_timer
+async def update_user(
     user_id: str,
-    user_in: UserCreate,  # you can create a separate schema for update if needed
+    user_in: UserCreate,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> APIResponse:
-    """Update a user's info by ID."""
-    try:
-        user_uuid = UUID(user_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
-
-    user = user_crud.get(db, user_uuid)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+    current_user: User = Depends(get_cached_current_user),
+):
+    user = fetch_user_or_404(user_id, db)
     user = user_crud.update(db, user, user_in)
-
-    roles = list({a.role.name for a in current_user.assignments if a.role})
-    permissions = list({a.permission.name for a in current_user.assignments if a.permission})
-
-    return APIResponse(
-        timestamp=datetime.now(timezone.utc),
-        trace_id=getattr(request.state, "trace_id", None),
-        correlation_id=getattr(request.state, "correlation_id", None),
-        path=request.url.path,
-        method=request.method,
-        status_code=status.HTTP_200_OK,
-        success=True,
-        user_context=UserContext(
-            user_id=str(current_user.id),
-            tenant_id=getattr(current_user, "tenant_id", None),
-            roles=roles,
-            permissions=permissions,
-        ),
+    return build_api_response(
+        request=request,
+        current_user=current_user,
         result={"id": str(user.id), "email": user.email},
-        meta=MetaInfo(request_duration_ms=None, source="user_service"),
+        status_code=200,
     )
 
 
@@ -323,46 +257,23 @@ def update_user(
 @router.delete(
     "/{user_id}",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["user.delete"]))],
+    dependencies=[Depends(require_permissions(["user.delete"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def delete_user(
+@request_timer
+async def delete_user(
     user_id: str,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> APIResponse:
-    """Delete a user by ID."""
-    try:
-        user_uuid = UUID(user_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
-
-    user = user_crud.get(db, user_uuid)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    user_crud.delete(db, user_uuid)
-
-    roles = list({a.role.name for a in current_user.assignments if a.role})
-    permissions = list({a.permission.name for a in current_user.assignments if a.permission})
-
-    return APIResponse(
-        timestamp=datetime.now(timezone.utc),
-        trace_id=getattr(request.state, "trace_id", None),
-        correlation_id=getattr(request.state, "correlation_id", None),
-        path=request.url.path,
-        method=request.method,
-        status_code=status.HTTP_200_OK,
-        success=True,
-        user_context=UserContext(
-            user_id=str(current_user.id),
-            tenant_id=getattr(current_user, "tenant_id", None),
-            roles=roles,
-            permissions=permissions,
-        ),
+    current_user: User = Depends(get_cached_current_user),
+):
+    user = fetch_user_or_404(user_id, db)
+    user_crud.delete(db, user.id)
+    return build_api_response(
+        request=request,
+        current_user=current_user,
         result={"message": f"User {user.email} deleted successfully"},
-        meta=MetaInfo(request_duration_ms=None, source="user_service"),
+        status_code=200,
     )
 
 
@@ -372,46 +283,23 @@ def delete_user(
 @router.post(
     "/{user_id}/activate",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["user.update"]))],
+    dependencies=[Depends(require_permissions(["user.update"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def activate_user(
+@request_timer
+async def activate_user(
     user_id: str,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> APIResponse:
-    """Activate a user by ID."""
-    try:
-        user_uuid = UUID(user_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
-
-    user = user_crud.get(db, user_uuid)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    user_crud.activate(db, user_uuid)
-
-    roles = list({a.role.name for a in current_user.assignments if a.role})
-    permissions = list({a.permission.name for a in current_user.assignments if a.permission})
-
-    return APIResponse(
-        timestamp=datetime.now(timezone.utc),
-        trace_id=getattr(request.state, "trace_id", None),
-        correlation_id=getattr(request.state, "correlation_id", None),
-        path=request.url.path,
-        method=request.method,
-        status_code=status.HTTP_200_OK,
-        success=True,
-        user_context=UserContext(
-            user_id=str(current_user.id),
-            tenant_id=getattr(current_user, "tenant_id", None),
-            roles=roles,
-            permissions=permissions,
-        ),
+    current_user: User = Depends(get_cached_current_user),
+):
+    user = fetch_user_or_404(user_id, db)
+    user_crud.activate(db, user.id)
+    return build_api_response(
+        request=request,
+        current_user=current_user,
         result={"message": f"User {user.email} activated successfully"},
-        meta=MetaInfo(request_duration_ms=None, source="user_service"),
+        status_code=200,
     )
 
 
@@ -421,44 +309,21 @@ def activate_user(
 @router.post(
     "/{user_id}/deactivate",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["user.update"]))],
+    dependencies=[Depends(require_permissions(["user.update"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def deactivate_user(
+@request_timer
+async def deactivate_user(
     user_id: str,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> APIResponse:
-    """Deactivate a user by ID."""
-    try:
-        user_uuid = UUID(user_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
-
-    user = user_crud.get(db, user_uuid)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    user_crud.deactivate(db, user_uuid)
-
-    roles = list({a.role.name for a in current_user.assignments if a.role})
-    permissions = list({a.permission.name for a in current_user.assignments if a.permission})
-
-    return APIResponse(
-        timestamp=datetime.now(timezone.utc),
-        trace_id=getattr(request.state, "trace_id", None),
-        correlation_id=getattr(request.state, "correlation_id", None),
-        path=request.url.path,
-        method=request.method,
-        status_code=status.HTTP_200_OK,
-        success=True,
-        user_context=UserContext(
-            user_id=str(current_user.id),
-            tenant_id=getattr(current_user, "tenant_id", None),
-            roles=roles,
-            permissions=permissions,
-        ),
+    current_user: User = Depends(get_cached_current_user),
+):
+    user = fetch_user_or_404(user_id, db)
+    user_crud.deactivate(db, user.id)
+    return build_api_response(
+        request=request,
+        current_user=current_user,
         result={"message": f"User {user.email} deactivated successfully"},
-        meta=MetaInfo(request_duration_ms=None, source="user_service"),
+        status_code=200,
     )

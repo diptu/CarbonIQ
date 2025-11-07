@@ -57,7 +57,7 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
             detail="User service unavailable",
         ) from exc
 
-    user_data = response.json().get("data", {})
+    user_data = response.json().get("result", {})
     if not user_data:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"

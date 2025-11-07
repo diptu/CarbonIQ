@@ -2,7 +2,7 @@
 from typing import Callable, List
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
@@ -16,40 +16,44 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
 ) -> User:
     """
-    Extract and return the current authenticated user from JWT token.
-    Handles UUID conversion for the user ID.
-    Includes debug prints to track JWT payload and potential errors.
+    Return the current authenticated user and cache it per request.
+    Reduces redundant DB queries within the same request.
     """
+    # Return cached user if already fetched
+    if hasattr(request.state, "current_user"):
+        return request.state.current_user
+
+    # Decode JWT and extract user ID
     try:
         payload = decode_token(token, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-        print("DEBUG: JWT payload:", payload)  # <-- Debugging JWT payload
         user_id_str: str | None = payload.get("sub")
         if not user_id_str:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication credentials",
             )
-        # Convert string to UUID for DB lookup
         user_id = UUID(user_id_str)
-        print("DEBUG: User ID as UUID:", user_id)  # <-- Debugging UUID conversion
     except (JWTError, ValueError) as exc:
-        print("DEBUG: JWT decode or UUID conversion error:", exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
         ) from exc
 
+    # Fetch user from DB
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        print(f"DEBUG: User not found in DB for ID {user_id}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
-    print(f"DEBUG: Current user loaded: {user.email}")
+
+    # Cache user in request.state
+    request.state.current_user = user
     return user
 
 
@@ -60,16 +64,14 @@ def require_permissions(permissions: List[str]) -> Callable[[User], User]:
     """
 
     def checker(current_user: User = Depends(get_current_user)) -> User:
-        # Gather all permissions from current_user assignments
+        # Collect permissions assigned to the user
         user_perms = {
             a.permission.name for a in current_user.assignments if a.permission
         }
-        print("DEBUG: User permissions:", user_perms)  # <-- Debugging permissions
 
-        # Check if any required permission is missing
+        # Raise 403 if any required permission is missing
         missing = [perm for perm in permissions if perm not in user_perms]
         if missing:
-            print("DEBUG: Missing required permissions:", missing)
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Missing required permissions: {missing}",

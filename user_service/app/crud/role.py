@@ -50,5 +50,8 @@ class RoleCRUD:
             db.commit()
         return db_obj
 
+    def count(self, db: Session) -> int:
+        return db.query(Role).count()
+
 
 role_crud = RoleCRUD()

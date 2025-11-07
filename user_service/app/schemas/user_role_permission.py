@@ -17,6 +17,10 @@ class UserRolePermissionCreate(UserRolePermissionBase):
     """Schema for creating a new user-role-permission relationship."""
 
 
+class UserRolePermissionUpdate(UserRolePermissionBase):
+    """Schema for creating a new user-role-permission relationship."""
+
+
 class UserRolePermissionRead(UserRolePermissionBase):
     """Schema for reading a user-role-permission record, includes ID."""
 

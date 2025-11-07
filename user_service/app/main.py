@@ -2,8 +2,14 @@
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
+from shared_service.app.middleware.request_context import RequestContextMiddleware
 
-from user_service.app.api.v1.routes import role_router, user_router
+from user_service.app.api.v1.routes import (
+    permissoion_router,
+    role_router,
+    user_role_permission_router,
+    user_router,
+)
 from user_service.app.db.session import engine
 from user_service.app.models.base import Base
 
@@ -12,14 +18,12 @@ Base.metadata.create_all(bind=engine)
 
 # Initialize app
 app = FastAPI(title="User Service", version="1.0.0")
-
+app.add_middleware(RequestContextMiddleware)
 # Include routers
 app.include_router(user_router)
 app.include_router(role_router)
-# app.include_router(permissoion_router)
-# app.include_router(user_role_router)
-# app.include_router(role_permission_router)
-# app.include_router(user_permission_router)
+app.include_router(permissoion_router)
+app.include_router(user_role_permission_router)
 
 
 # -------------------------------------------------------------------
