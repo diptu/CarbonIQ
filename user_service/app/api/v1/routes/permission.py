@@ -1,125 +1,177 @@
 """API routes for managing permissions."""
 
-from typing import List
+import time
+from functools import wraps
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from shared_service.app.core.deps import get_cached_current_user, require_permissions
+from shared_service.app.utils.response import APIResponse, build_api_response
 from sqlalchemy.orm import Session
 
 from user_service.app.crud.permission import permission_crud
 from user_service.app.db.session import get_db
+from user_service.app.models.user import User
 from user_service.app.schemas.permission import PermissionCreate, PermissionOut, PermissionUpdate
 
 router = APIRouter(prefix="/permissions", tags=["permissions"])
 
 
-@router.post("/", response_model=PermissionOut, status_code=status.HTTP_201_CREATED)
-def create_permission(
-    permission_in: PermissionCreate, db: Session = Depends(get_db)
-) -> PermissionOut:
-    """
-    Create a new permission if it does not already exist.
+# ---------------------------------------------------
+# Utility: Add request duration (ms) to response.meta
+# ---------------------------------------------------
+def request_timer(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        response = await func(*args, **kwargs)
+        duration = round((time.perf_counter() - start) * 1000, 2)
 
-    Args:
-        permission_in: PermissionCreate schema containing permission details.
-        db: SQLAlchemy database session.
+        # ✅ handle dict return
+        if isinstance(response, dict):
+            response.setdefault("meta", {})
+            response["meta"]["request_duration_ms"] = duration
+            return response
 
-    Returns:
-        The created PermissionOut object.
+        # ✅ handle APIResponse model return
+        if hasattr(response, "meta"):
+            response.meta.request_duration_ms = duration
 
-    Raises:
-        HTTPException: If a permission with the same name already exists.
-    """
-    db_perm = permission_crud.get_by_name(db, permission_in.name)
-    if db_perm:
+        return response
+
+    return wrapper
+
+
+# ---------------------
+# Create Permission
+# ---------------------
+@router.post(
+    "/",
+    response_model=APIResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permissions(["permission.create"]))],
+    openapi_extra={"security": [{"BearerAuth": []}]},
+)
+@request_timer
+async def create_permission(
+    permission_in: PermissionCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_cached_current_user),
+):
+    if permission_crud.get_by_name(db, permission_in.name):
         raise HTTPException(status_code=400, detail="Permission already exists")
 
     perm = permission_crud.create(db, permission_in)
-    return PermissionOut.model_validate(perm)
+    return build_api_response(
+        request, current_user, PermissionOut.model_validate(perm)
+    ).model_dump()
 
 
-@router.get("/{permission_id}", response_model=PermissionOut)
-def get_permission(permission_id: UUID, db: Session = Depends(get_db)) -> PermissionOut:
-    """
-    Retrieve a permission by its UUID.
-
-    Args:
-        permission_id: UUID of the permission.
-        db: SQLAlchemy database session.
-
-    Returns:
-        The requested PermissionOut object.
-
-    Raises:
-        HTTPException: If the permission is not found.
-    """
+# ---------------------
+# Get Permission
+# ---------------------
+@router.get(
+    "/{permission_id}",
+    response_model=APIResponse,
+    dependencies=[Depends(require_permissions(["permission.read"]))],
+    openapi_extra={"security": [{"BearerAuth": []}]},
+)
+@request_timer
+async def get_permission(
+    permission_id: UUID,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_cached_current_user),
+):
     perm = permission_crud.get(db, permission_id)
     if not perm:
         raise HTTPException(status_code=404, detail="Permission not found")
-    return PermissionOut.model_validate(perm)
+
+    return build_api_response(
+        request, current_user, PermissionOut.model_validate(perm)
+    ).model_dump()
 
 
-@router.get("/", response_model=List[PermissionOut])
+# ---------------------
+# List Permissions
+# ---------------------
+@router.get(
+    "/",
+    response_model=APIResponse,
+    dependencies=[Depends(require_permissions(permissions=["permission.read"]))],
+    openapi_extra={"security": [{"BearerAuth": []}]},
+)
 def list_permissions(
-    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
-) -> List[PermissionOut]:
-    """
-    Retrieve a paginated list of permissions.
-
-    Args:
-        skip: Number of records to skip.
-        limit: Maximum number of records to return.
-        db: SQLAlchemy database session.
-
-    Returns:
-        List of PermissionOut objects.
-    """
+    request: Request,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_cached_current_user),
+):
+    total_permissions = permission_crud.count(db)
     perms = permission_crud.get_all(db, skip=skip, limit=limit)
-    return [PermissionOut.model_validate(p) for p in perms]
+    perms_data = [PermissionOut.model_validate(p) for p in perms]
+
+    result = {
+        "permissions": perms_data,
+        "count": total_permissions,
+        "perPage": limit,
+        "previousPage": skip - limit if skip - limit >= 0 else None,
+        "nextPage": skip + limit if skip + limit < total_permissions else None,
+    }
+
+    return build_api_response(request, current_user, result).model_dump()
 
 
-@router.put("/{permission_id}", response_model=PermissionOut)
-def update_permission(
-    permission_id: UUID, permission_in: PermissionUpdate, db: Session = Depends(get_db)
-) -> PermissionOut:
-    """
-    Update an existing permission.
-
-    Args:
-        permission_id: UUID of the permission to update.
-        permission_in: PermissionUpdate schema containing updated fields.
-        db: SQLAlchemy database session.
-
-    Returns:
-        The updated PermissionOut object.
-
-    Raises:
-        HTTPException: If the permission is not found.
-    """
+# ---------------------
+# Update Permission
+# ---------------------
+@router.put(
+    "/{permission_id}",
+    response_model=APIResponse,
+    dependencies=[Depends(require_permissions(["permission.update"]))],
+    openapi_extra={"security": [{"BearerAuth": []}]},
+)
+@request_timer
+async def update_permission(
+    permission_id: UUID,
+    permission_in: PermissionUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_cached_current_user),
+):
     perm = permission_crud.get(db, permission_id)
     if not perm:
         raise HTTPException(status_code=404, detail="Permission not found")
 
-    updated_perm = permission_crud.update(db, perm, permission_in)
-    return PermissionOut.model_validate(updated_perm)
+    updated = permission_crud.update(db, perm, permission_in)
+
+    return build_api_response(
+        request, current_user, PermissionOut.model_validate(updated)
+    ).model_dump()
 
 
-@router.delete("/{permission_id}", response_model=PermissionOut)
-def delete_permission(permission_id: UUID, db: Session = Depends(get_db)) -> PermissionOut:
-    """
-    Delete a permission by its UUID.
-
-    Args:
-        permission_id: UUID of the permission to delete.
-        db: SQLAlchemy database session.
-
-    Returns:
-        The deleted PermissionOut object.
-
-    Raises:
-        HTTPException: If the permission is not found.
-    """
+# ---------------------
+# Delete Permission
+# ---------------------
+@router.delete(
+    "/{permission_id}",
+    response_model=APIResponse,
+    dependencies=[Depends(require_permissions(["permission.delete"]))],
+    openapi_extra={"security": [{"BearerAuth": []}]},
+)
+@request_timer
+async def delete_permission(
+    permission_id: UUID,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_cached_current_user),
+):
     perm = permission_crud.delete(db, permission_id)
     if not perm:
         raise HTTPException(status_code=404, detail="Permission not found")
-    return PermissionOut.model_validate(perm)
+
+    return build_api_response(
+        request, current_user, PermissionOut.model_validate(perm)
+    ).model_dump()

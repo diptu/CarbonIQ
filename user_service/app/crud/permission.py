@@ -53,5 +53,8 @@ class PermissionCRUD:
             db.commit()
         return db_obj
 
+    def count(self, db: Session) -> int:
+        return db.query(Permission).count()
+
 
 permission_crud = PermissionCRUD()

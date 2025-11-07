@@ -5,7 +5,7 @@ from functools import wraps
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from shared_service.app.core.deps import get_current_user, require_permissions
+from shared_service.app.core.deps import get_cached_current_user, require_permissions
 from shared_service.app.utils.response import APIResponse, build_api_response
 from sqlalchemy.orm import Session
 
@@ -40,18 +40,6 @@ def request_timer(func):
         return response
 
     return wrapper
-
-
-# ---------------------------------------------------
-# Cached current_user to avoid repeated DB hits
-# ---------------------------------------------------
-def get_cached_current_user(request: Request, db: Session = Depends(get_db)) -> User:
-    if hasattr(request.state, "current_user"):
-        return request.state.current_user
-
-    user = get_current_user(db=db)
-    request.state.current_user = user
-    return user
 
 
 # ---------------------------------------------------

@@ -79,3 +79,15 @@ def require_permissions(permissions: List[str]) -> Callable[[User], User]:
         return current_user
 
     return checker
+
+
+# ---------------------------------------------------
+# Cached current_user to avoid repeated DB hits
+# ---------------------------------------------------
+def get_cached_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+    if hasattr(request.state, "current_user"):
+        return request.state.current_user
+
+    user = get_current_user(db=db)
+    request.state.current_user = user
+    return user
