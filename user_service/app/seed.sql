@@ -59,6 +59,17 @@ VALUES
     (gen_random_uuid(), 'permission.update', 'Update permissions'),
     (gen_random_uuid(), 'permission.delete', 'Delete permissions'),
 
+
+    (gen_random_uuid(), 'user_role.create', 'Create user role'),
+    (gen_random_uuid(), 'user_role.read', 'View user roles'),
+    (gen_random_uuid(), 'user_role.update', 'Edit user roles'),
+    (gen_random_uuid(), 'user_role.delete', 'Delete user roles'),
+
+    (gen_random_uuid(), 'role_permission.create', 'Create role permission'),
+    (gen_random_uuid(), 'role_permission.read', 'Viewrole_permission'),
+    (gen_random_uuid(), 'role_permission.update', 'Edit role permission'),
+    (gen_random_uuid(), 'role_permission.delete', 'Delete role permission'),
+
     (gen_random_uuid(), 'tenant.manage', 'Manage tenant'),
     (gen_random_uuid(), 'billing.manage', 'Manage billing')
 ON CONFLICT (name) DO NOTHING;

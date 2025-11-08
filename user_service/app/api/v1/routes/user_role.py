@@ -27,13 +27,11 @@ def request_timer(func):
         response = await func(*args, **kwargs)
         duration = round((time.perf_counter() - start) * 1000, 2)
 
+        # When build_api_response().model_dump() is returned, we update meta
         if isinstance(response, dict):
-            response.setdefault("meta", {})
+            if "meta" not in response:
+                response["meta"] = {}
             response["meta"]["request_duration_ms"] = duration
-            return response
-
-        if hasattr(response, "meta"):
-            response.meta.request_duration_ms = duration
 
         return response
 
@@ -41,7 +39,7 @@ def request_timer(func):
 
 
 # ---------------------
-# Reusable fetch
+# Helper
 # ---------------------
 def fetch_user_role_or_404(user_role_id: UUID, db: Session):
     ur = user_role_crud.get(db, user_role_id)
@@ -55,9 +53,9 @@ def fetch_user_role_or_404(user_role_id: UUID, db: Session):
 # ---------------------
 @router.post(
     "/",
-    response_model=APIResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permissions(permissions=["user_role.create"]))],
+    dependencies=[Depends(require_permissions(["user_role.create"]))],
+    response_model=APIResponse,
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
 @request_timer
@@ -68,7 +66,21 @@ async def create_user_role(
     current_user: User = Depends(get_cached_current_user),
 ):
     ur = user_role_crud.create(db, user_role_in)
-    return build_api_response(request, current_user, UserRoleRead.model_validate(ur)).model_dump()
+
+    payload = {
+        "id": str(ur.id),
+        "user_id": str(ur.user_id),
+        "role_id": str(ur.role_id),
+    }
+
+    return build_api_response(
+        request=request,
+        current_user=current_user,
+        result=payload,
+        success=True,
+        status_code=status.HTTP_201_CREATED,
+        include_user_context=False,  # ✅ hide current user
+    ).model_dump()
 
 
 # ---------------------
@@ -77,17 +89,24 @@ async def create_user_role(
 @router.get(
     "/{user_role_id}",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["user_role.read"]))],
+    dependencies=[Depends(require_permissions(["user_role.read"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def get_user_role(
+@request_timer
+async def get_user_role(
     user_role_id: UUID,
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
     ur = fetch_user_role_or_404(user_role_id, db)
-    return build_api_response(request, current_user, UserRoleRead.model_validate(ur)).model_dump()
+
+    return build_api_response(
+        request=request,
+        current_user=current_user,
+        result=UserRoleRead.model_validate(ur),
+        include_user_context=False,  # ✅ hide current user
+    ).model_dump()
 
 
 # ---------------------
@@ -96,10 +115,11 @@ def get_user_role(
 @router.get(
     "/",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["user_role.read"]))],
+    dependencies=[Depends(require_permissions(["user_role.read"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def list_user_roles(
+@request_timer
+async def list_user_roles(
     request: Request,
     skip: int = 0,
     limit: int = 100,
@@ -108,17 +128,23 @@ def list_user_roles(
 ):
     total = user_role_crud.count(db)
     user_roles = user_role_crud.get_all(db, skip=skip, limit=limit)
-    user_roles_data = [UserRoleRead.model_validate(ur) for ur in user_roles]
+    current_page = (skip // limit) + 1
+    total_pages = (total + limit - 1) // limit  # ceil division
 
     result = {
-        "user_roles": user_roles_data,
+        "user_roles": [UserRoleRead.model_validate(ur) for ur in user_roles],
         "count": total,
         "perPage": limit,
-        "previousPage": skip - limit if skip - limit >= 0 else None,
-        "nextPage": skip + limit if skip + limit < total else None,
+        "previousPage": current_page - 1 if current_page > 1 else None,
+        "nextPage": current_page + 1 if current_page < total_pages else None,
     }
-
-    return build_api_response(request, current_user, result).model_dump()
+    # ✅ return the APIResponse object, not dict
+    return build_api_response(
+        request=request,
+        current_user=current_user,
+        result=result,
+        include_user_context=False,  # ✅ no current user data
+    )
 
 
 # ---------------------
@@ -127,17 +153,22 @@ def list_user_roles(
 @router.delete(
     "/{user_role_id}",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["user_role.delete"]))],
+    dependencies=[Depends(require_permissions(["user_role.delete"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def delete_user_role(
+@request_timer
+async def delete_user_role(
     user_role_id: UUID,
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    fetch_user_role_or_404(user_role_id, db)
-    deleted_ur = user_role_crud.delete(db, user_role_id)
+    ur = fetch_user_role_or_404(user_role_id, db)
+    deleted = user_role_crud.delete(db, user_role_id)
+
     return build_api_response(
-        request, current_user, UserRoleRead.model_validate(deleted_ur)
+        request=request,
+        current_user=current_user,
+        result=UserRoleRead.model_validate(deleted),
+        include_user_context=False,  # ✅ hide current user
     ).model_dump()
