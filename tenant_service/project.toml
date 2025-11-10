@@ -1,0 +1,67 @@
+[project]
+name = "tenant-service"
+version = "0.1.0"
+description = "Auth Service"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi[standard]>=0.120.1",
+    "psycopg2-binary>=2.9.11",
+    "pydantic-settings>=2.11.0",
+    "python-jose>=3.5.0",
+    "requests>=2.32.5",
+    "sqlalchemy>=2.0.44",
+    "types-requests>=2.32.4.20250913",
+    "uvicorn>=0.38.0",
+    "passlib[bcrypt]>=1.7.4",
+    "bcrypt>=4.0.1,<5.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "isort>=7.0.0",
+    "mypy>=1.18.2",
+    "pylint>=4.0.2",
+    "ruff>=0.14.2",
+    "black>=23.3.0",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+]
+
+[tool.isort]
+profile = "black"
+known_first_party = ["app"]
+line_length = 100
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "app"
+ignore_missing_imports = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_return_any = true
+show_error_codes = true
+
+[tool.pylint.main]
+# Optional fallback, not strictly needed if you use PYTHONPATH
+init-hook = """
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.resolve()))
+"""
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint.reports]
+output-format = "colorized"
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "C", "I"]
+ignore = ["E501"]                  # if you want to ignore long line warnings handled by black
