@@ -16,6 +16,7 @@ class TenantBase(BaseModel):
     name: str = Field(
         ..., max_length=255, description="Display name of the tenant/organization."
     )
+    parent_id: Optional[UUID] = None
 
     status: Optional[StatusEnum] = Field(
         default=StatusEnum.ACTIVE, description="Current status of the tenant."
