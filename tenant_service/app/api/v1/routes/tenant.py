@@ -1,18 +1,24 @@
 """Tenant API routes for managing multi-tenant entities."""
 
+import logging
 import time
 from functools import wraps
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from shared_service.app.core.deps import get_current_user
+from shared_service.app.core.deps import get_current_user, require_permissions
 from shared_service.app.utils.response import APIResponse, build_api_response
 from tenant_service.app.crud.tenant import tenant_crud
 from tenant_service.app.db.session import get_db
 from tenant_service.app.models.tenant import Tenant
 from tenant_service.app.schemas.tenant import TenantCreate
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # Set debug mode
+
 
 router = APIRouter(prefix="/tenants", tags=["tenants"])
 
@@ -104,78 +110,83 @@ async def create_tenant(
 # # ----------------------
 # # List Tenants
 # # ----------------------
-# @router.get(
-#     "/",
-#     response_model=APIResponse,
-#     status_code=status.HTTP_200_OK,
-#     dependencies=[Depends(require_permissions(["tenant.read"]))],
-#     openapi_extra={"security": [{"BearerAuth": []}]},
-# )
-# @request_timer
-# async def list_tenants(
-#     request: Request,
-#     skip: int = Query(0, ge=0),
-#     limit: int = Query(100, ge=1),
-#     db: Session = Depends(get_db),
-#     current_user=Depends(get_cached_current_user),
-# ):
-#     total = tenant_crud.count(db)
-#     tenants = tenant_crud.get_all(db, skip=skip, limit=limit)
+@router.get(
+    "/",
+    response_model=APIResponse,
+    status_code=status.HTTP_200_OK,
+    #     dependencies=[Depends(require_permissions(["tenant.read"]))],
+    #     openapi_extra={"security": [{"BearerAuth": []}]},
+)
+@request_timer
+async def list_tenants(
+    request: Request,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1),
+    db: Session = Depends(get_db),
+    # current_user=Depends(get_cached_current_user),
+):
+    total = tenant_crud.count(db)
+    tenants = tenant_crud.get_all(db, skip=skip, limit=limit)
 
-#     data = [
-#         {
-#             "id": str(t.id),
-#             "name": t.name,
-#             "schema_name": t.schema_name,
-#             "is_active": t.is_active,
-#         }
-#         for t in tenants
-#     ]
+    data = [
+        {
+            "id": str(t.id),
+            "name": t.name,
+            "schema_name": t.schema_name,
+            "status": t.status,
+            "plan": t.plan,
+        }
+        for t in tenants
+    ]
 
-#     pagination = {
-#         "count": total,
-#         "perPage": limit,
-#         "previousPage": skip - limit if skip - limit >= 0 else None,
-#         "nextPage": skip + limit if skip + limit < total else None,
-#     }
+    pagination = {
+        "count": total,
+        "perPage": limit,
+        "previousPage": skip - limit if skip - limit >= 0 else None,
+        "nextPage": skip + limit if skip + limit < total else None,
+    }
 
-#     return build_api_response(
-#         request=request,
-#         current_user=current_user,
-#         result={"tenants": data, **pagination},
-#         status_code=status.HTTP_200_OK,
-#     )
+    return build_api_response(
+        request=request,
+        # current_user=current_user,
+        include_user_context=False,
+        result={"tenants": data, **pagination},
+        status_code=status.HTTP_200_OK,
+    )
 
 
 # # ----------------------
 # # Get Tenant by ID
 # # ----------------------
-# @router.get(
-#     "/{tenant_id}",
-#     response_model=APIResponse,
-#     dependencies=[Depends(require_permissions(["tenant.read"]))],
-# )
-# @request_timer
-# async def get_tenant(
-#     tenant_id: str,
-#     request: Request,
-#     db: Session = Depends(get_db),
-#     current_user=Depends(get_cached_current_user),
-# ):
-#     tenant = fetch_tenant_or_404(tenant_id, db)
-#     domains = tenant_domain_crud.get_by_tenant(db, tenant.id)
-#     return build_api_response(
-#         request=request,
-#         current_user=current_user,
-#         result={
-#             "id": str(tenant.id),
-#             "name": tenant.name,
-#             "schema_name": tenant.schema_name,
-#             "is_active": tenant.is_active,
-#             "domains": [d.domain for d in domains],
-#         },
-#         status_code=status.HTTP_200_OK,
-#     )
+@router.get(
+    "/{tenant_id}",
+    response_model=APIResponse,
+    #     dependencies=[Depends(require_permissions(["tenant.read"]))],
+    #     openapi_extra={"security": [{"BearerAuth": []}]},
+)
+@request_timer
+async def get_tenant(
+    tenant_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    # current_user=Depends(get_cached_current_user),
+):
+    tenant = fetch_tenant_or_404(tenant_id, db)
+    # domains = tenant_domain_crud.get_by_tenant(db, tenant.id)
+    return build_api_response(
+        request=request,
+        # current_user=current_user,
+        include_user_context=False,
+        result={
+            "id": str(tenant.id),
+            "name": tenant.name,
+            "schema_name": tenant.schema_name,
+            "status": tenant.status,
+            "plan": tenant.plan,
+            # "domains": [d.domain for d in domains],
+        },
+        status_code=status.HTTP_200_OK,
+    )
 
 
 # # ----------------------
@@ -229,51 +240,104 @@ async def create_tenant(
 #     )
 
 
-# # ----------------------
-# # Activate Tenant
-# # ----------------------
-# @router.post(
-#     "/{tenant_id}/activate",
-#     response_model=APIResponse,
-#     dependencies=[Depends(require_permissions(["tenant.update"]))],
-# )
-# @request_timer
-# async def activate_tenant(
-#     tenant_id: str,
-#     request: Request,
-#     db: Session = Depends(get_db),
-#     current_user=Depends(get_cached_current_user),
-# ):
-#     tenant = fetch_tenant_or_404(tenant_id, db)
-#     tenant_crud.activate(db, tenant.id)
-#     return build_api_response(
-#         request=request,
-#         current_user=current_user,
-#         result={"message": f"Tenant '{tenant.name}' activated successfully"},
-#         status_code=status.HTTP_200_OK,
-#     )
+# Shared private function
 
 
-# # ----------------------
-# # Deactivate Tenant
-# # ----------------------
-# @router.post(
-#     "/{tenant_id}/deactivate",
-#     response_model=APIResponse,
-#     dependencies=[Depends(require_permissions(["tenant.update"]))],
-# )
-# @request_timer
-# async def deactivate_tenant(
-#     tenant_id: str,
-#     request: Request,
-#     db: Session = Depends(get_db),
-#     current_user=Depends(get_cached_current_user),
-# ):
-#     tenant = fetch_tenant_or_404(tenant_id, db)
-#     tenant_crud.deactivate(db, tenant.id)
-#     return build_api_response(
-#         request=request,
-#         current_user=current_user,
-#         result={"message": f"Tenant '{tenant.name}' deactivated successfully"},
-#         status_code=status.HTTP_200_OK,
-#     )
+async def _handle_status_change(
+    tenant_id: str,
+    request: Request,
+    db: Session,
+    # current_user=Depends(get_cached_current_user),
+    action: str,
+):
+    actions = {
+        "activate": tenant_crud.activate,
+        "suspend": tenant_crud.suspend,
+        "deactivate": tenant_crud.deactivate,
+    }
+
+    if action not in actions:
+        raise HTTPException(status_code=400, detail="Invalid action")
+
+    tenant = fetch_tenant_or_404(tenant_id, db)
+
+    try:
+        # Apply action on the main tenant
+        updated_tenant = actions[action](db, tenant.id)
+    except ValueError as ve:
+        # Catch business rule violations
+        logger.warning(f"Status change failed: {ve}")
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        logger.error(f"Unexpected error during status change: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+    # Cascade to child tenants if parent
+    if updated_tenant and updated_tenant.id:
+        db.execute(
+            text("""
+                UPDATE tenants
+                SET status = :status
+                WHERE parent_id = :parent_id
+            """),
+            {
+                "status": updated_tenant.status.value,
+                "parent_id": updated_tenant.id,
+            },
+        )
+        db.commit()
+        logger.info(
+            f"Cascaded {action} to all child tenants of '{updated_tenant.name}'"
+        )
+
+    return build_api_response(
+        request=request,
+        include_user_context=False,
+        result={"message": f"Tenant '{tenant.name}' {action}d successfully"},
+        status_code=status.HTTP_200_OK,
+    )
+
+
+@router.post(
+    "/{tenant_id}/activate",
+    response_model=APIResponse,
+    dependencies=[Depends(require_permissions(["tenant.update"]))],
+    openapi_extra={"security": [{"BearerAuth": []}]},
+)
+@request_timer
+async def activate_tenant(
+    tenant_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    return await _handle_status_change(tenant_id, request, db, "activate")
+
+
+@router.post(
+    "/{tenant_id}/suspend",
+    response_model=APIResponse,
+    dependencies=[Depends(require_permissions(["tenant.update"]))],
+    openapi_extra={"security": [{"BearerAuth": []}]},
+)
+@request_timer
+async def suspend_tenant(
+    tenant_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    return await _handle_status_change(tenant_id, request, db, "suspend")
+
+
+@router.post(
+    "/{tenant_id}/deactivate",
+    response_model=APIResponse,
+    dependencies=[Depends(require_permissions(["tenant.update"]))],
+    openapi_extra={"security": [{"BearerAuth": []}]},
+)
+@request_timer
+async def deactivate_tenant(
+    tenant_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    return await _handle_status_change(tenant_id, request, db, "deactivate")
