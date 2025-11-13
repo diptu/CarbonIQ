@@ -114,26 +114,27 @@ async def create_tenant(
         raise HTTPException(status_code=500, detail=f"Failed to create tenant: {e}")
 
 
-# # ----------------------
-# # List Tenants
-# # ----------------------
+# ----------------------
+# List Tenants
+# ----------------------
 @router.get(
     "/",
     response_model=APIResponse,
     status_code=status.HTTP_200_OK,
-    #     dependencies=[Depends(require_permissions(["tenant.read"]))],
-    #     openapi_extra={"security": [{"BearerAuth": []}]},
+    # dependencies=[Depends(require_permissions(["tenant.read"]))],
+    # openapi_extra={"security": [{"BearerAuth": []}]},
 )
 @request_timer
 async def list_tenants(
     request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1),
+    active_only: bool = Query(True, description="Return only active tenants"),
     db: Session = Depends(get_db),
     # current_user=Depends(get_cached_current_user),
 ):
-    total = tenant_crud.count(db)
-    tenants = tenant_crud.get_all(db, skip=skip, limit=limit)
+    total = tenant_crud.count(db, active_only=active_only)
+    tenants = tenant_crud.get_all(db, skip=skip, limit=limit, active_only=active_only)
 
     data = [
         {
@@ -267,29 +268,63 @@ async def update_tenant(
         )
 
 
-# # ----------------------
-# # Delete Tenant
-# # ----------------------
-# @router.delete(
-#     "/{tenant_id}",
-#     response_model=APIResponse,
-#     dependencies=[Depends(require_permissions(["tenant.delete"]))],
-# )
-# @request_timer
-# async def delete_tenant(
-#     tenant_id: str,
-#     request: Request,
-#     db: Session = Depends(get_db),
-#     current_user=Depends(get_cached_current_user),
-# ):
-#     tenant = fetch_tenant_or_404(tenant_id, db)
-#     tenant_crud.delete(db, tenant.id)
-#     return build_api_response(
-#         request=request,
-#         current_user=current_user,
-#         result={"message": f"Tenant '{tenant.name}' deleted successfully"},
-#         status_code=status.HTTP_200_OK,
-#     )
+# ----------------------
+# Delete Tenant
+# ----------------------
+@router.delete(
+    "/{tenant_id}",
+    response_model=APIResponse,
+    # dependencies=[Depends(require_permissions(["tenant.delete"]))],
+    # openapi_extra={"security": [{"BearerAuth": []}]},
+)
+@request_timer
+async def delete_tenant(
+    tenant_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    # current_user=Depends(get_cached_current_user),
+    cascade_children: bool = False,  # optional query param
+    soft_delete: bool = False,  # optional query param
+):
+    tenant = fetch_tenant_or_404(tenant_id, db)
+    try:
+        tenant_crud.delete(
+            db,
+            tenant.id,
+            soft_delete=soft_delete,
+            cascade_children=cascade_children,
+        )
+        return build_api_response(
+            request=request,
+            # current_user=current_user,
+            include_user_context=False,
+            result={"message": f"Tenant '{tenant.name}' deleted successfully"},
+            status_code=status.HTTP_200_OK,
+        )
+    except ValueError as ve:
+        # Logical errors like child tenants exist
+        return build_api_response(
+            request=request,
+            include_user_context=False,
+            result={"error": str(ve)},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    except RuntimeError as re:
+        # Server-side errors like schema drop failure
+        return build_api_response(
+            request=request,
+            include_user_context=False,
+            result={"error": str(re)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+    except Exception:
+        # Catch-all for unexpected errors
+        return build_api_response(
+            request=request,
+            include_user_context=False,
+            result={"error": "An unexpected error occurred."},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 # Shared private function

@@ -235,6 +235,52 @@ class TenantCRUD:
             self._cascade_status(db, child.id, new_status)
         db.commit()
 
+    # ----------------------
+    # Delete Tenant
+    # ----------------------
+
+    def delete(self, db, tenant_id, soft_delete=True, cascade_children=False):
+        """
+        Delete a tenant.
+        :param db: SQLAlchemy session
+        :param tenant_id: UUID of the tenant to delete
+        :param soft_delete: If True, only mark as deleted. If False, hard delete including schema.
+        :param cascade_children: If True, delete child tenants recursively.
+        """
+        tenant = db.get(Tenant, tenant_id)
+        if not tenant:
+            raise ValueError(f"Tenant with id {tenant_id} not found.")
+
+        # Check if tenant has children
+        if tenant.children and len(tenant.children) > 0:
+            if cascade_children:
+                # Recursively delete children
+                for child in tenant.children:
+                    self.delete(
+                        db, child.id, soft_delete=soft_delete, cascade_children=True
+                    )
+            else:
+                raise ValueError(
+                    f"Tenant '{tenant.name}' has child tenants. Delete them first or set cascade_children=True."
+                )
+
+        if soft_delete:
+            tenant.status = StatusEnum.DELETED
+            db.add(tenant)
+            db.commit()
+        else:
+            # Hard delete: drop schema
+            try:
+                if tenant.schema_name:
+                    db.execute(
+                        text(f'DROP SCHEMA IF EXISTS "{tenant.schema_name}" CASCADE')
+                    )
+                db.delete(tenant)
+                db.commit()
+            except SQLAlchemyError as e:
+                db.rollback()
+                raise RuntimeError(f"Failed to delete tenant '{tenant.name}': {e}")
+
     # -------------------------------------
     # Retrieval methods
     # -------------------------------------
@@ -247,11 +293,19 @@ class TenantCRUD:
     def get_by_schema(self, db: Session, schema_name: str) -> Tenant | None:
         return db.query(Tenant).filter(Tenant.schema_name == schema_name).first()
 
-    def count(self, db: Session) -> int:
-        return db.query(Tenant).count()
+    def count(self, db: Session, active_only: bool = True) -> int:
+        query = db.query(Tenant)
+        if active_only:
+            query = query.filter(Tenant.status == StatusEnum.ACTIVE)
+        return query.count()
 
-    def get_all(self, db: Session, skip: int = 0, limit: int = 10) -> List[Tenant]:
-        return db.query(Tenant).offset(skip).limit(limit).all()
+    def get_all(
+        self, db: Session, skip: int = 0, limit: int = 10, active_only: bool = True
+    ) -> List[Tenant]:
+        query = db.query(Tenant)
+        if active_only:
+            query = query.filter(Tenant.status == StatusEnum.ACTIVE)
+        return query.offset(skip).limit(limit).all()
 
     # -------------------------------------
     # Status Change Methods
