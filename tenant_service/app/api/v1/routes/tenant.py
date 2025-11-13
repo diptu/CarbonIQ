@@ -14,10 +14,17 @@ from shared_service.app.utils.response import APIResponse, build_api_response
 from tenant_service.app.crud.tenant import tenant_crud
 from tenant_service.app.db.session import get_db
 from tenant_service.app.models.tenant import Tenant
-from tenant_service.app.schemas.tenant import TenantCreate
+from tenant_service.app.schemas.tenant import TenantCreate, TenantUpdate
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # Set debug mode
+
+
+class TenantUpdateForbidden(Exception):
+    """Raised when a child tenant attempts forbidden updates"""
+
+    def __init__(self, message: str):
+        self.message = message
 
 
 router = APIRouter(prefix="/tenants", tags=["tenants"])
@@ -189,30 +196,75 @@ async def get_tenant(
     )
 
 
-# # ----------------------
-# # Update Tenant
-# # ----------------------
-# @router.put(
-#     "/{tenant_id}",
-#     response_model=APIResponse,
-#     dependencies=[Depends(require_permissions(["tenant.update"]))],
-# )
-# @request_timer
-# async def update_tenant(
-#     tenant_id: str,
-#     tenant_in: TenantUpdate,
-#     request: Request,
-#     db: Session = Depends(get_db),
-#     current_user=Depends(get_cached_current_user),
-# ):
-#     tenant = fetch_tenant_or_404(tenant_id, db)
-#     tenant = tenant_crud.update(db, tenant, tenant_in)
-#     return build_api_response(
-#         request=request,
-#         current_user=current_user,
-#         result={"id": str(tenant.id), "name": tenant.name},
-#         status_code=status.HTTP_200_OK,
-#     )
+# ----------------------
+# Update Tenant
+# ----------------------
+@router.put(
+    "/{tenant_id}",
+    response_model=None,
+)
+@request_timer
+async def update_tenant(
+    tenant_id: str,
+    tenant_in: TenantUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    logger.info(f"[TenantUpdate] Starting update for tenant_id={tenant_id}")
+
+    try:
+        tenant = fetch_tenant_or_404(tenant_id, db)
+        logger.debug(
+            f"[TenantUpdate] Fetched tenant '{tenant.name}' "
+            f"(Type={'Parent' if tenant.parent_id is None else 'Child'})"
+        )
+
+        tenant = tenant_crud.update(db, tenant, tenant_in)
+
+        logger.info(f"[TenantUpdate] Tenant '{tenant.name}' updated successfully")
+
+        return build_api_response(
+            request=request,
+            include_user_context=False,
+            result={
+                "id": str(tenant.id),
+                "name": tenant.name,
+                "status": tenant.status,
+                "schema": tenant.schema_name,
+                "plan": tenant.plan,
+                "message": f"Tenant '{tenant.name}' updated successfully",
+            },
+            status_code=status.HTTP_200_OK,
+        )
+
+    except ValueError as ve:
+        # Expected: trying to change plan/status on a child tenant
+        logger.warning(f"[TenantUpdate] Business rule violation: {ve}")
+
+        return build_api_response(
+            request=request,
+            include_user_context=False,
+            result={
+                "error": "InvalidOperation",
+                "message": str(ve),
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    except Exception as e:
+        logger.exception(
+            f"[TenantUpdate] Unexpected error updating tenant '{tenant_id}': {e}"
+        )
+
+        return build_api_response(
+            request=request,
+            include_user_context=False,
+            result={
+                "error": "InternalServerError",
+                "message": "An unexpected error occurred during tenant update.",
+            },
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 # # ----------------------
@@ -298,6 +350,11 @@ async def _handle_status_change(
     )
 
 
+# ----------------------
+# activate Tenant
+# ----------------------
+
+
 @router.post(
     "/{tenant_id}/activate",
     response_model=APIResponse,
@@ -313,6 +370,9 @@ async def activate_tenant(
     return await _handle_status_change(tenant_id, request, db, "activate")
 
 
+# ----------------------
+# suspend Tenant
+# ----------------------
 @router.post(
     "/{tenant_id}/suspend",
     response_model=APIResponse,
@@ -328,6 +388,9 @@ async def suspend_tenant(
     return await _handle_status_change(tenant_id, request, db, "suspend")
 
 
+# ----------------------
+# deactivate Tenant
+# ----------------------
 @router.post(
     "/{tenant_id}/deactivate",
     response_model=APIResponse,

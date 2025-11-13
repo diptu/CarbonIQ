@@ -1,9 +1,9 @@
 # tenant_service/app/crud/tenant.py
 import logging
 import uuid
-from typing import List
+from typing import Dict, List
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,7 @@ from shared_service.app.models.enums import PlanEnum, StatusEnum
 from tenant_service.app.models.domain import TenantDomain
 from tenant_service.app.models.membership import TenantMembership
 from tenant_service.app.models.tenant import Tenant
-from tenant_service.app.schemas.tenant import TenantCreate
+from tenant_service.app.schemas.tenant import TenantCreate, TenantUpdate
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # Enable debug logging
@@ -131,6 +131,109 @@ class TenantCRUD:
             db.rollback()
             logger.error(f"Failed to create tenant '{tenant_in.name}': {e}")
             raise e
+
+    # -------------------------------------
+    # Tenant Update
+    # -------------------------------------
+    def update(self, db: Session, tenant: Tenant, tenant_in: TenantUpdate) -> Tenant:
+        """
+        Update tenant with cascade rules and detailed logging:
+        - Only parent tenants can update plan/status, cascades to all descendants
+        - Child/grandchild tenants inherit plan/status
+        - Name can always be updated
+        """
+        update_fields: Dict = tenant_in.model_dump(exclude_unset=True)
+        plan_changed = "plan" in update_fields
+        status_changed = "status" in update_fields
+        name_changed = "name" in update_fields
+
+        logger.debug(
+            f"Starting update for tenant {tenant.id} ('{tenant.name}') with fields: {update_fields}"
+        )
+
+        # Restrict child/grandchild from updating plan/status
+        if tenant.parent_id and (plan_changed or status_changed):
+            logger.warning(
+                f"Tenant '{tenant.name}' is a child tenant; cannot update "
+                f"{'plan and status' if plan_changed and status_changed else 'plan' if plan_changed else 'status'}"
+            )
+            raise ValueError(
+                f"Tenant '{tenant.name}' is a child tenant and cannot modify "
+                f"{'plan and status' if plan_changed and status_changed else 'plan' if plan_changed else 'status'} directly."
+            )
+
+        # Update name
+        if name_changed:
+            old_name = tenant.name
+            tenant.name = update_fields["name"]
+            logger.debug(f"Tenant name changed from '{old_name}' to '{tenant.name}'")
+
+        # Update plan/status only for parent tenants
+        if not tenant.parent_id:
+            if plan_changed:
+                old_plan = tenant.plan
+                tenant.plan = update_fields["plan"]
+                logger.info(
+                    f"Tenant '{tenant.name}' plan changed from '{old_plan}' to '{tenant.plan}'"
+                )
+                self._cascade_plan(db, tenant.id, tenant.plan)
+
+            if status_changed:
+                old_status = tenant.status
+                tenant.status = update_fields["status"]
+                logger.info(
+                    f"Tenant '{tenant.name}' status changed from '{old_status}' to '{tenant.status}'"
+                )
+                self._cascade_status(db, tenant.id, tenant.status)
+
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+
+        logger.debug(
+            f"Tenant '{tenant.name}' update complete. Current state: plan='{tenant.plan}', status='{tenant.status}'"
+        )
+        return tenant
+
+    def _cascade_plan(self, db: Session, parent_id, new_plan):
+        """Recursively update plan for all children with logging"""
+        children = (
+            db.execute(select(Tenant).where(Tenant.parent_id == parent_id))
+            .scalars()
+            .all()
+        )
+        logger.debug(
+            f"Cascading plan '{new_plan}' for children of tenant {parent_id}: {len(children)} found"
+        )
+        for child in children:
+            old_plan = child.plan
+            child.plan = new_plan
+            logger.info(
+                f"Child tenant '{child.name}' plan updated from '{old_plan}' to '{new_plan}'"
+            )
+            db.add(child)
+            self._cascade_plan(db, child.id, new_plan)
+        db.commit()
+
+    def _cascade_status(self, db: Session, parent_id, new_status):
+        """Recursively update status for all children with logging"""
+        children = (
+            db.execute(select(Tenant).where(Tenant.parent_id == parent_id))
+            .scalars()
+            .all()
+        )
+        logger.debug(
+            f"Cascading status '{new_status}' for children of tenant {parent_id}: {len(children)} found"
+        )
+        for child in children:
+            old_status = child.status
+            child.status = new_status
+            logger.info(
+                f"Child tenant '{child.name}' status updated from '{old_status}' to '{new_status}'"
+            )
+            db.add(child)
+            self._cascade_status(db, child.id, new_status)
+        db.commit()
 
     # -------------------------------------
     # Retrieval methods
