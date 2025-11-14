@@ -5,9 +5,12 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from tenant_service.app.core.config import settings
 from tenant_service.app.models.domain import TenantDomain
 from tenant_service.app.models.tenant import Tenant
-from tenant_service.app.schemas.domain import TenantDomainCreate, TenantDomainUpdate
+from tenant_service.app.schemas.domain import DomainCreate, DomainUpdate
+
+BASE_DOMAIN = settings.BASE_DOMAIN
 
 
 class TenantDomainCRUD:
@@ -19,22 +22,25 @@ class TenantDomainCRUD:
 
     def get_by_domain(self, db: Session, domain: str) -> Optional[TenantDomain]:
         """Retrieve a tenant domain by the domain name."""
-        return db.query(TenantDomain).filter(TenantDomain.domain == domain).first()
+        domain_name = f"{domain}.{BASE_DOMAIN}"
+        return db.query(TenantDomain).filter(TenantDomain.domain == domain_name).first()
 
     def get_by_tenant(self, db: Session, tenant_id: UUID) -> List[TenantDomain]:
         """List all domains associated with a given tenant."""
         return db.query(TenantDomain).filter(TenantDomain.tenant_id == tenant_id).all()
 
-    def create(self, db: Session, obj_in: TenantDomainCreate) -> TenantDomain:
+    def create(self, db: Session, obj_in: DomainCreate) -> TenantDomain:
         """Create and attach a new domain to a tenant."""
         # Ensure the tenant exists
         tenant = db.query(Tenant).filter(Tenant.id == obj_in.tenant_id).first()
         if not tenant:
             raise ValueError("Tenant not found")
 
+        domain = obj_in.domain.lower() or Tenant.schema_name
+        domain_name = f"{domain}.{BASE_DOMAIN}"
         db_obj = TenantDomain(
             tenant_id=obj_in.tenant_id,
-            domain=obj_in.domain.lower(),
+            domain=domain_name,
             is_verified=False,
         )
         db.add(db_obj)
@@ -43,7 +49,7 @@ class TenantDomainCRUD:
         return db_obj
 
     def update(
-        self, db: Session, db_obj: TenantDomain, obj_in: TenantDomainUpdate
+        self, db: Session, db_obj: TenantDomain, obj_in: DomainUpdate
     ) -> Optional[TenantDomain]:
         """Update domain details (e.g., verification status)."""
         update_data = obj_in.dict(exclude_unset=True)
@@ -83,5 +89,10 @@ class TenantDomainCRUD:
         """Return total number of registered domains."""
         return db.query(TenantDomain).count()
 
+    def get_all(
+        self, db: Session, skip: int = 0, limit: int = 10
+    ) -> List[TenantDomain]:
+        return db.query(TenantDomain).offset(skip).limit(limit).all()
 
-tenant_domain_crud = TenantDomainCRUD()
+
+domain_crud = TenantDomainCRUD()

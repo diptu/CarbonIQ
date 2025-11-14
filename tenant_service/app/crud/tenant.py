@@ -1,20 +1,25 @@
 # tenant_service/app/crud/tenant.py
 import logging
-import uuid
 from typing import Dict, List
+from uuid import uuid4
 
 from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from shared_service.app.models.enums import PlanEnum, StatusEnum
+from tenant_service.app.core.config import settings
 from tenant_service.app.models.domain import TenantDomain
-from tenant_service.app.models.membership import TenantMembership
+from tenant_service.app.models.membership import TenantMembership, TenantRole
 from tenant_service.app.models.tenant import Tenant
 from tenant_service.app.schemas.tenant import TenantCreate, TenantUpdate
+from user_service.app.models.user import User
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # Enable debug logging
+
+# BASE_DOMAIN = "carboniq.com"
+BASE_DOMAIN = settings.BASE_DOMAIN
 
 
 class TenantCRUD:
@@ -82,13 +87,16 @@ class TenantCRUD:
     # -------------------------------------
     # Tenant Creation
     # -------------------------------------
-    def create(self, db: Session, tenant_in: TenantCreate) -> Tenant:
-        tenant_id = str(uuid.uuid4())
+
+    def create(
+        self, db: Session, tenant_in: TenantCreate, current_user: User = None
+    ) -> Tenant:
+        tenant_id = str(uuid4())
         status = tenant_in.status or StatusEnum.ACTIVE
         plan = tenant_in.plan or PlanEnum.FREE
 
         try:
-            # 1️⃣ Insert tenant into public.tenants
+            # 1. Insert tenant into public.tenants
             tenant = Tenant(
                 id=tenant_id,
                 name=tenant_in.name,
@@ -99,18 +107,53 @@ class TenantCRUD:
             db.add(tenant)
             db.commit()
             db.refresh(tenant)
+
             logger.info(
                 f"Tenant '{tenant_in.name}' created with schema '{tenant.schema_name}'"
             )
 
             schema_name = tenant.schema_name
 
-            # 2️⃣ Create tenant-specific schema
+            # 2. Create tenant-specific schema
             db.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
             db.commit()
             logger.debug(f"Schema '{schema_name}' created successfully")
 
-            # 3️⃣ Create tenant-specific tables dynamically
+            # 3. Insert primary domain (NOW schema exists)
+            domain_name = f"{schema_name}.{BASE_DOMAIN}"
+
+            domain = TenantDomain(
+                tenant_id=tenant.id,
+                domain=domain_name,
+                is_primary=True,
+                is_verified=False,
+            )
+
+            #  Force TenantDomain table back to public schema
+            TenantDomain.__table__.schema = None
+            db.add(domain)
+            db.commit()
+            db.refresh(domain)
+
+            logger.info(
+                f"Domain '{domain.domain}' auto-created for tenant '{tenant.name}' in schema '{schema_name}'"
+            )
+            SYSTEM_USER_ID = settings.SYSTEM_USER_ID
+            # 4. Insert primary domainmembership (NOW schema exists)
+            owner_user_id = getattr(current_user, "id", None) or SYSTEM_USER_ID
+            owner_membership = TenantMembership(
+                tenant_id=tenant.id,
+                user_id=owner_user_id,
+                tenant_role=TenantRole.OWNER,
+                has_parent_access=True,
+            )
+            #  Force TenantDomain table back to public schema
+            TenantMembership.__table__.schema = None
+            db.add(owner_membership)
+            db.commit()
+            db.refresh(owner_membership)
+
+            # 5. Create tenant-specific tables (with correct schema)
             tables_to_create = [
                 TenantMembership,
                 TenantDomain,
@@ -118,11 +161,12 @@ class TenantCRUD:
             for model in tables_to_create:
                 model.__table__.schema = schema_name
                 model.__table__.create(bind=db.bind, checkfirst=True)
+
                 logger.info(
                     f"Table '{model.__tablename__}' created in schema '{schema_name}'"
                 )
 
-            # 4️⃣ Reset search_path to public
+            # 6. Reset search_path
             db.execute(text("SET search_path TO public"))
 
             return tenant

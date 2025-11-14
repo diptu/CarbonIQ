@@ -4,13 +4,13 @@ from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
-from tenant_service.app.models.tenant_membership import TenantMembership, TenantRole
-from tenant_service.app.schemas.tenant_membership import (
+
+from shared_service.app.models.enums import StatusEnum
+from tenant_service.app.models.membership import TenantMembership, TenantRole
+from tenant_service.app.schemas.membership import (
     TenantMembershipCreate,
     TenantMembershipUpdate,
 )
-
-from shared_service.app.models.enums import StatusEnum
 
 
 class TenantMembershipCRUD:

@@ -29,7 +29,7 @@ class TenantMembership(BaseModel):
     tenant_role = Column(SqlEnum(TenantRole), default=TenantRole.VIEWER, nullable=False)
     is_active = Column(SqlEnum(StatusEnum), default=StatusEnum.ACTIVE, nullable=False)
     has_parent_access = Column(
-        Boolean, default=True, nullable=False
+        Boolean, default=False, nullable=False
     )  # True if user can access child tenants
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(

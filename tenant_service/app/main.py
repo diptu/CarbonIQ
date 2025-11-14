@@ -4,7 +4,11 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
 from shared_service.app.middleware.request_context import RequestContextMiddleware
-from tenant_service.app.api.v1.routes import tenant_router
+from tenant_service.app.api.v1.routes import (
+    domain_router,
+    membership_router,
+    tenant_router,
+)
 from tenant_service.app.db.session import engine
 from tenant_service.app.models.base import Base
 
@@ -16,6 +20,8 @@ app = FastAPI(title="Tenant Service", version="1.0.0")
 app.add_middleware(RequestContextMiddleware)
 # Include routers
 app.include_router(tenant_router)
+app.include_router(domain_router)
+app.include_router(membership_router)
 
 
 # -------------------------------------------------------------------

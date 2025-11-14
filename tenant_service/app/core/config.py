@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Optional
+from uuid import UUID
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,7 +16,10 @@ class Settings(BaseSettings):
     # General App Config
     APP_NAME: str = "multi_tenant_saas"
     APP_ENV: str = "development"
+    USER_SERVICE_URL: str = "http://user-service:8000/users"
     DEBUG: bool = True
+    BASE_DOMAIN: str = "carboniq.com"
+    SYSTEM_USER_ID: UUID = "ecf72c1d-a729-4812-9e35-7f3dec625b09"
 
     # Database
     DATABASE_URL: Optional[str] = None

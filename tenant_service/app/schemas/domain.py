@@ -7,22 +7,22 @@ from pydantic import BaseModel, Field
 # ---------------------------------------------------------
 # Base schema (shared attributes)
 # ---------------------------------------------------------
-class TenantDomainBase(BaseModel):
-    domain: str = Field(..., example="example.com")
+class DomainBase(BaseModel):
+    domain: str | None = Field(None, example="apple")
     is_verified: bool = False
 
 
 # ---------------------------------------------------------
 # Create schema
 # ---------------------------------------------------------
-class TenantDomainCreate(TenantDomainBase):
+class DomainCreate(DomainBase):
     tenant_id: UUID
 
 
 # ---------------------------------------------------------
 # Update schema
 # ---------------------------------------------------------
-class TenantDomainUpdate(BaseModel):
+class DomainUpdate(BaseModel):
     domain: str | None = Field(None, example="newdomain.com")
     is_verified: bool | None = None
 
@@ -30,7 +30,7 @@ class TenantDomainUpdate(BaseModel):
 # ---------------------------------------------------------
 # Read schema (response)
 # ---------------------------------------------------------
-class TenantDomainRead(TenantDomainBase):
+class DomainRead(DomainBase):
     id: UUID
     tenant_id: UUID
     created_at: datetime
