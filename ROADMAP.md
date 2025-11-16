@@ -1,3 +1,137 @@
+# Multi-Tenant RBAC Architecture --- Tenant Service Design
+
+This document outlines the design for a hierarchical, schema-per-tenant
+architecture using three core services: Auth, User, and Tenant Service.
+
+------------------------------------------------------------------------
+
+## 🌐 Overview
+
+We implement **multi-tenant SaaS with hierarchical RBAC** where:
+
+-   Each tenant gets its **own schema**.
+-   Tenants may be **parent or child tenants**.
+-   **Parent tenants can access their own + child tenants' data**.
+-   **Child tenants can only access themselves**.
+-   Centralized auth & user management but tenant-linked permissions via
+    Memberships.
+
+------------------------------------------------------------------------
+
+# 📁 Services
+
+## 1. Auth Service
+
+**Model: TokenBlacklist** - Stores revoked JWT refresh tokens. - Shared
+across system.
+
+    TokenBlacklist(id, jti, created_at, updated_at)
+
+------------------------------------------------------------------------
+
+## 2. User Service
+
+Holds **global users**, roles, permissions:
+
+    User(id, email, hashed_password, fullname, is_active)
+    Role(id, name)
+    Permission(id, name)
+    UserRole(user_id, role_id)
+    RolePermission(role_id, permission_id)
+
+These users can belong to multiple tenants via Tenant Service.
+
+------------------------------------------------------------------------
+
+## 3. Tenant Service
+
+### Core Models
+
+    Tenant(id, name, parent_id, schema_name, status, plan)
+    TenantDomain(id, tenant_id, domain)
+    TenantMembership(id, tenant_id, user_id, role_id)
+
+### Tenant Schema Naming Rules
+
+-   Automatically generated:
+    -   Parent tenant:\
+        **apple → apple**
+    -   Child tenant:\
+        **orchard.apple → orchard_apple**
+
+### Final Domain Format
+
+`<schema>.carboniq.com`
+
+### Example
+
+  --------------------------------------------------------------------------
+  Tenant Name      Parent   Domain                          Schema Name
+  ---------------- -------- ------------------------------- ----------------
+  Apple            NULL     apple.carboniq.com              apple
+
+  Orchard.Apple    Apple    orchard_apple.carboniq.com      orchard_apple
+
+  Peanut.Apple     Apple    peanut_apple.carboniq.com       peanut_apple
+  --------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+
+
+# 🧪 Test Cases
+
+## Test 1 --- Parent Tenant Creation
+
+**Input:** - name = `"Apple"`
+
+**Expected:** - schema_name = `"apple"` - domain =
+`"apple.carboniq.com"`
+
+------------------------------------------------------------------------
+
+## Test 2 --- Child Tenant Creation
+
+**Input:** - name = `"Orchard"` - parent = `"Apple"`
+
+**Expected:** - schema_name = `"orchard_apple"` - domain =
+`"orchard_apple.carboniq.com"`
+
+------------------------------------------------------------------------
+
+## Test 3 --- Deep Hierarchy
+
+Apple → Orchard.Apple → Sales.Orchard.Apple
+
+**Expected:**
+
+  Tenant    Schema
+  --------- ---------------------
+  Apple     apple
+  Orchard   orchard_apple
+  Sales     sales_orchard_apple
+
+------------------------------------------------------------------------
+
+## Test 4 --- Membership Permissions
+
+Parent user should access: - parent tenant - all child tenants
+
+Child user should access: - only its own tenant
+
+------------------------------------------------------------------------
+
+# 🚀 Summary
+
+This architecture ensures:
+
+-   Full **isolation** via schema-per-tenant.
+-   **Hierarchical RBAC**.
+-   **Automatic domain + schema generation**.
+-   **Extensibility for future billing, usage metering, provisioning.**
+
+
+
 # Mono-Repo Architecture Overview
 ```
 mono_repo/
@@ -46,7 +180,7 @@ Endpoints:
     - DELETE /tenants/{id}
 
     - POST /tenants/{tenant_id}/members
-  
+
 ## B. Ingestion Service
 
 ### Focus: Bill & meter ingestion
@@ -64,7 +198,7 @@ Endpoints:
   - POST /upload/pdf
 
   - GET /uploads/{file_id}
-  
+
 ## C. OCR Service
 
 ### Focus: Extract text from PDF bills
@@ -148,7 +282,7 @@ Endpoints:
   - POST /estimate/bill
 
   - GET /estimate/{bill_id}
-  
+
 ## H. Renewables Attribution
 
 ### Focus: REC, GreenPower, PPA attribution
@@ -240,7 +374,7 @@ Endpoints:
 # 3. Integration & Data Flow
 
 ```
-[User/Frontend] 
+[User/Frontend]
        │
        ▼
 [API Gateway] --> JWT validated
@@ -252,7 +386,7 @@ Endpoints:
 +---------------------------+
        │
        ▼
-[Ingestion Service] --> [OCR Service] --> [Normalization Service] --> [Calculation Service] --> [AI Service] 
+[Ingestion Service] --> [OCR Service] --> [Normalization Service] --> [Calculation Service] --> [AI Service]
        │                                                                      │
        ▼                                                                      ▼
 [Factor Service] ----------------------------------------------------> [Renewables Attribution] --> [Offset Catalog]
