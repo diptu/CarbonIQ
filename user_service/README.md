@@ -230,3 +230,145 @@ Key Concepts
 | document.create |
 | document.update |
 | billing.read    |
+
+
+
+## 🚀 Multi-Tenant SaaS Architecture
+1. High-Level System Architecture
+
+```mermaid
+flowchart TD
+    %% Nodes
+    A[Auth Service<br>JWT Token Blacklist]
+    B[User Service<br>Users Roles Permissions]
+    D[Tenant Service<br>Tenants Domains Memberships]
+    C[API Gateway Router]
+    E[(Central Metadata DB)]
+    F[(Tenant DB<br>Schema per Tenant)]
+
+    %% Edges
+    A --> C
+    B --> C
+    D --> C
+    C --> E
+    C --> F
+
+```
+
+2. Tenant Hierarchy
+
+```mermaid
+graph TD
+    A[Apple]
+    B[Orchard.Apple]
+    C[Peanut.Apple]
+
+    A --> B
+    A --> C
+
+```
+
+3. Domain & Schema Mapping
+
+```mermaid
+flowchart TB
+    subgraph Domains
+        d1[apple.carboniq.com]
+        d2[orchard_apple.carboniq.com]
+        d3[peanut_apple.carboniq.com]
+    end
+
+    subgraph Tenants
+        t1[apple]
+        t2[orchard_apple]
+        t3[peanut_apple]
+    end
+
+    d1 --> t1
+    d2 --> t2
+    d3 --> t3
+
+```
+4. User–Role–Permission (RBAC)
+
+```mermaid
+classDiagram
+    class User {
+        +UUID id
+        +String email
+        +String hashed_password
+        +Boolean is_active
+        +Boolean is_verified
+        +Boolean is_superuser
+    }
+
+    class Role {
+        +UUID id
+        +String name
+        +String description
+    }
+
+    class Permission {
+        +UUID id
+        +String name
+        +String description
+    }
+
+    class UserRole {
+        +user_id
+        +role_id
+    }
+
+    class RolePermission {
+        +role_id
+        +permission_id
+    }
+
+    User "1" -- "many" UserRole
+    Role "1" -- "many" UserRole
+    Role "1" -- "many" RolePermission
+    Permission "1" -- "many" RolePermission
+
+```
+
+5. Tenant Membership + User Linking
+
+```mermaid
+classDiagram
+    class Tenant {
+        +UUID id
+        +String name
+        +String schema_name
+        +UUID parent_id
+        +Enum status
+        +Enum plan
+    }
+
+    class TenantMembership {
+        +UUID id
+        +UUID tenant_id
+        +UUID user_id
+        +UUID role_id
+        +Boolean is_owner
+    }
+
+    Tenant "1" -- "many" TenantMembership
+    User "1" -- "many" TenantMembership
+    Role "1" -- "many" TenantMembership
+
+```
+
+6. Schema-per-Tenant Structure
+
+```mermaid
+flowchart LR
+    CentralDB[(central_metadata)]
+    TenantA[(apple schema)]
+    TenantB[(orchard_apple schema)]
+    TenantC[(peanut_apple schema)]
+
+    CentralDB --> TenantA
+    CentralDB --> TenantB
+    CentralDB --> TenantC
+
+```
