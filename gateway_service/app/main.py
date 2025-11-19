@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
 # Routers
-from gateway_service.app.api.v1.routes import auth, user
+from gateway_service.app.api.v1.routes import auth, roles, user
 from gateway_service.app.core.config import settings
 from gateway_service.app.middleware.audit import AuditMiddleware
 from gateway_service.app.middleware.auth import AuthMiddleware
@@ -40,6 +40,8 @@ app.add_middleware(
 # -----------------------------
 app.include_router(auth.router)
 app.include_router(user.router)
+app.include_router(roles.router)
+
 # app.include_router(tenant.router)
 
 
