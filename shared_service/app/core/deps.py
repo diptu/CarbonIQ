@@ -1,5 +1,5 @@
 # shared_service/app/core/deps.py
-from typing import Callable, List
+from typing import Callable, List, Union
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, status
@@ -19,11 +19,10 @@ def get_current_user(
     request: Request,
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
-) -> User:
+) -> Union[User, dict]:
     """
     Return the current authenticated user and cache it per request.
-    Reduces redundant DB queries within the same request.
-    Uses cached roles/permissions from the User model.
+    Works with both User objects (direct service) and dicts (gateway proxy).
     """
     # Return cached user if already fetched
     if hasattr(request.state, "current_user"):
@@ -58,15 +57,22 @@ def get_current_user(
     return user
 
 
-def require_permissions(permissions: List[str]) -> Callable[[User], User]:
+def require_permissions(
+    permissions: List[str],
+) -> Callable[[Union[User, dict]], Union[User, dict]]:
     """
     Dependency to check if the current_user has all required permissions.
-    Uses cached permissions from the User model for efficiency.
+    Works for both User objects and JWT dicts from gateway.
     """
 
-    def checker(current_user: User = Depends(get_current_user)) -> User:
-        # Use cached permissions
-        user_perms = set(current_user.permissions_cached)
+    def checker(
+        current_user: Union[User, dict] = Depends(get_current_user),
+    ) -> Union[User, dict]:
+        # Determine how to access permissions
+        if isinstance(current_user, dict):
+            user_perms = set(current_user.get("permissions", []))
+        else:
+            user_perms = set(current_user.permissions_cached)
 
         # Raise 403 if any required permission is missing
         missing = [perm for perm in permissions if perm not in user_perms]
@@ -83,9 +89,12 @@ def require_permissions(permissions: List[str]) -> Callable[[User], User]:
 # ---------------------------------------------------
 # Cached current_user to avoid repeated DB hits
 # ---------------------------------------------------
-def get_cached_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+def get_cached_current_user(
+    request: Request, db: Session = Depends(get_db)
+) -> Union[User, dict]:
     """
     Returns the cached current_user if available; otherwise fetches via get_current_user.
+    Works for both User objects and JWT dicts.
     """
     if hasattr(request.state, "current_user"):
         return request.state.current_user

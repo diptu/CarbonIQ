@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from pydantic_settings import BaseSettings
 
@@ -14,10 +14,14 @@ class Settings(BaseSettings):
     APP_ENV: str | None = None
     DEBUG: bool = False
 
-    USER_SERVICE_URL: str
+    USER_SERVICE_URL: str = "http://localhost:8000"
     AUTH_SERVICE_URL: str
     TENANT_SERVICE_URL: str
     AUDIT_SERVICE_URL: str
+
+    # # Security
+    SECRET_KEY: Optional[str] = None
+    ALGORITHM: str = "HS256"
 
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost", "http://localhost:3000"]
 

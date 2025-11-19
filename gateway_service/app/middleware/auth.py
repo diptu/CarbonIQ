@@ -11,7 +11,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split(" ")[1]
             try:
-                payload = decode_token(token, settings.SECRET_KEY, algorithms=settings.ALGORITHM)
+                # payload = decode_token(token, settings.SECRET_KEY, algorithms=settings.ALGORITHM)
+                payload = decode_token(
+                    token, secret_key=settings.SECRET_KEY, algorithm=settings.ALGORITHM
+                )
                 request.state.current_user = {
                     "user_id": payload.get("sub"),
                     "tenant_id": payload.get("tenant_id"),
