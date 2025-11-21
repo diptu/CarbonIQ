@@ -1,4 +1,4 @@
-"""Pydantic schemas for Role creation, update, and response models."""
+"""Pydantic schemas for Role creation, update, and response models with improved structure."""
 
 from __future__ import annotations
 
@@ -16,12 +16,15 @@ class RoleBase(BaseModel):
     """Common attributes shared across all role schemas."""
 
     name: str = Field(
-        ..., max_length=50, json_schema_extra={"example": "admin"}, description="Role name"
+        ...,
+        max_length=50,
+        description="Role name",
+        json_schema_extra={"example": "admin"},
     )
     description: Optional[str] = Field(
         None,
-        json_schema_extra={"example": "Administrator role with full access"},
         description="Role description",
+        json_schema_extra={"example": "Administrator role with full access"},
     )
 
 
@@ -39,12 +42,14 @@ class RoleUpdate(BaseModel):
     """Schema for updating an existing role."""
 
     name: Optional[str] = Field(
-        None, json_schema_extra={"example": "editor"}, description="New role name"
+        None,
+        description="New role name",
+        json_schema_extra={"example": "editor"},
     )
     description: Optional[str] = Field(
         None,
-        json_schema_extra={"example": "Can edit content but not manage users"},
         description="Updated description",
+        json_schema_extra={"example": "Can edit content but not manage users"},
     )
 
 
@@ -55,7 +60,7 @@ class RoleOut(RoleBase):
     """Schema for returning role details in responses."""
 
     id: UUID
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
-    model_config = ConfigDict(from_attributes=True)  # enable ORM parsing
+    model_config = ConfigDict(from_attributes=True)  # Enable ORM parsing

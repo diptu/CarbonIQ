@@ -6,14 +6,14 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # -----------------------------
 # Base schema
 # -----------------------------
 class PermissionBase(BaseModel):
-    """Base schema for permissions."""
+    """Pydantic Base schemas for permission  models."""
 
     name: str = Field(
         ...,
@@ -27,6 +27,11 @@ class PermissionBase(BaseModel):
         json_schema_extra={"example": "Allows viewing user list"},
     )
 
+    @field_validator("name", mode="before")
+    def normalize_name(cls, v: str) -> str:  # pylint: disable=no-self-argument
+        """Normalize name ."""
+        return v.strip().lower() if v else v
+
 
 # -----------------------------
 # Create schema
@@ -39,18 +44,10 @@ class PermissionCreate(PermissionBase):
 # Update schema
 # -----------------------------
 class PermissionUpdate(BaseModel):
-    """Schema used for updating permissions."""
+    """Schema for updating permissions; all fields optional."""
 
-    name: Optional[str] = Field(
-        default=None,
-        description="The internal name of the permission",
-        json_schema_extra={"example": "edit_users"},
-    )
-    description: Optional[str] = Field(
-        default=None,
-        description="A short description of what this permission allows",
-        json_schema_extra={"example": "Allows editing user data"},
-    )
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 
 # -----------------------------
@@ -62,4 +59,5 @@ class PermissionOut(PermissionBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
-    model_config = ConfigDict(from_attributes=True)  # enable ORM parsing
+
+    model_config = ConfigDict(from_attributes=True)

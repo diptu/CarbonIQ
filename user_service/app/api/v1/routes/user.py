@@ -9,7 +9,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from shared_service.app.core.deps import get_current_user, require_permissions
+from shared_service.app.core.deps import (
+    fetch_tenant_info,
+    get_cached_current_user,
+    require_permissions,
+)
 from shared_service.app.utils.response import APIResponse, build_api_response
 from sqlalchemy.orm import Session
 
@@ -61,13 +65,13 @@ def request_timer(func):
     return wrapper
 
 
-def get_cached_current_user(request: Request, db: Session = Depends(get_db)) -> User:
-    """Cache current_user per request to avoid repeated DB queries."""
-    if hasattr(request.state, "current_user"):
-        return request.state.current_user
-    user = get_current_user(db=db)
-    request.state.current_user = user
-    return user
+# def get_cached_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+#     """Cache current_user per request to avoid repeated DB queries."""
+#     if hasattr(request.state, "current_user"):
+#         return request.state.current_user
+#     user = get_current_user(db=db)
+#     request.state.current_user = user
+#     return user
 
 
 # ---------------------
@@ -109,7 +113,10 @@ async def create_user(
 @router.get(
     "/",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(["user.read"]))],
+    dependencies=[
+        Depends(require_permissions(["user.read"])),
+        Depends(fetch_tenant_info),
+    ],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
 @request_timer
