@@ -1,77 +1,34 @@
 # app/api/v1/routes/user.py
 """User API routes for managing users with cached current_user."""
 
-import time
-from functools import wraps
-from typing import List
 from uuid import UUID
 
+from auth_service.app.schemas.auth import LoginRequest
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from passlib.context import CryptContext
-from pydantic import BaseModel
-from shared_service.app.core.deps import (
-    fetch_tenant_info,
-    get_cached_current_user,
-    require_permissions,
-)
+from shared_service.app.core.deps import get_cached_current_user, require_permissions
+from shared_service.app.utils.fetch import fetch_or_404
+from shared_service.app.utils.paggination import paginate
 from shared_service.app.utils.response import APIResponse, build_api_response
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from user_service.app.core.config import settings
 from user_service.app.crud.user import user_crud
 from user_service.app.db.session import get_db
 from user_service.app.models.user import User
-from user_service.app.schemas.user import UserCreate
+from user_service.app.schemas.user import UserCreate, UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-class LoginRequest(BaseModel):
-    """Request schema for user login."""
-
-    email: str
-    password: str
-
-
-def extract_roles_permissions(user: User):
-    """
-    Return sorted roles and permissions for a user.
-
-    - Roles come from user_roles.
-    - Permissions come from role_permissions linked to each role.
-    """
-    roles = user.roles_cached
-    permissions = user.permissions_cached
-
-    # for role in user.roles:
-    #     for rp in role.role_permissions:
-    #         if rp.permission:
-    #             permissions_set.add(rp.permission.name)
-
-    # permissions = sorted(permissions_set)
-    return roles, permissions
-
-
-def request_timer(func):
-    """Decorator to measure request duration in ms and attach to meta."""
-
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        response: APIResponse = await func(*args, **kwargs)
-        response.meta.request_duration_ms = (time.perf_counter() - start_time) * 1000
-        return response
-
-    return wrapper
-
-
-# def get_cached_current_user(request: Request, db: Session = Depends(get_db)) -> User:
-#     """Cache current_user per request to avoid repeated DB queries."""
-#     if hasattr(request.state, "current_user"):
-#         return request.state.current_user
-#     user = get_current_user(db=db)
-#     request.state.current_user = user
-#     return user
+# ---------------------
+# Dependency: Fetch user or 404
+# ---------------------
+async def get_user_or_404(user_id: UUID, db: AsyncSession = Depends(get_db)) -> User:
+    """Fetches a user by ID or raises a 404 error."""
+    return await fetch_or_404(user_crud.get, db, user_id)
 
 
 # ---------------------
@@ -84,24 +41,29 @@ def request_timer(func):
     openapi_extra={"security": [{"BearerAuth": []}]},
     status_code=status.HTTP_201_CREATED,
 )
-@request_timer
 async def create_user(
     request: Request,
     user_in: UserCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ) -> APIResponse:
-    if user_crud.get_by_email(db, user_in.email):
+    """
+    Creates a new user.
+    Requires administrative permissions.
+    """
+    existing_user = await user_crud.get_by_email(db, user_in.email)
+    if existing_user:
+        # Using 409 Conflict is often more appropriate for resource already exists
         raise HTTPException(
-            status_code=400, detail=f"User with email {user_in.email} already exists."
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"User with email {user_in.email} already exists.",
         )
 
-    user = user_crud.create(db, user_in)
-
+    user = await user_crud.create(db, user_in)
     return build_api_response(
         request=request,
         current_user=current_user,
-        result={"id": str(user.id), "email": user.email},
+        result=UserRead.model_validate(user),
         status_code=status.HTTP_201_CREATED,
         meta_extra={"source": "user_service"},
     )
@@ -113,43 +75,24 @@ async def create_user(
 @router.get(
     "/",
     response_model=APIResponse,
-    dependencies=[
-        Depends(require_permissions(["user.read"])),
-        Depends(fetch_tenant_info),
-    ],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    # dependencies=[Depends(require_permissions(["user.read"]))],
+    # openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def list_users(
     request: Request,
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_cached_current_user),
+    limit: int = Query(settings.DEFAULT_PAGE_LIMIT, ge=1),
+    db: AsyncSession = Depends(get_db),
+    # FIX: Capture tenant info to pass to CRUD
+    # current_user: User = Depends(get_cached_current_user),
 ) -> APIResponse:
-    total_users = user_crud.count(db)
-    users: List[User] = user_crud.get_all(db, skip=skip, limit=limit)
-    users_data = [
-        {
-            "id": str(u.id),
-            "email": u.email,
-            "is_active": u.is_active,
-            "is_verified": u.is_verified,
-            "is_superuser": u.is_superuser,
-        }
-        for u in users
-    ]
-
-    pagination = {
-        "count": total_users,
-        "perPage": limit,
-        "previousPage": skip - limit if skip - limit >= 0 else None,
-        "nextPage": skip + limit if skip + limit < total_users else None,
-    }
-
+    total_users = await user_crud.count(db)
+    users = await user_crud.get_all(db, skip=skip, limit=limit)
+    users_data = [UserRead.model_validate(u) for u in users]
+    pagination = paginate(skip=skip, limit=limit, total=total_users)
     return build_api_response(
         request=request,
-        current_user=current_user,
+        # current_user=current_user,
         result={"users": users_data, **pagination},
         status_code=status.HTTP_200_OK,
         meta_extra={"source": "user_service"},
@@ -159,58 +102,42 @@ async def list_users(
 # ---------------------
 # Verify user
 # ---------------------
-@router.post("/verify", response_model=APIResponse)
-@request_timer
+@router.post(
+    "/verify",
+    response_model=APIResponse,
+    status_code=status.HTTP_200_OK,
+)
 async def verify_user(
     request: Request,
     payload: LoginRequest,
-    db: Session = Depends(get_db),
-):
-    """Verify user credentials for login, includes roles, permissions, tenant_id."""
-    email = payload.email
-    password = payload.password
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Verify user login and return user data with roles and permissions."""
 
-    if not email or not password:
+    if not payload.email or not payload.password:
         raise HTTPException(status_code=400, detail="Email and password are required")
 
-    user = user_crud.get_by_email(db, email)
-    print(f"user: {user}")
-    if not user or not pwd_context.verify(password, user.hashed_password):
+    # Fetch user with roles and permissions (async-safe)
+    user = await user_crud.get_by_email_with_roles(db, payload.email)
+
+    if not user or not pwd_context.verify(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    roles, permissions = extract_roles_permissions(user)
+    # Safe to access cached properties
+    roles, permissions = user.roles_cached, user.permissions_cached
 
     return build_api_response(
         request=request,
         current_user=user,
         result={
-            "id": str(user.id),
-            "email": user.email,
-            "is_active": user.is_active,
-            "is_verified": user.is_verified,
-            "is_superuser": user.is_superuser,
+            **UserRead.model_validate(user).model_dump(),
             "roles": roles,
             "permissions": permissions,
-            "tenant_id": getattr(user, "tenant_id", None),
         },
         status_code=200,
         success=True,
         meta_extra={"source": "user_service"},
     )
-
-
-# ---------------------
-# Shared UUID parsing and user fetching
-# ---------------------
-def fetch_user_or_404(user_id: str, db: Session) -> User:
-    try:
-        user_uuid = UUID(user_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
-    user = user_crud.get(db, user_uuid)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
 
 
 # ---------------------
@@ -222,52 +149,46 @@ def fetch_user_or_404(user_id: str, db: Session) -> User:
     dependencies=[Depends(require_permissions(["user.read"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def get_user(
-    user_id: str,
+    user_id: UUID,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
-):
-    user = fetch_user_or_404(user_id, db)
+) -> APIResponse:
+    user = await fetch_or_404(user_crud.get, db, user_id)
     return build_api_response(
         request=request,
         current_user=current_user,
-        result={
-            "id": str(user.id),
-            "email": user.email,
-            "is_active": user.is_active,
-            "is_verified": user.is_verified,
-            "is_superuser": user.is_superuser,
-        },
-        status_code=200,
+        result=UserRead.model_validate(user),
+        status_code=status.HTTP_200_OK,
     )
 
 
 # ---------------------
 # Update user
 # ---------------------
+
+
 @router.put(
     "/{user_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["user.update"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def update_user(
-    user_id: str,
-    user_in: UserCreate,
+    user_id: UUID,
+    user_in: UserUpdate,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
-):
-    user = fetch_user_or_404(user_id, db)
-    user = user_crud.update(db, user, user_in)
+) -> APIResponse:
+    user = await fetch_or_404(user_crud.get, db, user_id)
+    user = await user_crud.update(db, user, user_in)
     return build_api_response(
         request=request,
         current_user=current_user,
-        result={"id": str(user.id), "email": user.email},
-        status_code=200,
+        result=UserRead.model_validate(user),
+        status_code=status.HTTP_200_OK,
     )
 
 
@@ -280,18 +201,18 @@ async def update_user(
     dependencies=[Depends(require_permissions(["user.delete"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def delete_user(
     user_id: str,
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    user = fetch_user_or_404(user_id, db)
-    user_crud.delete(db, user.id)
+    user = await fetch_or_404(user_crud.get, db, user_id)
+    await user_crud.delete(db, user.id)
     return build_api_response(
         request=request,
         current_user=current_user,
+        include_user_context=False,
         result={"message": f"User {user.email} deleted successfully"},
         status_code=200,
     )
@@ -306,15 +227,14 @@ async def delete_user(
     dependencies=[Depends(require_permissions(["user.update"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def activate_user(
     user_id: str,
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    user = fetch_user_or_404(user_id, db)
-    user_crud.activate(db, user.id)
+    user = await fetch_or_404(user_crud.get, db, user_id)
+    await user_crud.activate(db, user.id)
     return build_api_response(
         request=request,
         current_user=current_user,
@@ -326,21 +246,20 @@ async def activate_user(
 # ---------------------
 # Deactivate user
 # ---------------------
-@router.post(
+@router.put(
     "/{user_id}/deactivate",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["user.update"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def deactivate_user(
     user_id: str,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),  # Use AsyncSession
     current_user: User = Depends(get_cached_current_user),
 ):
-    user = fetch_user_or_404(user_id, db)
-    user_crud.deactivate(db, user.id)
+    user = await fetch_or_404(user_crud.get, db, user_id)
+    await user_crud.deactivate(db, user.id)  # await the async method
     return build_api_response(
         request=request,
         current_user=current_user,

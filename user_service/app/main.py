@@ -1,4 +1,4 @@
-"""User service runner"""
+"""User service runner with async table creation and FastAPI initialization."""
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
@@ -14,13 +14,20 @@ from user_service.app.api.v1.routes import (
 from user_service.app.db.session import engine
 from user_service.app.models.base import Base
 
-# Create tables
-Base.metadata.create_all(bind=engine)
-
-# Initialize app
-app = FastAPI(title="User Service", version="1.0.0")
+# -------------------------
+# Initialize FastAPI app
+# -------------------------
+app = FastAPI(
+    title="User Service",
+    version="1.0.0",
+    description="API for managing users, roles, and permissions.",
+)
 app.add_middleware(RequestContextMiddleware)
-# Include routers
+
+
+# -------------------------
+# Include API routers
+# -------------------------
 app.include_router(user_router)
 app.include_router(role_router)
 app.include_router(permissoion_router)
@@ -28,21 +35,32 @@ app.include_router(user_role_router)
 app.include_router(role_permission_router)
 
 
-# -------------------------------------------------------------------
-# 🔒 Custom OpenAPI schema for Bearer token authorization in Swagger
-# -------------------------------------------------------------------
+# -------------------------
+# Create tables on startup
+# -------------------------
+@app.on_event("startup")
+async def create_tables():
+    """Create all database tables asynchronously on app startup."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
+# -------------------------
+# Custom OpenAPI schema with BearerAuth
+# -------------------------
 def custom_openapi():
+    """Add BearerAuth security scheme to all endpoints except login & verify."""
     if app.openapi_schema:
         return app.openapi_schema
 
     openapi_schema = get_openapi(
-        title="User Service",
-        version="1.0.0",
-        description="API for managing users, roles, and permissions.",
+        title=app.title,
+        version=app.version,
+        description=app.description,
         routes=app.routes,
     )
 
-    # Add a simple BearerAuth scheme
+    # Define Bearer token scheme
     openapi_schema["components"]["securitySchemes"] = {
         "BearerAuth": {
             "type": "http",
@@ -54,7 +72,7 @@ def custom_openapi():
     # Apply BearerAuth to all endpoints except login & verify
     for path, methods in openapi_schema["paths"].items():
         if path.startswith("/auth") or path.startswith("/users/verify"):
-            continue  # no auth needed for login/verify
+            continue
         for method in methods.values():
             method.setdefault("security", [{"BearerAuth": []}])
 

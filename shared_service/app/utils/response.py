@@ -64,6 +64,7 @@ def build_api_response(
     """
     Builds a standardized APIResponse object.
     Optionally excludes user_context to avoid exposing sensitive data.
+    Includes request duration from middleware if available.
     """
 
     # ✅ safe default for trace and correlation IDs
@@ -85,7 +86,13 @@ def build_api_response(
             # ✅ if anything fails, ignore (never break API response)
             user_context = None
 
-    meta = MetaInfo(extra=meta_extra or {})
+    # ✅ get request duration from request.state if available
+    request_duration_ms = getattr(request.state, "request_duration_ms", None)
+
+    meta = MetaInfo(
+        request_duration_ms=request_duration_ms,
+        extra=meta_extra or {},
+    )
 
     return APIResponse(
         trace_id=trace_id,

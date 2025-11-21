@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     DATABASE_URL: Optional[str] = None
     READ_REPLICA_URL: Optional[str] = None
 
+    # Pagination
+    DEFAULT_PAGE_LIMIT: int = 10
+
     # Pydantic v2 config
     model_config = SettingsConfigDict(env_file=str(ENV_FILE), extra="ignore")
 

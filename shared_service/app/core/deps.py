@@ -132,5 +132,6 @@ def get_cached_current_user(
         return request.state.current_user
 
     user = get_current_user(request=request, db=db)
+    # user.tenant_id = fetch_tenant_info(user.user_id) or "temp"
     request.state.current_user = user
     return user

@@ -46,7 +46,9 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     """Schema for updating an existing user."""
 
-    full_name: Optional[str] = Field(None, description="Updated full name of the user")
+    full_name: Optional[str] = Field(
+        None, description="Updated full name of the user", json_schema_extra={"example": "John Doe"}
+    )
     is_active: Optional[bool] = Field(None, description="Update active status")
     is_verified: Optional[bool] = Field(None, description="Update verification status")
     is_superuser: Optional[bool] = Field(None, description="Update superuser/admin status")
@@ -55,7 +57,7 @@ class UserUpdate(BaseModel):
 # -----------------------------
 # Response schema
 # -----------------------------
-class UserOut(UserBase):
+class UserRead(UserBase):
     """Schema for returning user details, including timestamps and ID."""
 
     id: UUID

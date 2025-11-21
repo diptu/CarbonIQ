@@ -8,9 +8,12 @@ from uuid import UUID
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from user_service.app.crud.base import BaseCRUD
+from user_service.app.models.role import Role
 from user_service.app.models.user import User
+from user_service.app.models.user_role import UserRole
 from user_service.app.schemas.user import UserCreate, UserUpdate
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -69,6 +72,17 @@ class UserCRUD(BaseCRUD[User, UserCreate, UserUpdate]):
     async def get_permissions(self, user: User) -> list[str]:
         """Return all permission names assigned to the user."""
         return user.permissions_cached
+
+    async def get_by_email_with_roles(self, db: AsyncSession, email: str) -> User | None:
+        stmt = (
+            select(User)
+            .options(
+                selectinload(User.roles).selectinload(UserRole.role).selectinload(Role.permissions)
+            )
+            .where(User.email == email)
+        )
+        result = await db.execute(stmt)
+        return result.scalars().first()
 
 
 user_crud = UserCRUD(User)
