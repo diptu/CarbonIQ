@@ -9,6 +9,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
+from shared_service.app.core.deps import require_permissions
 from shared_service.app.utils.response import APIResponse, build_api_response
 from tenant_service.app.core.config import settings
 from tenant_service.app.crud.membership import tenant_membership_crud
@@ -108,8 +109,7 @@ def fetch_membership_or_404(membership_id: str, db: Session) -> TenantMembership
     "/",
     response_model=APIResponse,
     status_code=status.HTTP_201_CREATED,
-    # dependencies=[Depends(require_permissions(permissions=["membership.create"]))],
-    # dependencies=[Depends(require_permissions(["membership.create"]))],
+    dependencies=[Depends(require_permissions(permissions=["membership.create"]))],
 )
 @request_timer
 async def create_membership(
@@ -229,6 +229,52 @@ async def get_membership(
             "tenant_role": membership.tenant_role.value,
             "is_active": membership.is_active.value,
         },
+        status_code=status.HTTP_200_OK,
+    )
+
+
+# ----------------------
+# Get Memberships by User ID
+# ----------------------
+@router.get(
+    "/user/{user_id}",
+    response_model=APIResponse,
+    status_code=status.HTTP_200_OK,
+)
+@request_timer
+async def get_memberships_by_user(
+    user_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Return all memberships for a given user ID."""
+    try:
+        user_uuid = UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user_id format")
+
+    memberships = tenant_membership_crud.get_by_user_id(db, user_uuid)
+
+    if not memberships:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No memberships found for user_id {user_id}",
+        )
+
+    results = [
+        {
+            "id": str(m.id),
+            "tenant_id": str(m.tenant_id),
+            "user_id": str(m.user_id),
+            "tenant_role": m.tenant_role.value,
+            "is_active": m.is_active.value,
+        }
+        for m in memberships
+    ]
+
+    return build_api_response(
+        request=request,
+        result={"memberships": results, "count": len(results)},
         status_code=status.HTTP_200_OK,
     )
 

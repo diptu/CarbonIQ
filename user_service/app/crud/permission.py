@@ -1,60 +1,29 @@
-# pylint: disable=duplicate-code
+# app/crud/permission.py
 
-"""CRUD operations for the Permission model."""
+"""Async CRUD operations for Permission model using BaseCRUD."""
 
-from typing import List, Optional
-from uuid import UUID
+from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from user_service.app.crud.base import BaseCRUD
 from user_service.app.models.permission import Permission
 from user_service.app.schemas.permission import PermissionCreate, PermissionUpdate
 
 
-class PermissionCRUD:
-    """Provides CRUD operations for Permission entities."""
+class PermissionCRUD(BaseCRUD[Permission, PermissionCreate, PermissionUpdate]):
+    """Async CRUD for Permission model."""
 
-    def get(self, db: Session, permission_id: UUID) -> Optional[Permission]:
-        """Retrieve a permission by its unique ID."""
-        return db.query(Permission).filter(Permission.id == permission_id).first()
-
-    def get_by_name(self, db: Session, name: str) -> Optional[Permission]:
+    async def get_by_name(self, db: AsyncSession, name: str) -> Optional[Permission]:
         """Retrieve a permission by its name."""
-        return db.query(Permission).filter(Permission.name == name).first()
+        result = await db.execute(select(Permission).where(Permission.name == name))
+        return result.scalars().first()
 
-    def get_all(self, db: Session, skip: int = 0, limit: int = 100) -> List[Permission]:
-        """Return a paginated list of all permissions."""
-        return db.query(Permission).offset(skip).limit(limit).all()
-
-    def create(self, db: Session, obj_in: PermissionCreate) -> Optional[Permission]:
+    async def create(self, db: AsyncSession, obj_in: PermissionCreate) -> Permission:
         """Create a new permission record."""
         db_obj = Permission(name=obj_in.name, description=obj_in.description)
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
-
-    def update(
-        self, db: Session, db_obj: Permission, obj_in: PermissionUpdate
-    ) -> Optional[Permission]:
-        """Update an existing permission's details."""
-        update_data = obj_in.dict(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(db_obj, field, value)
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
-
-    def delete(self, db: Session, permission_id: UUID) -> Optional[Permission]:
-        """Delete a permission by its ID."""
-        db_obj = self.get(db, permission_id)
-        if db_obj:
-            db.delete(db_obj)
-            db.commit()
-        return db_obj
-
-    def count(self, db: Session) -> int:
-        return db.query(Permission).count()
+        return await self._commit_refresh(db, db_obj)
 
 
-permission_crud = PermissionCRUD()
+permission_crud = PermissionCRUD(Permission)

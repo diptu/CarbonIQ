@@ -38,5 +38,5 @@ class User(BaseModel):
                 perms.add(p.name)
         return sorted(perms)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<User(email={self.email!r}, active={self.is_active})>"

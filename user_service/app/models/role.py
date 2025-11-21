@@ -28,5 +28,5 @@ class Role(BaseModel):
         lazy="selectin",
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Role(name={self.name})>"

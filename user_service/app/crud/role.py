@@ -1,57 +1,29 @@
-# pylint: disable=duplicate-code
-"""CRUD operations for User model."""
+# app/crud/role.py
 
-from typing import List, Optional
-from uuid import UUID
+"""Async CRUD operations for Role model using BaseCRUD."""
 
-from sqlalchemy.orm import Session
+from typing import Optional
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from user_service.app.crud.base import BaseCRUD
 from user_service.app.models.role import Role
 from user_service.app.schemas.role import RoleCreate, RoleUpdate
 
 
-class RoleCRUD:
-    """Provides CRUD operations for Role entities."""
+class RoleCRUD(BaseCRUD[Role, RoleCreate, RoleUpdate]):
+    """Async CRUD for Role model."""
 
-    def get(self, db: Session, role_id: UUID) -> Optional[Role]:
-        """Retrieve a role by their unique ID."""
-        return db.query(Role).filter(Role.id == role_id).first()
+    async def get_by_name(self, db: AsyncSession, name: str) -> Optional[Role]:
+        """Retrieve a role by its name."""
+        result = await db.execute(select(Role).where(Role.name == name))
+        return result.scalars().first()
 
-    def get_by_name(self, db: Session, name: str) -> Optional[Role]:
-        """Retrieve a role by their name address."""
-        return db.query(Role).filter(Role.name == name).first()
-
-    def get_all(self, db: Session, skip: int = 0, limit: int = 100) -> List[Role]:
-        """Return a paginated list of roles."""
-        return db.query(Role).offset(skip).limit(limit).all()
-
-    def create(self, db: Session, obj_in: RoleCreate) -> Optional[Role]:
-        """Create a new role with a hashed password."""
+    async def create(self, db: AsyncSession, obj_in: RoleCreate) -> Role:
+        """Create a new role."""
         db_obj = Role(name=obj_in.name, description=obj_in.description)
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
-
-    def update(self, db: Session, db_obj: Role, obj_in: RoleUpdate) -> Optional[Role]:
-        """Update an existing roles's details."""
-        update_data = obj_in.dict(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(db_obj, field, value)
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
-
-    def delete(self, db: Session, role_id: UUID) -> Optional[Role]:
-        """Remove an existing role."""
-        db_obj = self.get(db, role_id)
-        if db_obj:
-            db.delete(db_obj)
-            db.commit()
-        return db_obj
-
-    def count(self, db: Session) -> int:
-        return db.query(Role).count()
+        return await self._commit_refresh(db, db_obj)
 
 
-role_crud = RoleCRUD()
+role_crud = RoleCRUD(Role)

@@ -135,5 +135,10 @@ class TenantMembershipCRUD:
             .all()
         )
 
+    def get_by_user_id(db: Session, user_id: UUID):
+        return (
+            db.query(TenantMembership).filter(TenantMembership.user_id == user_id).all()
+        )
+
 
 tenant_membership_crud = TenantMembershipCRUD()

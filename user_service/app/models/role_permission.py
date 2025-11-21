@@ -12,14 +12,14 @@ class RolePermission(BaseModel):
 
     __table_args__ = (UniqueConstraint("role_id", "permission_id", name="uq_role_permission"),)
 
-    role_id = Column(ForeignKey("roles.id", ondelete="CASCADE"), nullable=False, index=True)
+    role_id = Column(ForeignKey("roles.id", ondelete="CASCADE"), nullable=False, index=True)  # type: ignore
     permission_id = Column(
         ForeignKey("permissions.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    )  # type: ignore
 
     # association relationships
     role = relationship("Role")  # no back_populates!
     permission = relationship("Permission", back_populates="role_permissions")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<RolePermission(role_id={self.role_id}, permission_id={self.permission_id})>"

@@ -27,5 +27,5 @@ class Permission(BaseModel):
         viewonly=True,
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Permission(name={self.name!r})>"
