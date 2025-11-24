@@ -1,14 +1,15 @@
-"""API routes for managing permissions."""
+"""API routes for managing permissions using build_api_response formatting with AsyncSession."""
 
-import time
-from functools import wraps
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from shared_service.app.core.deps import get_cached_current_user, require_permissions
+from shared_service.app.utils.fetch import fetch_or_404
+from shared_service.app.utils.paggination import paginate
 from shared_service.app.utils.response import APIResponse, build_api_response
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from user_service.app.core.config import settings
 from user_service.app.crud.permission import permission_crud
 from user_service.app.db.session import get_db
 from user_service.app.models.user import User
@@ -17,29 +18,11 @@ from user_service.app.schemas.permission import PermissionCreate, PermissionOut,
 router = APIRouter(prefix="/permissions", tags=["permissions"])
 
 
-# ---------------------------------------------------
-# Utility: Add request duration (ms) to response.meta
-# ---------------------------------------------------
-def request_timer(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        start = time.perf_counter()
-        response = await func(*args, **kwargs)
-        duration = round((time.perf_counter() - start) * 1000, 2)
-
-        # ✅ handle dict return
-        if isinstance(response, dict):
-            response.setdefault("meta", {})
-            response["meta"]["request_duration_ms"] = duration
-            return response
-
-        # ✅ handle APIResponse model return
-        if hasattr(response, "meta"):
-            response.meta.request_duration_ms = duration
-
-        return response
-
-    return wrapper
+# ---------------------
+# Dependency: Fetch permission or 404
+# ---------------------
+async def fetch_permission_or_404(permission_id: UUID, db: AsyncSession = Depends(get_db)):
+    return await fetch_or_404(permission_crud.get, db, permission_id)
 
 
 # ---------------------
@@ -52,24 +35,22 @@ def request_timer(func):
     dependencies=[Depends(require_permissions(["permission.create"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def create_permission(
     permission_in: PermissionCreate,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    if permission_crud.get_by_name(db, permission_in.name):
-        raise HTTPException(status_code=400, detail="Permission already exists")
+    existing = await permission_crud.get_by_name(db, permission_in.name)
+    if existing:
+        raise HTTPException(status_code=409, detail="Permission already exists")
 
-    perm = permission_crud.create(db, permission_in)
-    return build_api_response(
-        request, current_user, PermissionOut.model_validate(perm)
-    ).model_dump()
+    perm = await permission_crud.create(db, permission_in)
+    return build_api_response(request, current_user, PermissionOut.model_validate(perm))
 
 
 # ---------------------
-# Get Permission
+# Get Single Permission
 # ---------------------
 @router.get(
     "/{permission_id}",
@@ -77,20 +58,14 @@ async def create_permission(
     dependencies=[Depends(require_permissions(["permission.read"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def get_permission(
     permission_id: UUID,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    perm = permission_crud.get(db, permission_id)
-    if not perm:
-        raise HTTPException(status_code=404, detail="Permission not found")
-
-    return build_api_response(
-        request, current_user, PermissionOut.model_validate(perm)
-    ).model_dump()
+    perm = await fetch_permission_or_404(permission_id, db)
+    return build_api_response(request, current_user, PermissionOut.model_validate(perm))
 
 
 # ---------------------
@@ -99,29 +74,23 @@ async def get_permission(
 @router.get(
     "/",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["permission.read"]))],
+    dependencies=[Depends(require_permissions(["permission.read"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def list_permissions(
+async def list_permissions(
     request: Request,
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(settings.DEFAULT_PAGE_LIMIT, ge=1),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    total_permissions = permission_crud.count(db)
-    perms = permission_crud.get_all(db, skip=skip, limit=limit)
+    total = await permission_crud.count(db)
+    perms = await permission_crud.get_all(db, skip=skip, limit=limit) or []
     perms_data = [PermissionOut.model_validate(p) for p in perms]
+    pagination = paginate(skip=skip, limit=limit, total=total)
 
-    result = {
-        "permissions": perms_data,
-        "count": total_permissions,
-        "perPage": limit,
-        "previousPage": skip - limit if skip - limit >= 0 else None,
-        "nextPage": skip + limit if skip + limit < total_permissions else None,
-    }
-
-    return build_api_response(request, current_user, result).model_dump()
+    result = {"permissions": perms_data, **pagination}
+    return build_api_response(request, current_user, result, status_code=status.HTTP_200_OK)
 
 
 # ---------------------
@@ -133,23 +102,26 @@ def list_permissions(
     dependencies=[Depends(require_permissions(["permission.update"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def update_permission(
     permission_id: UUID,
     permission_in: PermissionUpdate,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    perm = permission_crud.get(db, permission_id)
-    if not perm:
-        raise HTTPException(status_code=404, detail="Permission not found")
+    perm = await fetch_permission_or_404(permission_id, db)
 
-    updated = permission_crud.update(db, perm, permission_in)
+    # Check for duplicate name
+    if permission_in.name:
+        existing = await permission_crud.get_by_name(db, permission_in.name)
+        if existing and existing.id != permission_id:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Permission with name '{permission_in.name}' already exists",
+            )
 
-    return build_api_response(
-        request, current_user, PermissionOut.model_validate(updated)
-    ).model_dump()
+    updated = await permission_crud.update(db, perm, permission_in)
+    return build_api_response(request, current_user, PermissionOut.model_validate(updated))
 
 
 # ---------------------
@@ -161,17 +133,18 @@ async def update_permission(
     dependencies=[Depends(require_permissions(["permission.delete"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def delete_permission(
     permission_id: UUID,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    perm = permission_crud.delete(db, permission_id)
-    if not perm:
-        raise HTTPException(status_code=404, detail="Permission not found")
+    perm = await fetch_permission_or_404(permission_id, db)
+    await permission_crud.delete(db, permission_id)
 
     return build_api_response(
-        request, current_user, PermissionOut.model_validate(perm)
-    ).model_dump()
+        request,
+        current_user,
+        result={"message": f"Permission {permission_id} deleted successfully"},
+        status_code=status.HTTP_200_OK,
+    )

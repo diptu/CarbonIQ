@@ -1,4 +1,8 @@
 #!/bin/bash
+# ===============================
+# Permission API Test Script (Local)
+# ===============================
+
 # ===== Cross-platform millisecond timestamp =====
 timestamp_ms() {
   python3 - << 'EOF'
@@ -9,15 +13,22 @@ EOF
 
 START_TIME=$(timestamp_ms)
 
-USER_URL="http://localhost:8000"
-AUTH_URL="http://localhost:8001"
-EMAIL="admin@carboniq.com"
+# ===============================
+# Config - Detect localhost URLs
+# ===============================
+USER_URL="${USER_URL:-http://localhost:8000}"
+AUTH_URL="${AUTH_URL:-http://localhost:8001}"
+
+EMAIL="admin@apple.com"
 PASSWORD="Hello123"
 
-# Generate random permission name
+# Generate random test permission name
 RANDOM_SUFFIX=$(date +%s%N | sha256sum | head -c 6)
-TEST_PERMISSION_NAME="test_permission_${RANDOM_SUFFIX}"
+TEST_PERMISSION_NAME="testperm_${RANDOM_SUFFIX}"
 
+# ===============================
+# LOGIN
+# ===============================
 echo "=== LOGIN ==="
 LOGIN_RESPONSE=$(curl -s -X POST "$AUTH_URL/auth/login" \
   -H "Content-Type: application/json" \
@@ -34,53 +45,79 @@ fi
 
 AUTH_HEADER="Authorization: Bearer $ACCESS_TOKEN"
 
-echo
-echo "=== LIST PERMISSIONS ==="
-LIST_RESPONSE=$(curl -s -X GET "$USER_URL/permissions/?skip=0&limit=5" \
-  -H "$AUTH_HEADER" \
-  -H "accept: application/json")
-
-echo "$LIST_RESPONSE" | jq . 2>/dev/null || echo "Raw response: $LIST_RESPONSE"
-
-# ✅ Extract first permission ID if exists
-PERM_ID=$(echo "$LIST_RESPONSE" | jq -r '.result.permissions[0].id // empty')
-
-if [[ -z "$PERM_ID" ]]; then
-  echo "⚠️ No permissions available to test GET/UPDATE. Proceeding to CREATE only."
-else
-  echo
-  echo "=== GET SINGLE PERMISSION ==="
-  curl -s -X GET "$USER_URL/permissions/$PERM_ID" \
-    -H "$AUTH_HEADER" \
-    -H "accept: application/json" | jq .
-fi
-
+# ===============================
+# CREATE PERMISSION
+# ===============================
 echo
 echo "=== CREATE PERMISSION ==="
-CREATE_RESPONSE_RAW=$(curl -s -X POST "$USER_URL/permissions/" \
+CREATE_RESPONSE=$(curl -s -X POST "$USER_URL/permissions/" \
   -H "$AUTH_HEADER" \
   -H "Content-Type: application/json" \
   -d "{
         \"name\": \"$TEST_PERMISSION_NAME\",
-        \"description\": \"Created by automated permission test script\"
+        \"description\": \"Test permission created by automated script\"
       }")
 
-echo "RAW Response:"
-echo "$CREATE_RESPONSE_RAW"
-
 # Validate JSON
-if echo "$CREATE_RESPONSE_RAW" | jq empty 2>/dev/null; then
-  echo "$CREATE_RESPONSE_RAW" | jq .
-  NEW_PERM_ID=$(echo "$CREATE_RESPONSE_RAW" | jq -r '.result.id // empty')
-else
-  echo "❌ Server did not return JSON. Aborting."
+if ! echo "$CREATE_RESPONSE" | jq empty 2>/dev/null; then
+  echo "❌ Create permission returned invalid JSON"
   exit 1
 fi
 
+echo "$CREATE_RESPONSE" | jq .
+NEW_PERMISSION_ID=$(echo "$CREATE_RESPONSE" | jq -r '.result.id // empty')
 
+if [[ -z "$NEW_PERMISSION_ID" ]]; then
+  echo "❌ Failed to extract permission ID"
+  exit 1
+fi
+
+# ===============================
+# GET PERMISSION
+# ===============================
+echo
+echo "=== GET PERMISSION ==="
+GET_RESPONSE=$(curl -s -X GET "$USER_URL/permissions/$NEW_PERMISSION_ID" \
+  -H "$AUTH_HEADER" \
+  -H "accept: application/json")
+
+if ! echo "$GET_RESPONSE" | jq empty 2>/dev/null; then
+  echo "❌ Get permission returned invalid JSON"
+  exit 1
+fi
+
+HTTP_STATUS=$(echo "$GET_RESPONSE" | jq -r '.status_code // empty')
+if [[ "$HTTP_STATUS" != "200" ]]; then
+  echo "❌ Get permission failed, status_code=$HTTP_STATUS"
+else
+  echo "$GET_RESPONSE" | jq .
+fi
+
+# ===============================
+# LIST PERMISSIONS
+# ===============================
+echo
+echo "=== LIST PERMISSIONS ==="
+LIST_RESPONSE=$(curl -s -X GET "$USER_URL/permissions/" -H "$AUTH_HEADER")
+if echo "$LIST_RESPONSE" | jq empty 2>/dev/null; then
+  echo "$LIST_RESPONSE" | jq .
+else
+  echo "❌ List permissions failed, raw response: $LIST_RESPONSE"
+fi
+
+HTTP_STATUS=$(echo "$LIST_RESPONSE" | jq -r '.status_code // empty')
+if [[ "$HTTP_STATUS" != "200" ]]; then
+  echo "❌ List permissions failed, status_code=$HTTP_STATUS"
+else
+  echo "$LIST_RESPONSE" | jq .
+fi
+
+# ===============================
+# UPDATE PERMISSION
+# ===============================
 echo
 echo "=== UPDATE PERMISSION ==="
-curl -s -X PUT "$USER_URL/permissions/$NEW_PERM_ID" \
+curl -s -X PUT "$USER_URL/permissions/$NEW_PERMISSION_ID" \
   -H "$AUTH_HEADER" \
   -H "Content-Type: application/json" \
   -d "{
@@ -88,23 +125,27 @@ curl -s -X PUT "$USER_URL/permissions/$NEW_PERM_ID" \
         \"description\": \"Updated permission description\"
       }" | jq .
 
-
+# ===============================
+# DELETE PERMISSION
+# ===============================
 echo
 echo "=== DELETE PERMISSION ==="
-DELETE_RESPONSE=$(curl -s -X DELETE "$USER_URL/permissions/$NEW_PERM_ID" \
+DELETE_RESPONSE=$(curl -s -X DELETE "$USER_URL/permissions/$NEW_PERMISSION_ID" \
   -H "$AUTH_HEADER" \
   -H "accept: application/json")
 
-echo "$DELETE_RESPONSE" | jq . 2>/dev/null || echo "Raw response: $DELETE_RESPONSE"
-
+if ! echo "$DELETE_RESPONSE" | jq empty 2>/dev/null; then
+  echo "❌ Delete permission returned invalid JSON"
+else
+  echo "$DELETE_RESPONSE" | jq .
+fi
 
 # ======== Execution Time ==========
 END_TIME=$(timestamp_ms)
-
 TOTAL_MS=$((END_TIME - START_TIME))
 SECONDS=$(echo "scale=2; $TOTAL_MS / 1000" | bc)
 MINUTES=$(echo "scale=2; $SECONDS / 60" | bc)
 
 echo ""
-echo "✅ Permission API test complete!"
-echo "⏱️ Total execution time: ${SECONDS}s (${TOTAL_MS}ms) (~${MINUTES} min)"
+echo "✅ Finished!"
+echo "⏱️ Total execution time: ${SECONDS}s (~${MINUTES} min)"

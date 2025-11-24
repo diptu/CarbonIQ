@@ -110,6 +110,15 @@ async def update_role(
     current_user: User = Depends(get_cached_current_user),
 ):
     role = await fetch_role_or_404(role_id, db)
+    # Check for duplicate name
+    if role.name:
+        existing = await role_crud.get_by_name(db, role_in.name)
+        if existing and existing.id != role_id:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Permission with name '{role_in.name}' already exists",
+            )
+
     updated_role = await role_crud.update(db, role, role_in)
     return build_api_response(request, current_user, RoleOut.model_validate(updated_role))
 
