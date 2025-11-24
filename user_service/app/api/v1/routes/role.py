@@ -1,14 +1,15 @@
-"""API routes for managing roles using build_api_response formatting."""
+"""API routes for managing roles using build_api_response formatting with AsyncSession."""
 
-import time
-from functools import wraps
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from shared_service.app.core.deps import get_cached_current_user, require_permissions
+from shared_service.app.utils.fetch import fetch_or_404
+from shared_service.app.utils.paggination import paginate
 from shared_service.app.utils.response import APIResponse, build_api_response
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from user_service.app.core.config import settings
 from user_service.app.crud.role import role_crud
 from user_service.app.db.session import get_db
 from user_service.app.models.user import User
@@ -17,39 +18,11 @@ from user_service.app.schemas.role import RoleCreate, RoleOut, RoleUpdate
 router = APIRouter(prefix="/roles", tags=["roles"])
 
 
-# ---------------------------------------------------
-# Utility: Add request duration (ms) to response.meta
-# ---------------------------------------------------
-def request_timer(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        start = time.perf_counter()
-        response = await func(*args, **kwargs)
-        duration = round((time.perf_counter() - start) * 1000, 2)
-
-        # ✅ handle dict return
-        if isinstance(response, dict):
-            response.setdefault("meta", {})
-            response["meta"]["request_duration_ms"] = duration
-            return response
-
-        # ✅ handle APIResponse model return
-        if hasattr(response, "meta"):
-            response.meta.request_duration_ms = duration
-
-        return response
-
-    return wrapper
-
-
-# ---------------------------------------------------
-# Reusable fetch
-# ---------------------------------------------------
-def fetch_role_or_404(role_id: UUID, db: Session):
-    role = role_crud.get(db, role_id)
-    if not role:
-        raise HTTPException(status_code=404, detail="Role not found")
-    return role
+# ---------------------
+# Dependency: Fetch user or 404
+# ---------------------
+async def fetch_role_or_404(user_id: UUID, db: AsyncSession = Depends(get_db)) -> User:
+    return await fetch_or_404(role_crud.get, db, user_id)
 
 
 # ---------------------
@@ -59,21 +32,21 @@ def fetch_role_or_404(role_id: UUID, db: Session):
     "/",
     response_model=APIResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permissions(permissions=["role.create"]))],
+    dependencies=[Depends(require_permissions(["role.create"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def create_role(
     role_in: RoleCreate,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    if role_crud.get_by_name(db, role_in.name):
-        raise HTTPException(status_code=400, detail="Role already exists")
+    existing_role = await role_crud.get_by_name(db, role_in.name)
+    if existing_role:
+        raise HTTPException(status_code=409, detail="Role already exists")
 
-    role = role_crud.create(db, role_in)
-    return build_api_response(request, current_user, RoleOut.model_validate(role)).model_dump()
+    role = await role_crud.create(db, role_in)
+    return build_api_response(request, current_user, RoleOut.model_validate(role))
 
 
 # ---------------------
@@ -82,17 +55,17 @@ async def create_role(
 @router.get(
     "/{role_id}",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["role.read"]))],
+    dependencies=[Depends(require_permissions(["role.read"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def get_role(
+async def get_role(
     role_id: UUID,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    role = fetch_role_or_404(role_id, db)
-    return build_api_response(request, current_user, RoleOut.model_validate(role)).model_dump()
+    role = await fetch_role_or_404(role_id, db)
+    return build_api_response(request, current_user, RoleOut.model_validate(role))
 
 
 # ---------------------
@@ -101,29 +74,23 @@ def get_role(
 @router.get(
     "/",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["role.read"]))],
+    dependencies=[Depends(require_permissions(["role.read"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def list_roles(
+async def list_roles(
     request: Request,
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(settings.DEFAULT_PAGE_LIMIT, ge=1),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    total_roles = role_crud.count(db)
-    roles = role_crud.get_all(db, skip=skip, limit=limit)
+    total_roles = await role_crud.count(db)
+    roles = await role_crud.get_all(db, skip=skip, limit=limit) or []
     roles_data = [RoleOut.model_validate(r) for r in roles]
+    pagination = paginate(skip=skip, limit=limit, total=total_roles)
+    result = {"roles": roles_data, **pagination}
 
-    result = {
-        "roles": roles_data,
-        "count": total_roles,
-        "perPage": limit,
-        "previousPage": skip - limit if skip - limit >= 0 else None,
-        "nextPage": skip + limit if skip + limit < total_roles else None,
-    }
-
-    return build_api_response(request, current_user, result).model_dump()
+    return build_api_response(request, current_user, result, status_code=status.HTTP_200_OK)
 
 
 # ---------------------
@@ -132,21 +99,19 @@ def list_roles(
 @router.put(
     "/{role_id}",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["role.update"]))],
+    dependencies=[Depends(require_permissions(["role.update"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def update_role(
+async def update_role(
     role_id: UUID,
     role_in: RoleUpdate,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    role = fetch_role_or_404(role_id, db)
-    updated_role = role_crud.update(db, role, role_in)
-    return build_api_response(
-        request, current_user, RoleOut.model_validate(updated_role)
-    ).model_dump()
+    role = await fetch_role_or_404(role_id, db)
+    updated_role = await role_crud.update(db, role, role_in)
+    return build_api_response(request, current_user, RoleOut.model_validate(updated_role))
 
 
 # ---------------------
@@ -155,17 +120,21 @@ def update_role(
 @router.delete(
     "/{role_id}",
     response_model=APIResponse,
-    dependencies=[Depends(require_permissions(permissions=["role.delete"]))],
+    dependencies=[Depends(require_permissions(["role.delete"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-def delete_role(
+async def delete_role(
     role_id: UUID,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    fetch_role_or_404(role_id, db)
-    deleted_role = role_crud.delete(db, role_id)
+    role = await fetch_role_or_404(role_id, db)
+    await role_crud.delete(db, role_id)
+
     return build_api_response(
-        request, current_user, RoleOut.model_validate(deleted_role)
-    ).model_dump()
+        request,
+        current_user,
+        result={"message": f"Role {role_id} deleted successfully"},
+        status_code=status.HTTP_200_OK,
+    )

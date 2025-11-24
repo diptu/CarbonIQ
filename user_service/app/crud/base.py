@@ -56,7 +56,7 @@ class BaseCRUD(Generic[T, C, U]):
     async def get_all(self, db: AsyncSession, skip: int = 0, limit: int = 100) -> List[T]:
         """Retrieve multiple objects with pagination."""
         result = await db.execute(select(self.model).offset(skip).limit(limit))
-        return list(result.scalars().all())
+        return result.scalars().all()
 
     async def create(self, db: AsyncSession, obj_in: C) -> T:
         """Create a new record."""
