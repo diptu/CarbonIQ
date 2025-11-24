@@ -5,6 +5,7 @@ from fastapi.openapi.utils import get_openapi
 from shared_service.app.middleware.request_context import RequestContextMiddleware
 
 from user_service.app.api.v1.routes import (
+    health_router,
     permissoion_router,
     role_permission_router,
     role_router,
@@ -20,7 +21,8 @@ from user_service.app.models.base import Base
 app = FastAPI(
     title="User Service",
     version="1.0.0",
-    description="API for managing users, roles, and permissions.",
+    description="API for creating and managing users, assigning roles, defining permissions, \
+        and retrieving RBAC-related metadata used across the multi-tenant system.",
 )
 app.add_middleware(RequestContextMiddleware)
 
@@ -28,6 +30,7 @@ app.add_middleware(RequestContextMiddleware)
 # -------------------------
 # Include API routers
 # -------------------------
+app.include_router(health_router)
 app.include_router(user_router)
 app.include_router(role_router)
 app.include_router(permissoion_router)

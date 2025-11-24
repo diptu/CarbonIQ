@@ -72,31 +72,71 @@ async def create_user(
 # ---------------------
 # List Users
 # ---------------------
+
+
 @router.get(
     "/",
     response_model=APIResponse,
-    # dependencies=[Depends(require_permissions(["user.read"]))],
-    # openapi_extra={"security": [{"BearerAuth": []}]},
+    dependencies=[Depends(require_permissions(["user.read"]))],
+    openapi_extra={"security": [{"BearerAuth": []}]},
 )
 async def list_users(
     request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(settings.DEFAULT_PAGE_LIMIT, ge=1),
     db: AsyncSession = Depends(get_db),
-    # FIX: Capture tenant info to pass to CRUD
-    # current_user: User = Depends(get_cached_current_user),
+    current_user: User = Depends(get_cached_current_user),
 ) -> APIResponse:
+    """
+    List all users with pagination.
+    Uses AsyncSession and async CRUD methods.
+    """
+    # Count total users
     total_users = await user_crud.count(db)
+
+    # Fetch users with async get_all
     users = await user_crud.get_all(db, skip=skip, limit=limit)
+
+    # Serialize users
     users_data = [UserRead.model_validate(u) for u in users]
+
+    # Pagination info
     pagination = paginate(skip=skip, limit=limit, total=total_users)
+
+    # Build API response
     return build_api_response(
         request=request,
-        # current_user=current_user,
         result={"users": users_data, **pagination},
         status_code=status.HTTP_200_OK,
         meta_extra={"source": "user_service"},
     )
+
+
+# @router.get(
+#     "/",
+#     response_model=APIResponse,
+#     dependencies=[Depends(require_permissions(["user.read"]))],
+#     openapi_extra={"security": [{"BearerAuth": []}]},
+# )
+# async def list_users(
+#     request: Request,
+#     skip: int = Query(0, ge=0),
+#     limit: int = Query(settings.DEFAULT_PAGE_LIMIT, ge=1),
+#     db: AsyncSession = Depends(get_db),
+#     # FIX: Capture tenant info to pass to CRUD
+#     # current_user: User = Depends(get_cached_current_user),
+# ) -> APIResponse:
+#     total_users = await user_crud.count(db)
+#     users = await user_crud.get_all(db, skip=skip, limit=limit)
+#     users_data = [UserRead.model_validate(u) for u in users]
+#     pagination = paginate(skip=skip, limit=limit, total=total_users)
+#     return build_api_response(
+#         request=request,
+#         # current_user=current_user,
+#         result={"users": users_data, **pagination},
+#         status_code=status.HTTP_200_OK,
+#         meta_extra={"source": "user_service"},
+#     )
 
 
 # ---------------------

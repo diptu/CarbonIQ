@@ -5,38 +5,39 @@ description = "Authentication (JWT/OIDC), role-based access."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "alembic>=1.16.5",
-    "asyncpg>=0.30.0",
-    "bcrypt>=4.3.0",
-    "fastapi[standard]>=0.116.1",
-    "greenlet>=3.2.4",
-    "httpx>=0.28.1",
-    "jose>=1.0.0",
-    "passlib[bcrypt]>=1.7.4",
-    "psycopg>=3.2.10",
-    "psycopg2-binary>=2.9.10",
-    "pydantic>=2.11.9",
-    "pydantic-settings>=2.10.1",
-    "pyjwt>=2.10.1",
-    "python-jose[cryptography]>=3.5.0",
-    "redis[async]>=6.4.0",
-    "sqlalchemy>=2.0.43",
-    "sqlmodel>=0.0.24",
-    "uvicorn>=0.35.0",
+  "alembic>=1.16.5",
+  "asyncpg>=0.30.0",
+  "bcrypt>=4.3.0",
+  "fastapi[standard]>=0.116.1",
+  "greenlet>=3.2.4",
+  "httpx>=0.28.1",
+  "jose>=1.0.0",
+  "passlib[bcrypt]>=1.7.4",
+  "psycopg>=3.2.10",
+  "psycopg2-binary>=2.9.10",
+  "pydantic>=2.11.9",
+  "pydantic-settings>=2.10.1",
+  "pyjwt>=2.10.1",
+  "python-jose[cryptography]>=3.5.0",
+  "redis[async]>=6.4.0",
+  "requests>=2.32.5",
+  "sqlalchemy>=2.0.43",
+  "sqlmodel>=0.0.24",
+  "uvicorn>=0.35.0",
 ]
 
 [dependency-groups]
 dev = [
-    "black>=24.10.0",
-    "isort>=5.13.2",
-    "mypy>=1.11.2",
-    "pylint>=3.2.7",
-    "pytest>=8.3.3",
-    "pytest-asyncio>=0.24.0",
-    "pytest-cov>=7.0.0",
-    "pytest-mock>=3.14.0",
-    "ruff>=0.6.9",
-    "types-passlib>=1.7.7.20250602",
+  "black>=24.10.0",
+  "isort>=5.13.2",
+  "mypy>=1.11.2",
+  "pylint>=3.2.7",
+  "pytest>=8.3.3",
+  "pytest-asyncio>=0.24.0",
+  "pytest-cov>=7.0.0",
+  "pytest-mock>=3.14.0",
+  "ruff>=0.6.9",
+  "types-passlib>=1.7.7.20250602",
 ]
 
 [tool.black]
@@ -73,8 +74,8 @@ addopts = "-q"
 source = ["ima_service"]
 branch = true
 omit = [
-  "ima_service/main.py",        # unused duplicate entrypoint
-  "ima_service/**/tests/**",    # ignore tests inside the package
+  "ima_service/main.py",     # unused duplicate entrypoint
+  "ima_service/**/tests/**", # ignore tests inside the package
 ]
 
 [tool.uv.workspace]

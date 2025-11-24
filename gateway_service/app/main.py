@@ -79,7 +79,8 @@ def custom_openapi():
     openapi_schema = get_openapi(
         title="User Service",
         version="1.0.0",
-        description="API for managing users, roles, and permissions.",
+        description="API for creating and managing users, assigning roles, defining permissions,\
+              and retrieving RBAC-related metadata used across the multi-tenant system.",
         routes=app.routes,
     )
 
