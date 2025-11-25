@@ -9,6 +9,13 @@ from shared_service.app.utils.paggination import paginate
 from shared_service.app.utils.response import APIResponse, build_api_response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from user_service.app.api.v1.routes.docs.role import (
+    CREATE_ROLE_DOCS,
+    DELETE_ROLE_DOCS,
+    GET_ROLE_DOCS,
+    LIST_ROLES_DOCS,
+    UPDATE_ROLE_DOCS,
+)
 from user_service.app.core.config import settings
 from user_service.app.crud.role import role_crud
 from user_service.app.db.session import get_db
@@ -33,7 +40,7 @@ async def fetch_role_or_404(user_id: UUID, db: AsyncSession = Depends(get_db)) -
     response_model=APIResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(["role.create"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**CREATE_ROLE_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def create_role(
     role_in: RoleCreate,
@@ -56,7 +63,7 @@ async def create_role(
     "/{role_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["role.read"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**GET_ROLE_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def get_role(
     role_id: UUID,
@@ -75,7 +82,7 @@ async def get_role(
     "/",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["role.read"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**LIST_ROLES_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def list_roles(
     request: Request,
@@ -100,7 +107,7 @@ async def list_roles(
     "/{role_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["role.update"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**UPDATE_ROLE_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def update_role(
     role_id: UUID,
@@ -130,7 +137,7 @@ async def update_role(
     "/{role_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["role.delete"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**DELETE_ROLE_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def delete_role(
     role_id: UUID,

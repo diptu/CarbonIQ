@@ -10,6 +10,16 @@ from shared_service.app.utils.paggination import paginate
 from shared_service.app.utils.response import APIResponse, build_api_response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from user_service.app.api.v1.routes.docs.user import (
+    ACTIVATE_USER_DOCS,
+    CREATE_USER_DOCS,
+    DEACTIVATE_USER_DOCS,
+    DELETE_USER_DOCS,
+    GET_USER_DOCS,
+    LIST_USERS_DOCS,
+    UPDATE_USER_DOCS,
+    VERIFY_USER_DOCS,
+)
 from user_service.app.core.config import settings
 from user_service.app.crud.user import user_crud
 from user_service.app.db.session import get_db
@@ -34,7 +44,7 @@ async def get_user_or_404(user_id: UUID, db: AsyncSession = Depends(get_db)) -> 
     "/",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["user.create"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**CREATE_USER_DOCS, "security": [{"BearerAuth": []}]},
     status_code=status.HTTP_201_CREATED,
 )
 async def create_user(
@@ -66,7 +76,7 @@ async def create_user(
     "/",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["user.read"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**LIST_USERS_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def list_users(
     request: Request,
@@ -92,6 +102,7 @@ async def list_users(
 # ---------------------
 @router.post(
     "/verify",
+    **VERIFY_USER_DOCS,
     response_model=APIResponse,
     status_code=status.HTTP_200_OK,
 )
@@ -127,7 +138,7 @@ async def verify_user(
     "/{user_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["user.read"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**GET_USER_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def get_user(
     user_id: UUID,
@@ -151,7 +162,7 @@ async def get_user(
     "/{user_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["user.update"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**UPDATE_USER_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def update_user(
     user_id: UUID,
@@ -177,7 +188,7 @@ async def update_user(
     "/{user_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["user.delete"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**DELETE_USER_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def delete_user(
     user_id: UUID,
@@ -203,7 +214,7 @@ async def delete_user(
     "/{user_id}/activate",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["user.update"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**ACTIVATE_USER_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def activate_user(
     user_id: UUID,
@@ -228,7 +239,7 @@ async def activate_user(
     "/{user_id}/deactivate",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["user.update"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**DEACTIVATE_USER_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def deactivate_user(
     user_id: UUID,

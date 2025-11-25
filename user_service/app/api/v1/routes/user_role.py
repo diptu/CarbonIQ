@@ -9,6 +9,12 @@ from shared_service.app.utils.paggination import paginate
 from shared_service.app.utils.response import APIResponse, build_api_response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from user_service.app.api.v1.routes.docs.user_roles import (
+    CREATE_USER_ROLE_DOCS,
+    DELETE_USER_ROLE_DOCS,
+    GET_USER_ROLE_DOCS,
+    LIST_USER_ROLES_DOCS,
+)
 from user_service.app.core.config import settings
 from user_service.app.crud.user_role import user_role_crud
 from user_service.app.db.session import get_db
@@ -35,7 +41,7 @@ async def fetch_user_role_or_404(
     response_model=APIResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(["user_role.create"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**CREATE_USER_ROLE_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def create_user_role(
     user_role_in: UserRoleCreate,
@@ -65,7 +71,7 @@ async def create_user_role(
     "/{user_role_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["user_role.read"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**GET_USER_ROLE_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def get_user_role(
     user_role_id: UUID,
@@ -84,7 +90,7 @@ async def get_user_role(
     "/",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["user_role.read"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**LIST_USER_ROLES_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def list_user_roles(
     request: Request,
@@ -109,7 +115,7 @@ async def list_user_roles(
     "/{user_role_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["user_role.delete"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**DELETE_USER_ROLE_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def delete_user_role(
     user_role_id: UUID,

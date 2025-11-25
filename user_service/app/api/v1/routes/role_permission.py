@@ -9,6 +9,12 @@ from shared_service.app.utils.paggination import paginate
 from shared_service.app.utils.response import APIResponse, build_api_response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from user_service.app.api.v1.routes.docs.role_permission import (
+    CREATE_ROLE_PERMISSION_DOCS,
+    DELETE_ROLE_PERMISSION_DOCS,
+    GET_ROLE_PERMISSION_DOCS,
+    LIST_ROLE_PERMISSIONS_DOCS,
+)
 from user_service.app.core.config import settings
 from user_service.app.crud.role_permission import role_permission_crud
 from user_service.app.db.session import get_db
@@ -36,7 +42,7 @@ async def fetch_role_permission_or_404(
     response_model=APIResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(["role_permission.create"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**CREATE_ROLE_PERMISSION_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def create_role_permission(
     rp_in: RolePermissionCreate,
@@ -69,7 +75,7 @@ async def create_role_permission(
     "/{role_permission_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["role_permission.read"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**GET_ROLE_PERMISSION_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def get_role_permission(
     role_permission_id: UUID,
@@ -95,7 +101,7 @@ async def get_role_permission(
     "/",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["role_permission.read"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**LIST_ROLE_PERMISSIONS_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def list_role_permissions(
     request: Request,
@@ -127,7 +133,7 @@ async def list_role_permissions(
     "/{role_permission_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["role_permission.delete"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**DELETE_ROLE_PERMISSION_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def delete_role_permission(
     role_permission_id: UUID,

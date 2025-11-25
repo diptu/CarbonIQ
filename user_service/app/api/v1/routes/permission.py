@@ -9,6 +9,13 @@ from shared_service.app.utils.paggination import paginate
 from shared_service.app.utils.response import APIResponse, build_api_response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from user_service.app.api.v1.routes.docs.permission import (
+    CREATE_PERMISSION_DOCS,
+    DELETE_PERMISSION_DOCS,
+    GET_PERMISSION_DOCS,
+    LIST_PERMISSIONS_DOCS,
+    UPDATE_PERMISSION_DOCS,
+)
 from user_service.app.core.config import settings
 from user_service.app.crud.permission import permission_crud
 from user_service.app.db.session import get_db
@@ -33,7 +40,7 @@ async def fetch_permission_or_404(permission_id: UUID, db: AsyncSession = Depend
     response_model=APIResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(["permission.create"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**CREATE_PERMISSION_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def create_permission(
     permission_in: PermissionCreate,
@@ -56,7 +63,7 @@ async def create_permission(
     "/{permission_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["permission.read"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**GET_PERMISSION_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def get_permission(
     permission_id: UUID,
@@ -75,7 +82,7 @@ async def get_permission(
     "/",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["permission.read"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**LIST_PERMISSIONS_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def list_permissions(
     request: Request,
@@ -100,7 +107,7 @@ async def list_permissions(
     "/{permission_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["permission.update"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**UPDATE_PERMISSION_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def update_permission(
     permission_id: UUID,
@@ -131,7 +138,7 @@ async def update_permission(
     "/{permission_id}",
     response_model=APIResponse,
     dependencies=[Depends(require_permissions(["permission.delete"]))],
-    openapi_extra={"security": [{"BearerAuth": []}]},
+    openapi_extra={**DELETE_PERMISSION_DOCS, "security": [{"BearerAuth": []}]},
 )
 async def delete_permission(
     permission_id: UUID,
