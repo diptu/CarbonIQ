@@ -373,125 +373,61 @@ flowchart LR
 
 ```
 
+## Dockarize
+
+1.  contanirize
+```.bash
+docker build -t user_service -f user_service/Dockerfile .  # for mac local
+
+docker build --platform linux/amd64 -t diptu/user_service:V0.0.1 -f user_service/Dockerfile . # for liniux Aws hosting
+
+```
+2. Run Dockarize containner
+```bash
+ docker run -p 8000:8000 --env-file user_service/app/.env user_service
+```
+
+## push to hub
+
+1. update tag with version
+
+```bash
+docker tag user_service:latest diptu/user_service:version0.0.1 # here user_service is the hub reponame
+```
+2.
+a. login to docker hub
+
+```bash
+docker login
+```
+push image to hub
+
+```bash
+ docker push diptu/user_service:version0.0.1
+```
 
 
-## User Service models:
+## Host to AWS EC2
 
-| Model              | Table Name         | Key Fields                                                                          | Relationships                                                        | Notes                                                                                              |
-| ------------------ | ------------------ | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **BaseModel**      | (abstract)         | `id: UUID`, `created_at`, `updated_at`, `created_by`, `updated_by`                  | N/A                                                                  | Abstract base with timestamps & audit; inherited by all models                                     |
-| **User**           | `users`            | `email`, `hashed_password`, `full_name`, `is_active`, `is_verified`, `is_superuser` | `roles: UserRole`                                                    | Cached properties: `roles_cached`, `permissions_cached`; user-to-role many-to-many via `UserRole`  |
-| **Role**           | `roles`            | `name`, `description`                                                               | `users: UserRole`, `permissions: Permission via RolePermission`      | Role-to-user many-to-many via `UserRole`; Role-to-permission via `RolePermission`                  |
-| **Permission**     | `permissions`      | `name`, `description`                                                               | `role_permissions: RolePermission`, `roles: Role via RolePermission` | Permission-to-role many-to-many via `RolePermission`                                               |
-| **UserRole**       | `user_roles`       | `user_id`, `role_id`                                                                | `user: User`, `role: Role`                                           | Association table between `User` and `Role`; unique constraint on `(user_id, role_id)`             |
-| **RolePermission** | `role_permissions` | `role_id`, `permission_id`                                                          | `role: Role`, `permission: Permission`                               | Association table between `Role` and `Permission`; unique constraint on `(role_id, permission_id)` |
+[Host to Aws](https://www.youtube.com/watch?v=X0lnToYN21k&list=PLKnIA16_RmvZ41tjbKB2ZnwchfniNsMuQ&index=12)
+ 1. create an EC2 instance
+ 2. Connect to the EC2 instance
 
+ 3. Run the following commands
+  a. sudo apt-get update
+  b. sudo apt-get install -y docker.io
+  c. sudo systemctl start docker
+  d. sudo systemctl enable docker
+  e. sudo usermod -aG docker $USER
+  f. exit
 
-## CRUD Summary Table
+ 4. Restart a new connection to EC2 instance
+ 5. Run the following commands
+  a. docker pull diptu/user_service:V0.0.1
+  b. docker run -p 8000:8000 diptu/user_service:V0.0.1
 
-| CRUD Class             | Model               | Key Methods                                                                                                                                          | Notes / Special Logic                                                                                              |
-| ---------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **BaseCRUD**           | Generic (any model) | `get`, `get_all`, `create`, `update`, `delete`, `count`                                                                                              | Generic, reusable, uses Pydantic schemas; no tenant awareness; synchronous; basic commit/refresh                   |
-| **PermissionCRUD**     | `Permission`        | `get`, `get_by_name`, `get_all`, `create`, `update`, `delete`, `count`                                                                               | Custom `get_by_name`; otherwise similar to BaseCRUD; lacks tenant filtering                                        |
-| **RoleCRUD**           | `Role`              | `get`, `get_by_name`, `get_all`, `create`, `update`, `delete`, `count`                                                                               | Similar to PermissionCRUD; ensures unique role names; lacks tenant filtering                                       |
-| **RolePermissionCRUD** | `RolePermission`    | `get`, `get_by_role_permission`, `get_all`, `create`, `delete`, `count`                                                                              | Prevents duplicate assignment (`get_by_role_permission` check before create)                                       |
-| **UserRoleCRUD**       | `UserRole`          | `get`, `get_by_user_role`, `get_all`, `create`, `delete`, `count`                                                                                    | Prevents duplicate assignment (`get_by_user_role`)                                                                 |
-| **UserCRUD**           | `User`              | `get`, `get_by_email`, `get_all`, `create`, `update`, `delete`, `verify_password`, `get_permissions`, `get_roles`, `activate`, `deactivate`, `count` | Hashes passwords on create; permission & role helpers; activate/deactivate methods; no tenant filtering in queries |
+ 6. change security group settings
+ 7. Check the API
+ 8. Change the frontend code
 
-
-## CRUD Improvement Checklist
-- Generalization / Reduce Duplication
-
-    - Inherit BaseCRUD for Permission, Role, RolePermission, UserRole, User where possible.
-
-    - Only implement model-specific methods (get_by_name, get_by_user_role) in derived classes.
-
-Move Business Logic to Service Layer
-
-- CRUD should only handle DB operations.
-
-    - Hashing passwords, activating/deactivating users, computing permissions/roles should live in a service layer, which calls CRUD as needed.
-
-
-- Async Support
-
-    - Consider using async SQLAlchemy (async session + await) if API will have high concurrency.
-
-- Batch / Bulk Operations
-
-    - For Role/User assignments, allow batch create/delete to reduce DB roundtrips.
-
-    - Use bulk_save_objects or INSERT ... ON CONFLICT for PostgreSQL.
-
-- Consistency in Method Names
-
-    - Some methods are get_by_user_role, get_by_role_permission; others get_by_email. Standardize naming (e.g., get_by_<unique_field>).
-
-- Return Types
-
-    - Ensure all CRUD methods consistently return None if object not found or raise a standard exception.
-
-    - Avoid returning existing in create silently; consider raising AlreadyExistsError.
-
-- Exception Handling
-
-    - Wrap commits in try/except for IntegrityError (e.g., unique constraint violations).
-
-    - Optionally provide standard error responses (or raise service-layer exceptions).
-
-- Caching
-
-    - Frequently accessed objects (user roles/permissions) could be cached for short TTL to improve performance.
-
-- Logging / Observability
-
-    - Log CRUD operations in multi-tenant context (e.g., tenant_id, user_id, operation).
-
-- Schema Separation
-
-    - Keep CRUD strictly DB-focused: map CreateSchemaType / UpdateSchemaType to models in CRUD.
-
-    - Avoid returning Pydantic schemas from CRUD; leave that to the service layer or API layer.
-
-- Testing
-
-    - Unit tests for CRUD methods should verify:
-
-    - Correct tenant scoping
-
-    - Duplicate prevention (get_by_* checks)
-
-    - Correct behavior on create/update/delete
-
-    - Permissions/roles fetched correctly from relationships
-
-## API Layer Improvement checklist:
-
-| **Aspect**                      | **Current Implementation**                                                             | **Observations / Issues**                                                                                                                        | **Suggestions / Improvements**                                                                                                                                                      |
-| ------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Request Timer**               | Decorator `request_timer` repeated in every module.                                    | Logic is mostly duplicated. In some modules it handles `dict`, in others only `APIResponse`.                                                     | Move `request_timer` to a **shared util module** and handle both `dict` and `APIResponse` consistently. Reduce code duplication.                                                    |
-| **Error Handling**              | Uses `HTTPException` directly for not found, duplicate, invalid IDs.                   | Works fine but sometimes repeated UUID parsing and 404 checks across modules.                                                                    | Create **shared fetch helper** with automatic 404 handling for UUIDs (you started doing this). Could be centralized for `User`, `Role`, `Permission`, `RolePermission`, `UserRole`. |
-| **CRUD Fetching**               | `fetch_*_or_404` exists for most entities, but naming and return type is inconsistent. | Some return ORM object, some return dict payload.                                                                                                | Standardize `fetch_*_or_404` to always return **ORM object**, let response building be separate.                                                                                    |
-| **Pagination**                  | Manual calculation of `previousPage` and `nextPage`.                                   | Works but inconsistent across modules (sometimes uses `skip`, sometimes uses `current_page`).                                                    | Create **shared pagination helper** to standardize calculation and return `{count, perPage, previousPage, nextPage}`.                                                               |
-| **Response Formatting**         | Uses `build_api_response` in all routes.                                               | Very good consistency. But sometimes `include_user_context` is True, sometimes False.                                                            | Consider **default False** for assignments (`RolePermission`, `UserRole`) and True only when needed. Centralize common `meta_extra` fields like `"source"`.                         |
-| **UUID Handling**               | User routes parse UUID from string manually.                                           | Slight redundancy.                                                                                                                               | Use **Pydantic path parameter type `UUID`** directly in FastAPI. FastAPI auto-validates and rejects invalid UUIDs.                                                                  |
-| **Permissions Checking**        | Uses `Depends(require_permissions([...]))` consistently.                               | ✅ Good adherence to RBAC.                                                                                                                        | Could create **wrapper decorator** to reduce repetition for CRUD endpoints: e.g., `@permission_required("permission.create")`.                                                      |
-| **Create vs Update**            | Checks for duplicates before create. Update doesn’t check for conflicts.               | May allow duplicate names on update.                                                                                                             | Add optional **duplicate name check** for update operations.                                                                                                                        |
-| **Response Models**             | Mostly `APIResponse`, sometimes returning dicts with `model_dump()`.                   | Slight inconsistency; sometimes decorator `response_model=APIResponse` matches dict output, sometimes ORM output converted via `model_validate`. | Standardize all endpoints to return **APIResponse with validated Pydantic model**. Remove `.model_dump()` unless absolutely necessary.                                              |
-| **Role/Permission Assignments** | `RolePermission` and `UserRole` return dicts instead of schema models.                 | Breaks consistency with other endpoints (`PermissionOut`, `RoleOut`).                                                                            | Define **Pydantic schema** for `RolePermissionRead` and `UserRoleRead` (you did partially), and always use `.model_validate()`.                                                     |
-| **Security / OpenAPI**          | `openapi_extra` used consistently.                                                     | ✅ Good practice.                                                                                                                                 | Could extract a **shared router decorator** to auto-add `BearerAuth` security to all routers.                                                                                       |
-| **Reusability**                 | Lots of repeated patterns (create, get, list, update, delete).                         | Could be abstracted into **generic CRUD base route generator**.                                                                                  | Create **generic CRUD router factory** that takes `CRUD` class, schema, and permissions. Reduces boilerplate 80–90%.                                                                |
-| **Miscellaneous**               | Some `print()` statements (`verify_user`) remain.                                      | Debug prints in production code.                                                                                                                 | Remove debug prints; consider **structured logging**.                                                                                                                               |
-| **Password Handling**           | `verify_user` uses `pwd_context.verify` directly.                                      | Works, but could be abstracted.                                                                                                                  | Consider moving **authentication logic** to service layer instead of API for cleaner separation.                                                                                    |
-
-## Core Layer improvement checklist:
-
-| **Module / Function**            | **Observations**                                                                                  | **Potential Issues**                                                                                                                                                                                                                               | **Suggested Improvements**                                                                                                                                                                                                                                        |
-| -------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Settings` (config.py)           | Uses `BaseSettings` from Pydantic v2, `.env` support, defaults for app name, debug, database URLs | 1. Some required fields like `SECRET_KEY` are commented out → risk of runtime failure.<br>2. Type mismatch risk: `BASE_DIR / FILE_PATH` pattern might fail if `FILE_PATH` is None.<br>3. Environment-specific settings not fully validated.        | 1. Uncomment and enforce required sensitive fields (`SECRET_KEY`, `ALGORITHM`).<br>2. Use Pydantic `Field(..., env="VAR_NAME")` for required fields.<br>3. Consider using `validator` or `__post_init__` for additional runtime validation.                       |
-| `create_access_token`            | Generates JWT with roles, permissions, tenant_id, supports return of payload                      | 1. Directly uses `settings.SECRET_KEY` without null check → could raise `TypeError` if unset.<br>2. Uses naive datetime UTC; might need timezone-aware tokens.<br>3. Repeated `datetime.utcnow()` calls for `exp` and `iat` could differ slightly. | 1. Add a check to raise clear exception if `SECRET_KEY` is None.<br>2. Use `datetime.now(tz=timezone.utc)` for consistent timestamps.<br>3. Consolidate `now = datetime.utcnow()` and use `now` for both `exp` and `iat`.                                         |
-| `create_refresh_token`           | Similar to access token, but for refresh                                                          | 1. Same issues as access token.<br>2. Minimal claims; consider including token version or client info to improve security.                                                                                                                         | 1. Align timestamp handling with access token.<br>2. Optionally add `token_version` or device info to payload for refresh token revocation.                                                                                                                       |
-| `decode_token`                   | Decodes JWT and handles exceptions                                                                | 1. Prints decoded payload and errors → could leak sensitive info in production logs.<br>2. No validation for `sub` or `type` claim → could accept malformed tokens.                                                                                | 1. Replace `print` statements with structured logging at `DEBUG` level.<br>2. Add payload claim validation (e.g., `type` must be `"access"` for access tokens).<br>3. Wrap in helper to catch and convert `JWTError` to standardized API error.                   |
-| `APIResponse` / `build_response` | Well-structured standard API response model; includes trace/correlation IDs, RBAC info, meta      | 1. `data` field is `Any` → loses type safety.<br>2. Repeated manual construction of response in multiple endpoints.<br>3. No automated `request_duration_ms` integration; depends on decorators in API layer.                                      | 1. Consider using generic typing: `APIResponse[T]` for type-safe `data`.<br>2. Add optional helper to inject `request_duration_ms` automatically.<br>3. Optionally provide helper to include `user_id`, `roles`, `permissions` from `current_user` automatically. |
-| `build_response_from_request`    | Auto-reads trace/correlation IDs from request headers                                             | 1. If headers are missing, creates new UUID → good, but not consistent across microservices unless propagated.<br>2. No way to attach `request_duration_ms` automatically.                                                                         | 1. Propagate trace IDs in middleware for consistency.<br>2. Combine with `request_timer` decorator for automatic duration tracking.                                                                                                                               |
-| General core layer patterns      | Good separation: config, JWT utils, API response helpers                                          | 1. Repetition risk: `request_timer` decorator exists in API layer and duplicates `meta` injection logic.<br>2. JWT and APIResponse tightly coupled to `settings` → hard to test.                                                                   | 1. Consider a shared `core/utils.py` for decorators, logging, JWT, response builders.<br>2. Inject `settings` or `secret_key` as dependency to improve testability.<br>3. Add type hints for JWT payload structures.                                              |
+# [Link to access](http://3.25.65.83:8000/)

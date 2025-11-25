@@ -28,4 +28,4 @@ COPY user_service/docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
 # ---------- Default command ----------
-CMD ["./docker-entrypoint.sh"]
+CMD ["/app/docker-entrypoint.sh"]
