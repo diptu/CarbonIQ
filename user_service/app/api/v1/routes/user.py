@@ -1,10 +1,10 @@
 # app/api/v1/routes/user.py
 from uuid import UUID
 
-from auth_service.app.schemas.auth import LoginRequest
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from passlib.context import CryptContext
 from shared_service.app.core.deps import get_cached_current_user, require_permissions
+from shared_service.app.schemas.auth import LoginRequest
 from shared_service.app.utils.fetch import fetch_or_404
 from shared_service.app.utils.paggination import paginate
 from shared_service.app.utils.response import APIResponse, build_api_response

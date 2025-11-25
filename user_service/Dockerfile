@@ -13,9 +13,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ---------- Copy dependency files ----------
 COPY user_service/pyproject.toml user_service/uv.lock ./
 
-# ---------- Install all dependencies globally ----------
-RUN pip install "uv[all]" --no-cache-dir
-RUN pip install "uvicorn[standard]" fastapi
+# ---------- Install all project dependencies ----------
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir .
+
 # ---------- Copy microservice code ----------
 COPY user_service /app/user_service
 
