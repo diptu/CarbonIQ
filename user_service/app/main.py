@@ -5,13 +5,13 @@ from fastapi.openapi.utils import get_openapi
 from shared_service.app.middleware.request_context import RequestContextMiddleware
 
 from user_service.app.api.v1.routes import (
-    health_router,
     permissoion_router,
     role_permission_router,
     role_router,
     user_role_router,
     user_router,
 )
+from user_service.app.core.config import settings
 from user_service.app.db.session import engine
 from user_service.app.models.base import Base
 
@@ -25,12 +25,47 @@ app = FastAPI(
         and retrieving RBAC-related metadata used across the multi-tenant system.",
 )
 app.add_middleware(RequestContextMiddleware)
+from fastapi import status
+
+SERVER_HEALTH_DOCS = {
+    "summary": "Server health",
+    "description": "Check API server liveness.",
+    "responses": {
+        status.HTTP_200_OK: {"description": "Server is healthy"},
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Server health check failed"},
+    },
+}
+
+
+# -----------------------------
+# Root Endpoint
+# -----------------------------
+@app.get("/", **SERVER_HEALTH_DOCS)
+async def root():
+    async def server_check() -> bool:
+        """
+        Lightweight internal check.
+        Replace/extend this with:
+        - CPU/memory threshold checks
+        - Internal service checks
+        - Dependency readiness (cache, message broker, etc.)
+        """
+        return True  # Always true unless extended
+
+    is_alive = await server_check()
+
+    return {
+        "status": status.HTTP_200_OK if is_alive else status.HTTP_500_INTERNAL_SERVER_ERROR,
+        "server": "Server is healthy" if is_alive else "Server health check failed",
+        "service": settings.SERVICE_NAME,
+        "version": settings.SERVICE_VERSION,
+    }
 
 
 # -------------------------
 # Include API routers
 # -------------------------
-app.include_router(health_router)
+
 app.include_router(user_router)
 app.include_router(role_router)
 app.include_router(permissoion_router)

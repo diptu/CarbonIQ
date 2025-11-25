@@ -1,53 +1,31 @@
 """API routes for managing RolePermission assignments using build_api_response formatting."""
 
-import time
-from functools import wraps
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from shared_service.app.core.deps import get_cached_current_user, require_permissions
-from shared_service.app.utils.response import build_api_response
-from sqlalchemy.orm import Session
+from shared_service.app.utils.fetch import fetch_or_404
+from shared_service.app.utils.paggination import paginate
+from shared_service.app.utils.response import APIResponse, build_api_response
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from user_service.app.core.config import settings
 from user_service.app.crud.role_permission import role_permission_crud
 from user_service.app.db.session import get_db
 from user_service.app.models.user import User
-from user_service.app.schemas.role_permission import RolePermissionCreate
+from user_service.app.schemas.role_permission import RolePermissionCreate, RolePermissionRead
 
 router = APIRouter(prefix="/role-permissions", tags=["role_permissions"])
 
 
-# ---------------------------------------------------
-# Utility: Add request duration (ms) to response.meta
-# ---------------------------------------------------
-def request_timer(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        start = time.perf_counter()
-        response = await func(*args, **kwargs)
-        duration = round((time.perf_counter() - start) * 1000, 2)
-
-        if isinstance(response, dict):
-            response.setdefault("meta", {})
-            response["meta"]["request_duration_ms"] = duration
-            return response
-
-        if hasattr(response, "meta"):
-            response.meta.request_duration_ms = duration
-
-        return response
-
-    return wrapper
-
-
 # ---------------------
-# Reusable fetch
+# Dependency: Fetch role_permission or 404
 # ---------------------
-def fetch_role_permission_or_404(role_permission_id: UUID, db: Session):
-    rp = role_permission_crud.get(db, role_permission_id)
-    if not rp:
-        raise HTTPException(status_code=404, detail="Role-Permission assignment not found")
-    return rp
+async def fetch_role_permission_or_404(
+    role_permission_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> RolePermissionRead:
+    return await fetch_or_404(role_permission_crud.get, db, role_permission_id)
 
 
 # ---------------------
@@ -55,33 +33,33 @@ def fetch_role_permission_or_404(role_permission_id: UUID, db: Session):
 # ---------------------
 @router.post(
     "/",
+    response_model=APIResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(["role_permission.create"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def create_role_permission(
     rp_in: RolePermissionCreate,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    rp = role_permission_crud.create(db, rp_in)
+    # Prevent duplicate assignment
+    existing = await role_permission_crud.get_by_role_permission(
+        db, rp_in.role_id, rp_in.permission_id
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="RolePermission assignment already exists")
 
-    payload = {
-        "id": str(rp.id),
-        "role_id": str(rp.role_id),
-        "permission_id": str(rp.permission_id),
-    }
+    rp = await role_permission_crud.create(db, rp_in)
+    payload = RolePermissionRead.model_validate(rp)
 
     return build_api_response(
         request=request,
         current_user=current_user,
-        result=payload,
-        success=True,
-        message="Role-Permission assigned successfully",
-        include_user_context=False,
-    ).model_dump()
+        result=payload.model_dump(),
+        status_code=status.HTTP_201_CREATED,
+    )
 
 
 # ---------------------
@@ -89,30 +67,25 @@ async def create_role_permission(
 # ---------------------
 @router.get(
     "/{role_permission_id}",
+    response_model=APIResponse,
     dependencies=[Depends(require_permissions(["role_permission.read"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def get_role_permission(
     role_permission_id: UUID,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    rp = fetch_role_permission_or_404(role_permission_id, db)
-
-    payload = {
-        "id": str(rp.id),
-        "role_id": str(rp.role_id),
-        "permission_id": str(rp.permission_id),
-    }
+    rp = await fetch_role_permission_or_404(role_permission_id, db)
+    payload = RolePermissionRead.model_validate(rp)
 
     return build_api_response(
         request=request,
         current_user=current_user,
-        result=payload,
-        include_user_context=False,
-    ).model_dump()
+        result=payload.model_dump(),
+        status_code=status.HTTP_200_OK,
+    )
 
 
 # ---------------------
@@ -120,42 +93,31 @@ async def get_role_permission(
 # ---------------------
 @router.get(
     "/",
+    response_model=APIResponse,
     dependencies=[Depends(require_permissions(["role_permission.read"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def list_role_permissions(
     request: Request,
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(settings.DEFAULT_PAGE_LIMIT, ge=1),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    total = role_permission_crud.count(db)
-    rps = role_permission_crud.get_all(db, skip=skip, limit=limit)
+    total = await role_permission_crud.count(db)
+    rps = await role_permission_crud.get_all(db, skip=skip, limit=limit) or []
 
-    rps_data = [
-        {"id": str(rp.id), "role_id": str(rp.role_id), "permission_id": str(rp.permission_id)}
-        for rp in rps
-    ]
+    rps_data = [RolePermissionRead.model_validate(rp) for rp in rps]
+    pagination = paginate(skip=skip, limit=limit, total=total)
 
-    current_page = (skip // limit) + 1
-    total_pages = (total + limit - 1) // limit
-
-    result = {
-        "role_permissions": rps_data,
-        "count": total,
-        "perPage": limit,
-        "previousPage": current_page - 1 if current_page > 1 else None,
-        "nextPage": current_page + 1 if current_page < total_pages else None,
-    }
+    result = {"role_permissions": rps_data, **pagination}
 
     return build_api_response(
         request=request,
         current_user=current_user,
         result=result,
-        include_user_context=False,
-    ).model_dump()
+        status_code=status.HTTP_200_OK,
+    )
 
 
 # ---------------------
@@ -163,30 +125,22 @@ async def list_role_permissions(
 # ---------------------
 @router.delete(
     "/{role_permission_id}",
+    response_model=APIResponse,
     dependencies=[Depends(require_permissions(["role_permission.delete"]))],
     openapi_extra={"security": [{"BearerAuth": []}]},
 )
-@request_timer
 async def delete_role_permission(
     role_permission_id: UUID,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_cached_current_user),
 ):
-    fetch_role_permission_or_404(role_permission_id, db)
-    deleted_rp = role_permission_crud.delete(db, role_permission_id)
-
-    payload = {
-        "id": str(deleted_rp.id),
-        "role_id": str(deleted_rp.role_id),
-        "permission_id": str(deleted_rp.permission_id),
-    }
+    rp = await fetch_role_permission_or_404(role_permission_id, db)
+    await role_permission_crud.delete(db, role_permission_id)
 
     return build_api_response(
         request=request,
         current_user=current_user,
-        result=payload,
-        include_user_context=False,
-        success=True,
-        message="Role-Permission deleted successfully",
-    ).model_dump()
+        result={"message": f"RolePermission {role_permission_id} deleted successfully"},
+        status_code=status.HTTP_200_OK,
+    )

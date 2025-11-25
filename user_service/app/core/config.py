@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     """App settings loaded from environment variables."""
 
     # General App Config
-    APP_NAME: str = "multi_tenant_saas"
+    SERVICE_NAME: str = "Auth Service"
+    SERVICE_VERSION: str = "0.0.1"
     APP_ENV: str = "development"
     DEBUG: bool = True
 
