@@ -89,8 +89,11 @@ async def list_users(
     users = await user_crud.get_all(db, skip=skip, limit=limit)
     users_data = [UserRead.model_validate(u) for u in users]
     pagination = paginate(skip=skip, limit=limit, total=total_users)
+    print("current_user attributes:", dir(current_user))
+    print("current_user.tenant_id:", getattr(current_user, "tenant_id", None))
     return build_api_response(
         request=request,
+        current_user=current_user,
         result={"users": users_data, **pagination},
         status_code=status.HTTP_200_OK,
         meta_extra={"source": "user_service"},

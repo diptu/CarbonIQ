@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    TENANT_REQUEST_TIMEOUT_SECONDS: int = 30
+    TENANT_REQUEST_TIMEOUT_SECONDS: int = 90
     USER_SERVICE_URL: Optional[str] = None
     AUTH_SERVICE_URL: Optional[str] = None
     AUDIT_SERVICE_URL: Optional[str] = None

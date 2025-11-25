@@ -35,9 +35,13 @@ async def fetch_tenant_info(user_id: str) -> Optional[dict]:
         ) as client:
             resp = await client.get(url)
             if resp.status_code == 200:
-                return resp.json()
+                data = resp.json()
+                print(f"[Tenant Fetch] user_id={user_id}, data={data}")
+                return data
+            print(f"[Tenant Fetch] user_id={user_id}, status_code={resp.status_code}")
             return None
-    except httpx.RequestError:
+    except httpx.RequestError as e:
+        print(f"[Tenant Fetch] user_id={user_id}, error={e}")
         return None
 
 
@@ -53,6 +57,7 @@ async def get_current_user(
     Return current authenticated user and cache it per request.
     Includes cached tenant_id to avoid repeated tenant-service calls.
     Pre-fetches roles and permissions to prevent lazy-loading with async session.
+    Attaches first membership info if available.
     """
     if hasattr(request.state, "current_user"):
         return request.state.current_user
@@ -83,21 +88,32 @@ async def get_current_user(
         )
         .where(User.id == user_id)
     )
-
     user: Optional[User] = result.scalar_one_or_none()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
         )
 
-    # Fetch and cache tenant_id
-    if not hasattr(request.state, "tenant_id"):
-        tenant_data = await fetch_tenant_info(str(user_id))
-        tenant_id = tenant_data.get("tenant_id") if tenant_data else None
-        request.state.tenant_id = tenant_id
+    # Fetch tenant memberships from tenant-service
+    tenant_data = await fetch_tenant_info(str(user_id))
+    tenant_id = None
+    tenant_role = None
 
-    # attach tenant_id to user object (runtime only)
-    setattr(user, "tenant_id", request.state.tenant_id)
+    if tenant_data and tenant_data.get("success") and tenant_data.get("result"):
+        memberships = tenant_data["result"].get("memberships", [])
+        if memberships:
+            # pick first active membership if available, else first membership
+            membership = next(
+                (m for m in memberships if m.get("is_active") == "ACTIVE"),
+                memberships[0],
+            )
+            tenant_id = membership.get("tenant_id")
+            tenant_role = membership.get("tenant_role")
+
+    # Attach runtime properties
+    request.state.tenant_id = tenant_id
+    setattr(user, "tenant_id", tenant_id)
+    setattr(user, "tenant_role", tenant_role)
 
     # Cache combined user object
     request.state.current_user = user
@@ -136,6 +152,7 @@ async def get_cached_current_user(
     """
     if hasattr(request.state, "current_user"):
         return request.state.current_user
+
     user = await get_current_user(request=request, db=db)
     request.state.current_user = user
     return user

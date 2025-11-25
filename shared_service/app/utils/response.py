@@ -79,6 +79,7 @@ def build_api_response(
             user_context = UserContext(
                 user_id=str(current_user.id),
                 tenant_id=getattr(current_user, "tenant_id", None),
+                # tenant_id=str(current_user.tenant_id),
                 roles=getattr(current_user, "roles_cached", []),
                 permissions=getattr(current_user, "permissions_cached", []),
             )
@@ -88,7 +89,6 @@ def build_api_response(
 
     # ✅ get request duration from request.state if available
     request_duration_ms = getattr(request.state, "request_duration_ms", None)
-
     meta = MetaInfo(
         request_duration_ms=request_duration_ms,
         extra=meta_extra or {},

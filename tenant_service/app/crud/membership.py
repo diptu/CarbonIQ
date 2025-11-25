@@ -3,6 +3,7 @@
 from typing import List, Optional
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from shared_service.app.models.enums import StatusEnum
@@ -135,10 +136,12 @@ class TenantMembershipCRUD:
             .all()
         )
 
-    def get_by_user_id(db: Session, user_id: UUID):
-        return (
-            db.query(TenantMembership).filter(TenantMembership.user_id == user_id).all()
+    def get_by_user_id(self, db: Session, user_id: UUID):
+        """Fetch all memberships for a given user_id."""
+        result = db.execute(
+            select(TenantMembership).where(TenantMembership.user_id == user_id)
         )
+        return result.scalars().all()
 
 
 tenant_membership_crud = TenantMembershipCRUD()
