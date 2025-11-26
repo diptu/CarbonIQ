@@ -1,8 +1,8 @@
 #!/bin/bash
 
 AUTH_URL="http://localhost:8001"
-USER_URL="http://localhost:8000"
-EMAIL="admin@carboniq.com"
+USER_URL="http://3.25.65.83:8000"
+EMAIL="admin@apple.com"
 PASSWORD="Hello123"
 
 echo "=== LOGIN ==="
@@ -16,19 +16,11 @@ ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.data.access_token // empty')
 REFRESH_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.data.refresh_token // empty')
 
 if [[ -z "$ACCESS_TOKEN" || -z "$REFRESH_TOKEN" ]]; then
-  echo "Login failed, aborting further steps."
+  echo "❌ Login failed — missing tokens, aborting."
   exit 1
 fi
 
-echo
-echo "=== LIST USERS (AFTER LOGIN) ==="
-USERS_RESPONSE=$(curl -s -X GET "$USER_URL/users/?skip=0&limit=100" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -H "accept: application/json")
-
-# Try parsing JSON, fallback to raw if error
-echo "$USERS_RESPONSE" | jq . 2>/dev/null || echo "Raw response: $USERS_RESPONSE"
-
+AUTH_HEADER="Authorization: Bearer $ACCESS_TOKEN"
 
 echo
 echo "=== REFRESH TOKEN ==="
@@ -41,7 +33,7 @@ echo "$REFRESH_RESPONSE" | jq .
 NEW_REFRESH_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r '.data.refresh_token // empty')
 
 if [[ -z "$NEW_REFRESH_TOKEN" ]]; then
-  echo "Refresh failed, aborting logout step."
+  echo "❌ Refresh failed — cannot continue to logout."
   exit 1
 fi
 
@@ -53,10 +45,9 @@ LOGOUT_RESPONSE=$(curl -s -X POST "$AUTH_URL/auth/logout" \
 
 echo "$LOGOUT_RESPONSE" | jq .
 
-# Check if the token is blacklisted
 BLACKLISTED=$(echo "$LOGOUT_RESPONSE" | jq -r '.detail // empty')
 if [[ "$BLACKLISTED" == *"already blacklisted"* ]]; then
-  echo "Token is already blacklisted. No further refresh allowed."
+  echo "✔ Token already blacklisted."
   exit 0
 fi
 

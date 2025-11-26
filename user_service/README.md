@@ -15,19 +15,77 @@ It stores and manages:
 
 This service connects with the Auth Service (for JWT issuance/validation) and the Tenant Service (for tenant membership & tenant-scoped roles).
 
+## 🚀 Features
+### 🔐 Central RBAC
 
-1. Overview
+- Users
 
-The User Service provides a centralized RBAC system for all tenants in the platform.
+- Roles
 
-Responsibilitie
-| Component          | Responsibility                                                 |
-| ------------------ | -------------------------------------------------------------- |
-| **User Service**   | Stores global user accounts and global RBAC mapping            |
-| **Auth Service**   | Issues, verifies, and blacklists JWT tokens                    |
-| **Tenant Service** | Uses user IDs and role IDs to assign users to specific tenants |
+- Permissions
 
+- User ↔ Role
 
+- Role ↔ Permission
+
+### 🏢 Multi-Tenant Compatible
+
+- Users exist globally
+
+- Tenant Service assigns users → tenant → role
+
+- Supports cross-organization access
+
+### ⚡ High-Performance
+
+- Cached permission lookups
+
+- Optimized for API Gateway authorization checks
+
+### 📁 Project Structure
+```bash
+
+user_service/
+├── app/
+│   ├── api/             # FastAPI routes
+│   ├── crud/            # service Layer
+│   ├── core/            # Config, exceptions, security
+│   ├── models/          # SQLAlchemy models (User, Role, Permission, etc.)
+│   ├── repositories/    # CRUD repository layer
+│   ├── schemas/         # Pydantic schemas
+│   └── services/        # Business logic (RBAC, user mgmt)
+├── tests/
+├── Dockerfile
+└── pyproject.toml
+
+```
+
+### 🧩 API Responsibilities
+- User APIs
+
+- Create user
+
+- Update user details
+
+- Activate/deactivate
+
+- Change password
+
+- Role APIs
+
+- Create/delete role
+
+- Assign/remove role from user
+
+- Permission APIs
+
+- List/create permissions
+
+- Attach/detach permissions to roles
+
+- Internal APIs (Used by Auth & Gateway)
+
+- /verify → Return user roles & permissions
 
 Key Concepts
 
@@ -373,13 +431,21 @@ flowchart LR
 
 ```
 
-## Dockarize
+## 🐳  Dockarize
 
 1.  contanirize
-```.bash
-docker build -t user_service -f user_service/Dockerfile .  # for mac local
+- a. Build (Linux/AWS ready)
+```bash
+docker build --platform linux/amd64 \
+  -t diptu/user_service:V0.0.1 \
+  -f user_service/Dockerfile .
 
-docker build --platform linux/amd64 -t diptu/user_service:V0.0.1 -f user_service/Dockerfile . # for liniux Aws hosting
+```
+- b. Build (Local Mac ready)
+
+```bash
+docker build -t user_service  \
+    -f user_service/Dockerfile .
 
 ```
 2. Run Dockarize containner

@@ -1,6 +1,6 @@
 # 🌏 CarbonIQ
 
-> **AI-powered Scope 2 carbon accounting & reporting**  
+> **AI-powered Scope 2 carbon accounting & reporting**
 > Transparent, audit-ready, and aligned with **Climate Active** & **ASRS** standards.
 
 <!-- Tech Stack Badges -->
@@ -15,7 +15,7 @@ CarbonIQ – Automated Scope 2 carbon reporting with ≥95% accuracy.
 
 ## ✨ Overview
 
-CarbonIQ is a **multi-tenant SaaS platform** that helps Australian SMEs and advisors automate **Scope 2 emissions reporting**.  
+CarbonIQ is a **multi-tenant SaaS platform** that helps Australian SMEs and advisors automate **Scope 2 emissions reporting**.
 
 It ingests energy bills and meter data, estimates **hourly grid-mix emissions**, reconciles with renewable energy purchases (GreenPower, RECs, PPAs), and produces **audit-ready Climate Active-aligned reports**.
 
@@ -25,13 +25,13 @@ With **AI-assisted inference** and simple tenant onboarding, CarbonIQ reduces ma
 
 ## 🔑 MVP Features (v1.0)
 
-- 📥 **Data Ingestion** – Upload bills (CSV/PDF), smart meter files, or REC/GreenPower metadata.  
-- ⚖️ **Scope 2 Emissions Calculation** – kWh × hourly grid intensity (AEMO/OpenNEM).  
-- 🌱 **Renewables Attribution** – Match RECs, GreenPower, or PPAs against consumption.  
-- 📑 **Audit-Ready Reports** – Climate Active / ASRS-aligned exports (CSV, PDF).  
-- 🧠 **AI Estimation** – Fill gaps from bills, infer load profiles with ≥95% accuracy.  
-- 🔐 **Secure Multi-Tenant SaaS** – Tenant/org isolation, JWT-based IAM, role-based access.  
-- 📢 **Notifications** – Get alerts when reports are generated.  
+- 📥 **Data Ingestion** – Upload bills (CSV/PDF), smart meter files, or REC/GreenPower metadata.
+- ⚖️ **Scope 2 Emissions Calculation** – kWh × hourly grid intensity (AEMO/OpenNEM).
+- 🌱 **Renewables Attribution** – Match RECs, GreenPower, or PPAs against consumption.
+- 📑 **Audit-Ready Reports** – Climate Active / ASRS-aligned exports (CSV, PDF).
+- 🧠 **AI Estimation** – Fill gaps from bills, infer load profiles with ≥95% accuracy.
+- 🔐 **Secure Multi-Tenant SaaS** – Tenant/org isolation, JWT-based IAM, role-based access.
+- 📢 **Notifications** – Get alerts when reports are generated.
 
 ---
 
@@ -137,41 +137,41 @@ flowchart LR
 [] Phase 1 – Foundation (Sprint 1–2)
 
   1.1 Tenant & Org Service (multi-tenant isolation)
-  
+
   1.2 IAM (JWT auth, RBAC)
-  
+
   1.3 API Gateway & Observability
 
 [] Phase 2 – Data Intake (sprint 3–4)
 
   2.1Bill & meter ingestion (CSV/PDF)
-  
+
   2.2OCR for bills (Tesseract)
-  
+
   2.3Normalization & data quality checks
 
 [] Phase 3 – Scope 2 Calculation (sprint 5–6)
 
   3.1 Factor Registry (AEMO/OpenNEM intensity data)
-  
+
   3.2 Calculation Engine (interval + backcast)
-  
+
   3.3 AI Estimation (bill-to-kWh, load profile inference)
 
 [] Phase 4 – Attribution & Reporting (sprint 7–8)
 
   4.1 Renewables Attribution (RECs, GreenPower, PPAs)
-  
+
   4.2 Offset Catalog (lite, REC upload)
-  
+
   4.3 Reporting Service (Climate Active PDF/CSV exports)
 
 [] Phase 5 – UX Enhancements (sprint 9–10)
 
   5.1 Explainability Agent (“Why were June emissions higher?”)
-  
+
   5.2 Onboarding Wizard
-  
+
   5.3 Notifications
 
 .
@@ -179,15 +179,15 @@ flowchart LR
 []🚀 Final MVP (sprint 10+)
 
   Multi-tenant SaaS with auth, billing-lite
-  
+
   Bill/meter ingestion & normalization
-  
+
   Scope 2 emissions calculation (≥95% accuracy)
-  
+
   Renewables attribution (RECs, GreenPower)
-  
+
   Audit-ready Climate Active reports (PDF/CSV)
-  
+
   Basic AI assistance + onboarding
 
 ## 📜 License
@@ -197,11 +197,11 @@ CarbonIQ is released under the MIT License.
 ## 🎯 Why CarbonIQ?
 
   ✅ Compliance-First – Climate Active / ASRS aligned.
-  
+
   ⚡ Automation-First – From bill upload to report in <5 minutes.
-  
+
   🧠 Insight-First – AI explanations and ≥95% estimation accuracy.
-  
+
   🔐 Secure SaaS – Multi-tenant, role-based, audit-ready.
 
 ## Security & Privacy
@@ -246,3 +246,9 @@ carboniq_mono_repo/
 ```
 
 ---
+
+
+### 📬 Maintainer
+
+Nazmul Alam Diptu
+-  CarbonIQ Platform — Backend & Distributed Systems

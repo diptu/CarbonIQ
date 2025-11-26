@@ -7,8 +7,6 @@ from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from auth_service.app.db.session import engine
-
 
 class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
     """Base class for SQLAlchemy models."""
@@ -48,4 +46,4 @@ class TokenBlacklist(Base):  # pylint: disable=too-few-public-methods
 
 
 # Create table(s) in the database
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)

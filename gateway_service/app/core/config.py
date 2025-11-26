@@ -9,7 +9,7 @@ ENV_FILE = BASE_DIR / ".env"
 
 class Settings(BaseSettings):
     SERVICE_NAME: str = "auth_service"
-    SERVICE_VERSION: str = "1.0.0"
+    SERVICE_VERSION: str = "0.0.1"
     APP_NAME: str | None = None
     APP_ENV: str | None = None
     DEBUG: bool = False
