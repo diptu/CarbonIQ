@@ -36,12 +36,12 @@ class Upload(Base):
     )
     path = Column(
         String(255),
-        nullable=False,
+        nullable=True,
         comment="Filesystem or S3 path to the file",
     )
     size = Column(
         Integer,
-        nullable=False,
+        nullable=True,
         comment="File size in bytes",
     )
     created_at = Column(

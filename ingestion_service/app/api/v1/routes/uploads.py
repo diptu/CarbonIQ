@@ -1,24 +1,25 @@
 import logging
+import shutil
+import tempfile
+import uuid
+from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
-from ingestion_service.app.core.redis import get_redis_client  # your DI for Redis
+from ingestion_service.app.core.config import settings
+from ingestion_service.app.core.redis import get_redis_client
 from ingestion_service.app.crud import uploads as uploads_crud
 from ingestion_service.app.db.session import get_db
 from ingestion_service.app.schemas.uploads import UploadMetaOut
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
-
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
-# -------------------------------
-# Routes
-# -------------------------------
-
-
+# -------------------------------------
+# POST /uploads
+# -------------------------------------
 @router.post("/", response_model=UploadMetaOut, status_code=201)
 async def upload_file(
     background_tasks: BackgroundTasks,
@@ -26,60 +27,58 @@ async def upload_file(
     db: AsyncSession = Depends(get_db),
     redis_client: Optional[Any] = Depends(get_redis_client),
 ):
-    """
-    Upload a file asynchronously:
-    - Streams file to disk with size validation
-    - Persists metadata in DB
-    - Fire-and-forget cache & enqueue via BackgroundTasks
-
-    Handles:
-    - 400 if file exceeds MAX_FILE_SIZE
-    - 500 for unexpected server errors
-    """
     try:
-        meta = await uploads_crud.create_upload(file, db, redis_client)
+        file_id = str(uuid.uuid4())
+        ext = Path(file.filename).suffix
+        dest_filename = f"{file_id}{ext}"
+        upload_dir = Path(settings.UPLOAD_DIR)
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        dest_path = upload_dir / dest_filename
 
-        # Fire-and-forget background tasks for caching and enqueuing
+        # -----------------
+        # Save temp copy immediately (so UploadFile can be closed safely)
+        # -----------------
+        tmp_path = Path(tempfile.gettempdir()) / f"{file_id}{ext}"
+        with open(tmp_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        # -----------------
+        # Save to final destination asynchronously
+        # -----------------
+        size = await uploads_crud.save_file_from_path(tmp_path, dest_path)
+
+        # -----------------
+        # Persist metadata
+        # -----------------
+        meta = await uploads_crud.save_upload_metadata(
+            file_id, file.filename, file.content_type, size, dest_path, db
+        )
+
+        # -----------------
+        # Background tasks: cache & enqueue
+        # -----------------
         if redis_client:
             background_tasks.add_task(
-                uploads_crud.cache_upload_metadata, redis_client, meta["id"], meta
+                uploads_crud.cache_upload_metadata, redis_client, file_id, meta
             )
-            background_tasks.add_task(
-                uploads_crud.enqueue_upload_job, redis_client, meta["id"], meta
-            )
+            background_tasks.add_task(uploads_crud.enqueue_upload_job, redis_client, file_id, meta)
 
         return meta
 
-    except HTTPException:
-        raise
-    except Exception:
-        logger.exception("Unexpected error during file upload")
-        raise HTTPException(
-            status_code=500,
-            detail="An unexpected error occurred while uploading the file.",
-        )
+    except Exception as e:
+        logger.exception(f"Upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Unexpected error while uploading file.")
 
 
+# -------------------------------------
+# GET /uploads/{file_id}
+# -------------------------------------
 @router.get("/{file_id}", response_model=UploadMetaOut)
-async def get_upload(
-    file_id: str,
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Retrieve upload metadata:
-    - Returns Path object for `path` key
-    - 404 if file not found
-    - 500 for unexpected server errors
-    """
+async def get_upload(file_id: str, db: AsyncSession = Depends(get_db)):
     try:
-        meta = await uploads_crud.get_upload(file_id, db)
-        return meta
-
+        return await uploads_crud.get_upload(file_id, db)
     except HTTPException:
         raise
-    except Exception:
-        logger.exception("Unexpected error fetching upload metadata")
-        raise HTTPException(
-            status_code=500,
-            detail="An unexpected error occurred while retrieving the file metadata.",
-        )
+    except Exception as e:
+        logger.exception(f"Get upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Unexpected error fetching upload metadata.")

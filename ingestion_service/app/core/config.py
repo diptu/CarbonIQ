@@ -27,6 +27,7 @@ class Settings(BaseSettings):
 
     # File config
     MAX_FILE_SIZE: int = 10  # in MB
+    CHUNK_SIZE: int = 256
     UPLOAD_DIR: str = "uploads"  # from .env, initially a string
 
     # Redis config
