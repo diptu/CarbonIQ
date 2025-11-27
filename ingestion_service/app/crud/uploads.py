@@ -1,42 +1,80 @@
+import asyncio
 import logging
-import os
 import uuid
-from typing import Optional
+from pathlib import Path
+from typing import Any, Optional
 
+import aiofiles
+import aiofiles.os
 from fastapi import HTTPException, UploadFile, status
 from ingestion_service.app.core.config import settings
 from ingestion_service.app.models.upload import Upload
 from sqlalchemy import insert, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
-# Redis client placeholder; initialize in main.py
-redis = None
+# Redis keys / queue names
+UPLOAD_META_PREFIX = "upload:meta:"
+UPLOAD_QUEUE_NAME = "ingest:queue"
 
 
-async def save_file_to_disk(file: UploadFile, dest_path: str) -> None:
-    """Save UploadFile to disk asynchronously."""
-    import aiofiles
+# -------------------------------
+# Helper Functions
+# -------------------------------
 
+
+async def safe_delete(path: Path):
+    """Safely delete a file asynchronously, log failures."""
     try:
+        await aiofiles.os.remove(path)
+        logger.debug(f"Deleted file: {path}")
+    except FileNotFoundError:
+        logger.info(f"File already deleted: {path}")
+    except OSError as e:
+        logger.warning(f"Failed to delete file {path}: {e}")
+
+
+async def save_file_to_disk(file: UploadFile, dest_path: Path, max_size_mb: float) -> int:
+    """Save UploadFile to disk asynchronously in chunks with max size validation."""
+    try:
+        size = 0
+        max_bytes = max_size_mb * 1024 * 1024
+
         async with aiofiles.open(dest_path, "wb") as out_file:
-            while chunk := await file.read(1024 * 64):  # 64 KB chunks
+            while chunk := await file.read(1024 * 64):  # 64 KB
+                size += len(chunk)
+                if size > max_bytes:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"File exceeds max size of {max_size_mb} MB",
+                    )
                 await out_file.write(chunk)
+
         await file.close()
-        logger.info(f"File saved to {dest_path}")
-    except Exception as e:
-        logger.exception(f"Failed to save file to disk: {e}")
+        logger.debug(f"File saved to {dest_path} ({size} bytes)")
+        return size
+    except HTTPException:
+        raise
+    except OSError as e:
+        logger.exception(f"File system error while saving file: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="File storage failed"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="File storage failed",
         )
 
 
 async def save_upload_metadata(
-    file_id: str, filename: str, content_type: str, size: int, path: str, db: AsyncSession
+    file_id: str,
+    filename: str,
+    content_type: str,
+    size: int,
+    path: Path,
+    db: AsyncSession,
 ) -> dict:
-    """Persist upload metadata to the database."""
+    """Persist upload metadata to the database asynchronously."""
     try:
         async with db.begin():
             stmt = insert(Upload).values(
@@ -44,116 +82,120 @@ async def save_upload_metadata(
                 filename=filename,
                 content_type=content_type,
                 size=size,
-                path=path,
+                path=str(path),
             )
             await db.execute(stmt)
-        logger.info(f"Upload metadata saved: {file_id}")
+
+        logger.debug(f"Upload metadata saved: {file_id}")
         return {
             "id": file_id,
             "filename": filename,
             "content_type": content_type,
             "size": size,
-            "path": path,
+            "path": str(path),
         }
-    except Exception as e:
+    except SQLAlchemyError as e:
         logger.exception(f"Failed to persist upload metadata: {e}")
         raise
 
 
-async def cache_upload_metadata(file_id: str, meta: dict, expire_seconds: int = 3600) -> None:
+async def cache_upload_metadata(
+    redis_client: Optional[Any], file_id: str, meta: dict, expire_seconds: int = 3600
+):
     """Cache upload metadata in Redis (best-effort)."""
-    if redis:
-        try:
-            await redis.set(f"upload:meta:{file_id}", str(meta), ex=expire_seconds)
-        except Exception as e:
-            logger.warning(f"Failed to cache metadata in Redis: {e}")
+    if not redis_client:
+        return
+
+    try:
+        # Determine if the client method is async
+        method = getattr(redis_client, "set", None)
+        if method:
+            result = method(f"{UPLOAD_META_PREFIX}{file_id}", str(meta), ex=expire_seconds)
+            if asyncio.iscoroutine(result):
+                await result
+        logger.debug(f"Cached metadata for {file_id} in Redis")
+    except Exception as e:
+        logger.warning(f"Failed to cache metadata in Redis: {e}")
 
 
-async def enqueue_upload_job(file_id: str, meta: dict) -> None:
+async def enqueue_upload_job(redis_client: Optional[Any], file_id: str, meta: dict):
     """Push a job to Redis queue for downstream processing (best-effort)."""
-    if redis:
-        try:
-            await redis.rpush("ingest:queue", str({"file_id": file_id, "meta": meta}))
-        except Exception as e:
-            logger.warning(f"Failed to enqueue background job: {e}")
+    if not redis_client:
+        return
+
+    try:
+        method = getattr(redis_client, "rpush", None)
+        if method:
+            result = method(UPLOAD_QUEUE_NAME, str({"file_id": file_id, "meta": meta}))
+            if asyncio.iscoroutine(result):
+                await result
+        logger.debug(f"Enqueued job for {file_id} in Redis queue")
+    except Exception as e:
+        logger.warning(f"Failed to enqueue background job: {e}")
 
 
-async def create_upload(file: UploadFile, db: AsyncSession) -> dict:
-    """Handle file upload: validate, save file, persist DB, cache, enqueue."""
+# -------------------------------
+# Main CRUD Functions
+# -------------------------------
+
+
+async def create_upload(
+    file: UploadFile, db: AsyncSession, redis_client: Optional[Any] = None
+) -> dict:
+    """Handle file upload fully asynchronously."""
     content_type = file.content_type or "application/octet-stream"
     file_id = str(uuid.uuid4())
-    filename = os.path.basename(file.filename or "unnamed")
-    _, ext = os.path.splitext(filename)
+    filename = file.filename or "unnamed"
+    ext = Path(filename).suffix
     dest_filename = f"{file_id}{ext}"
 
-    # Get file size in memory (read temporarily to validate)
-    contents = await file.read()
-    size = len(contents)  # bytes
-    size_mb = round(size / (1024 * 1024), 2)
+    # Prepare paths
+    upload_dir = await asyncio.to_thread(lambda: Path(settings.UPLOAD_DIR).resolve())
+    dest_path = upload_dir / dest_filename
+    await asyncio.to_thread(upload_dir.mkdir, parents=True, exist_ok=True)
 
-    # Validate file size before saving
-    if size_mb > settings.MAX_FILE_SIZE:
-        logger.warning(
-            "File upload rejected due to size limit: %s MB > %s MB",
-            size_mb,
-            settings.MAX_FILE_SIZE,
-        )
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"File size cannot exceed {settings.MAX_FILE_SIZE} MB. "
-                f"Current file size is {size_mb} MB."
-            ),
-        )
-
-    # Reset file pointer for saving
-    await file.seek(0)
-
-    # Ensure UPLOAD_DIR exists
-    upload_dir = os.path.abspath(settings.UPLOAD_DIR)
-    os.makedirs(upload_dir, exist_ok=True)
-
-    dest_path = os.path.join(upload_dir, dest_filename)
     logger.info(f"Uploading file {filename} to {dest_path}")
 
-    # Save file to disk
-    await save_file_to_disk(file, dest_path)
+    # Save file asynchronously
+    try:
+        size = await save_file_to_disk(file, dest_path, settings.MAX_FILE_SIZE)
+    except HTTPException:
+        await safe_delete(dest_path)
+        raise
+
+    size_mb = round(size / (1024 * 1024), 2)
 
     # Persist metadata
     try:
         meta = await save_upload_metadata(file_id, filename, content_type, size, dest_path, db)
-        print(f"meta : {meta}")
     except Exception:
-        if os.path.exists(dest_path):
-            os.remove(dest_path)
-            logger.info(f"Removed orphaned file {dest_path}")
+        await safe_delete(dest_path)
         raise
 
-    # Cache metadata & enqueue job
-    await cache_upload_metadata(file_id, meta)
-    await enqueue_upload_job(file_id, meta)
+    # Fire-and-forget caching and enqueue
+    if redis_client:
+        asyncio.create_task(cache_upload_metadata(redis_client, file_id, meta))
+        asyncio.create_task(enqueue_upload_job(redis_client, file_id, meta))
 
-    # Add derived property for MB
     meta["size_mb"] = size_mb
     return meta
 
 
 async def get_upload(file_id: str, db: AsyncSession) -> dict:
-    """Retrieve upload metadata from DB (UUID converted to str)."""
+    """Retrieve upload metadata from DB asynchronously."""
     result = await db.execute(select(Upload).where(Upload.id == file_id))
     upload: Optional[Upload] = result.scalar_one_or_none()
     if not upload:
         raise HTTPException(status_code=404, detail="Upload not found")
 
     size = getattr(upload, "size", 0)
-
     return {
         "id": str(upload.id),
         "filename": upload.filename,
         "content_type": upload.content_type,
         "size": size,
         "size_mb": round(size / (1024 * 1024), 2),
-        "path": upload.path,
+        "path": str(upload.path) if upload.path else None,
         "created_at": upload.created_at,
         "updated_at": upload.updated_at,
     }

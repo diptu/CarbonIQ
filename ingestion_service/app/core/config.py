@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE: int = 10  # in MB
     UPLOAD_DIR: str = "uploads"  # from .env, initially a string
 
+    # Redis config
+    UPSTASH_REDIS_REST_URL: str = None
+    UPSTASH_REDIS_REST_TOKEN: str = None
+
     # Pydantic v2 config
     model_config = SettingsConfigDict(env_file=str(ENV_FILE), extra="ignore")
 
