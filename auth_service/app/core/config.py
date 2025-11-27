@@ -1,7 +1,7 @@
 """Configuration settings for the Auth microservice."""
 
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     """App settings loaded from environment variables."""
 
     # General App Config
-    APP_NAME: str = "multi_tenant_saas"
+    SERVICE_NAME: str = "Auth service"
+    SERVICE_VERSION: str = "0.0.1"
     APP_ENV: str = "development"
     DEBUG: bool = True
 
@@ -28,6 +29,7 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: Optional[str] = None
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost", "http://localhost:3000"]
 
     # Pydantic v2 config
     model_config = SettingsConfigDict(env_file=str(ENV_FILE), extra="ignore")

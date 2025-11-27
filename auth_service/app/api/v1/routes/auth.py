@@ -9,6 +9,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jose import JWTError
 from shared_service.app.core.config import settings
+from shared_service.app.core.deps import fetch_tenant_info
 from shared_service.app.utils.jwt_utils import (
     create_access_token,
     create_refresh_token,
@@ -70,7 +71,7 @@ async def login(request: Request, payload: LoginRequest, db: AsyncSession = Depe
     user_id = str(user_data.get("id"))
     roles = sorted(user_data.get("roles", []))
     permissions = sorted(user_data.get("permissions", []))
-    tenant_id = user_data.get("tenant_id")
+    tenant_id = await fetch_tenant_info(user_id)
 
     # Generate JWT access + refresh tokens
     access_token, access_payload = create_access_token(

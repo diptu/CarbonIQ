@@ -1,29 +1,63 @@
 # Config
 # Middleware
 # Shared response
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
 # Routers
 from gateway_service.app.api.v1.routes import auth, roles, user
 from gateway_service.app.core.config import settings
-from gateway_service.app.middleware.audit import AuditMiddleware
-from gateway_service.app.middleware.auth import AuthMiddleware
-from gateway_service.app.middleware.tracing import TraceMiddleware
+from shared_service.app.middleware.request_context import RequestContextMiddleware
 
+# -------------------------
+# Initialize FastAPI app
+# -------------------------
 app = FastAPI(
-    title="Gateway Service",
-    version="1.0.0",
-    description="API Gateway for User, Auth, and Tenant microservices",
+    title="API Gateway Service",
+    version="0.0.1",
+    description="API responsible for tenant-aware user management, including user creation, role assignment, \
+    permission definition, and retrieval of RBAC metadata. Designed to operate across isolated tenants in a \
+    multi-tenant SaaS environment with strict access boundaries.",
 )
+app.add_middleware(RequestContextMiddleware)
+
+
+SERVER_HEALTH_DOCS = {
+    "summary": "Server health",
+    "description": "Check API server liveness.",
+    "responses": {
+        status.HTTP_200_OK: {"description": "Server is healthy"},
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Server health check failed"},
+    },
+}
+
 
 # -----------------------------
-# Middleware
+# Root Endpoint
 # -----------------------------
-app.add_middleware(TraceMiddleware)
-app.add_middleware(AuthMiddleware)
-app.add_middleware(AuditMiddleware)
+@app.get("/", **SERVER_HEALTH_DOCS)
+async def root():
+    async def server_check() -> bool:
+        """
+        Lightweight internal check.
+        Replace/extend this with:
+        - CPU/memory threshold checks
+        - Internal service checks
+        - Dependency readiness (cache, message broker, etc.)
+        """
+        return True  # Always true unless extended
+
+    is_alive = await server_check()
+
+    return {
+        "status": status.HTTP_200_OK if is_alive else status.HTTP_500_INTERNAL_SERVER_ERROR,
+        "server": "Server is healthy" if is_alive else "Server health check failed",
+        "service": settings.SERVICE_NAME,
+        "version": settings.SERVICE_VERSION,
+    }
+
+
 # -----------------------------
 # CORS
 # -----------------------------
@@ -45,30 +79,6 @@ app.include_router(roles.router)
 # app.include_router(tenant.router)
 
 
-# -----------------------------
-# Root Endpoint
-# -----------------------------
-@app.get("/")
-async def root():
-    return {
-        "service": settings.SERVICE_NAME,
-        "version": settings.SERVICE_VERSION,
-        "status": "running",
-    }
-
-
-# -----------------------------
-# Optional Health Check
-# -----------------------------
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "service": settings.SERVICE_NAME,
-        "version": settings.SERVICE_VERSION,
-    }
-
-
 # -------------------------------------------------------------------
 # 🔒 Custom OpenAPI schema for Bearer token authorization in Swagger
 # -------------------------------------------------------------------
@@ -77,10 +87,11 @@ def custom_openapi():
         return app.openapi_schema
 
     openapi_schema = get_openapi(
-        title="User Service",
-        version="1.0.0",
-        description="API for creating and managing users, assigning roles, defining permissions,\
-              and retrieving RBAC-related metadata used across the multi-tenant system.",
+        title="API Gateway Service",
+        version="0.0.1",
+        description="API responsible for tenant-aware user management, including user creation, role assignment, \
+    permission definition, and retrieval of RBAC metadata. Designed to operate across isolated tenants in a \
+    multi-tenant SaaS environment with strict access boundaries.",
         routes=app.routes,
     )
 

@@ -1,5 +1,5 @@
 def main():
-    print("Hello from gateway-service!")
+    print("Hello from ingestion-service!")
 
 
 if __name__ == "__main__":

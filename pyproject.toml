@@ -5,6 +5,7 @@ description = "Authentication (JWT/OIDC), role-based access."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "aiofiles>=25.1.0",
   "alembic>=1.16.5",
   "asyncpg>=0.30.0",
   "bcrypt>=4.3.0",

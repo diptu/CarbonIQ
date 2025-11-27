@@ -1,31 +1,25 @@
-from fastapi import FastAPI, status
-from fastapi.middleware.cors import CORSMiddleware
+"""User service runner with async table creation and FastAPI initialization."""
+
+from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
+from ingestion_service.app.api.v1.routes import upload_router
+from ingestion_service.app.core.config import settings
+from ingestion_service.app.db.init_db import import_all_models
+from ingestion_service.app.db.session import engine
+from ingestion_service.app.models.upload import Base
 from shared_service.app.middleware.request_context import RequestContextMiddleware
-from user_service.app.db.session import engine
 
-from auth_service.app.api import auth_router
-from auth_service.app.core.config import settings
-
-# Routers
-from auth_service.app.models.token_blacklist import Base
-
+# -------------------------
+# Initialize FastAPI app
+# -------------------------
 app = FastAPI(
-    title="Auth Service",
+    title="User Service",
     version="1.0.0",
-    description="Core authentication and RBAC service providing secure identity management, \
-    token-based authentication for the multi-tenant SaaS platform.",
+    description="API for creating and managing users, assigning roles, defining permissions, \
+        and retrieving RBAC-related metadata used across the multi-tenant system.",
 )
-
-# -------------------------
-# Middlewere
-# -------------------------
 app.add_middleware(RequestContextMiddleware)
-
-
-# -----------------------------
-# Root Endpoint
-# -----------------------------
+from fastapi import status
 
 SERVER_HEALTH_DOCS = {
     "summary": "Server health",
@@ -37,6 +31,9 @@ SERVER_HEALTH_DOCS = {
 }
 
 
+# -----------------------------
+# Root Endpoint
+# -----------------------------
 @app.get("/", **SERVER_HEALTH_DOCS)
 async def root():
     async def server_check() -> bool:
@@ -59,32 +56,47 @@ async def root():
     }
 
 
-# -----------------------------
-# CORS
-# -----------------------------
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# -------------------------
+# Include API routers
+# -------------------------
 
-
-# -----------------------------
-# Routers
-# -----------------------------
-app.include_router(auth_router)
+app.include_router(upload_router)
 
 
 # -------------------------
 # Create tables on startup
 # -------------------------
+# @app.on_event("startup")
+# async def create_tables():
+#     """Create all database tables asynchronously on app startup."""
+#     # Import all models before creating tables
+#     import_all_models()
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.create_all)
+
+
+from sqlalchemy import text
+
+
 @app.on_event("startup")
 async def create_tables():
     """Create all database tables asynchronously on app startup."""
+    import_all_models()  # Ensure all models are registered
+
     async with engine.begin() as conn:
+        # Create tables
         await conn.run_sync(Base.metadata.create_all)
+
+        # Debug: list tables from metadata
+        print("Tables registered in Base.metadata:", list(Base.metadata.tables.keys()))
+
+        # Debug: check actual tables in database
+        result = await conn.run_sync(
+            lambda sync_conn: sync_conn.execute(
+                text("SELECT tablename FROM pg_tables WHERE schemaname='public';")
+            ).fetchall()
+        )
+        print("Tables in database:", [row[0] for row in result])
 
 
 # -------------------------

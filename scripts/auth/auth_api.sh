@@ -1,6 +1,6 @@
 #!/bin/bash
 
-AUTH_URL="http://localhost:8001"
+AUTH_URL="http://localhost:8002"
 USER_URL="http://3.25.65.83:8000"
 EMAIL="admin@apple.com"
 PASSWORD="Hello123"
