@@ -1,4 +1,4 @@
-# CarbonIQ — User Journeys & Functional Permissions
+d d# CarbonIQ — User Journeys & Functional Permissions
 
 **Version:** 1.0
 **Date:** 2026-07-03

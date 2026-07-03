@@ -70,7 +70,7 @@ every page below rather than re-deriving the sidebar/topbar per page.
 - [x] 2. **Dashboard home** — `/dashboard` ← `carboniq_dashboard` (content)
 - [x] 3. **Dashboard lens view** — `/dashboard/lens` ← `ecolens_core_dashboard_lens_view`
 - [x] 4. **Granular impact dashboard** — `/dashboard/impact` ← `ecolens_granular_impact_dashboard`
-- [x] 5. **Data ingestion hub** — `/ingestion` ← `emissions_data_ingestion_hub`
+- [x] 5. **Data ingestion hub** — `/ingestion` ← `emissions_data_ingestion_hub` — **later wired live** to `services/ingestion-service` (see Post-Phase-3 note below); no longer static placeholder data
 - [x] 6. **Data integration & sources hub** — `/integrations` ← `ecolens_data_integration_sources_hub`
 - [x] 7. **Data health & lineage monitor** — `/data-health` ← `ecolens_data_health_lineage_monitor`
       (this mockup and `/integrations` overlap heavily in the source material —
@@ -87,7 +87,35 @@ every page below rather than re-deriving the sidebar/topbar per page.
 New shared components added along the way: `src/components/ui/Sparkline.tsx`
 (reusable SVG line/area chart for the dashboard, AI estimation, scope-2, and
 analytics pages). Charts and tables everywhere use static placeholder data —
-no live data wiring, per the "static pages" scope of this whole TODO.
+no live data wiring, per the "static pages" scope of this whole TODO — **except**
+`/ingestion`, wired live after Phase 3 (see below).
+
+---
+
+## Post-Phase-3 — `/ingestion` wired to `services/ingestion-service`
+
+Once `services/ingestion-service` (FastAPI + Celery + uv) became real, working
+code, `/ingestion` was rebuilt to actually call it instead of rendering
+hardcoded arrays — the first (and so far only) page that isn't purely static.
+
+- `src/lib/ingestion/` — server-only: JWT minting (`auth.ts`, demo HS256 token
+  until `auth-service` exists), a typed fetch client (`client.ts`), and shared
+  types mirroring the backend's Pydantic schemas (`types.ts`).
+- `src/app/api/ingestion/uploads/**` — Next.js Route Handlers that proxy to
+  ingestion-service server-side (BFF pattern) — the browser never sees the
+  backend URL or the JWT secret, and there's no CORS to configure since it's
+  server-to-server.
+- `src/app/(app)/ingestion/IngestionDashboard.tsx` — client component: real
+  file upload (with an explicit Data Type selector, since the backend can't
+  infer `bill_pdf` vs `rec_certificate` from content alone), polls for status
+  changes while anything is non-terminal, and renders Active/Recent sections
+  from live data. The AI Insights / Compliance Guard side panels stay static
+  — there's no `ai-agent-service` yet to back them.
+- Requires `apps/frontend/.env.local` (see `.env.example`) plus
+  `services/ingestion-service` actually running (Postgres/RabbitMQ/Redis/MinIO
+  + `uv run uvicorn` + `uv run celery worker`) for the page to do anything.
+  Without it, the page loads and shows a clear "service unreachable" error
+  banner rather than crashing.
 
 ---
 

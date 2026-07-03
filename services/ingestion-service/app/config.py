@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -54,6 +54,16 @@ class Settings(BaseSettings):
 
     # Upload constraints
     max_upload_size_bytes: int = 25 * 1024 * 1024  # 25 MB
+
+    @field_validator("s3_endpoint_url", "jwt_public_key", "jwt_audience", mode="before")
+    @classmethod
+    def _blank_env_value_as_none(cls, value: object) -> object:
+        """An empty `KEY=` line in .env means "unset", not the literal empty
+        string — without this, `jwt_audience=""` would wrongly turn on
+        audience verification for tokens that were never issued one."""
+        if isinstance(value, str) and value.strip() == "":
+            return None
+        return value
 
 
 @lru_cache

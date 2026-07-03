@@ -15,8 +15,8 @@ _STATUS_CODES = {
     status.HTTP_403_FORBIDDEN: "forbidden",
     status.HTTP_404_NOT_FOUND: "not_found",
     status.HTTP_409_CONFLICT: "conflict",
-    status.HTTP_413_REQUEST_ENTITY_TOO_LARGE: "payload_too_large",
-    status.HTTP_422_UNPROCESSABLE_ENTITY: "validation_error",
+    status.HTTP_413_CONTENT_TOO_LARGE: "payload_too_large",
+    status.HTTP_422_UNPROCESSABLE_CONTENT: "validation_error",
 }
 
 
@@ -40,7 +40,7 @@ async def validation_exception_handler(
     message = first_error.get("msg", "Validation error")
     detail = f"{field}: {message}" if field else message
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content=error_envelope("validation_error", detail),
     )
 

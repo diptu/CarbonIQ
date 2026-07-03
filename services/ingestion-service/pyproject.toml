@@ -28,3 +28,18 @@ dev = [
     "pytest-asyncio>=0.24",
     "ruff>=0.7",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# Alembic autogenerates these to its own style convention, not ours.
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# B008: FastAPI's Depends()-in-default-args is the framework's canonical
+# idiom, not the mutable-default-argument bug this rule targets.
+ignore = ["B008"]

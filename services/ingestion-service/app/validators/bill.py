@@ -18,7 +18,7 @@ def validate_bill_pdf(filename: str, content_type: str, content: bytes) -> Valid
     if content_type != "application/pdf":
         result.add(f"Expected content-type application/pdf, got {content_type}")
 
-    if not content.startswith(_PDF_MAGIC):
+    if not content.startswith(PDF_MAGIC):
         result.add("File does not have a valid PDF header (%PDF-)")
 
     if not filename.lower().endswith(".pdf"):

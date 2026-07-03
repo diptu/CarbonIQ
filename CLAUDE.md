@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repo is a **mix of real, working code and planning scaffolding**. Don't assume uniformly — check each area:
 
-- **`apps/frontend/`** — real, working Next.js 15 + TypeScript app. All 3 implementation phases from `apps/frontend/todo.md` are complete: 37 routes covering the marketing/onboarding funnel, the EcoLens SaaS dashboard, and the verification/admin ecosystem. Static UI only (placeholder data, no live API wiring) — see `apps/frontend/CLAUDE.md` / `AGENTS.md` for frontend-specific conventions. Has a real build/lint/dev toolchain (`npm run build`, `npm run lint`, `npm run dev`).
-- **`services/*`** — planning only. Every service directory holds a one-line placeholder `README.md` ("planned — not yet implemented"), **except** `services/iam-service/` and `services/tenant-service/`, which have real planning content (auth/tenancy model, API shapes — see below). Don't infer implementation details from the placeholders; they exist purely to keep the tree matching the README's Microservices Catalog.
+- **`apps/frontend/`** — real, working Next.js 15 + TypeScript app. All 3 implementation phases from `apps/frontend/todo.md` are complete: 37 routes covering the marketing/onboarding funnel, the EcoLens SaaS dashboard, and the verification/admin ecosystem. Almost all pages are static UI only (placeholder data, no live API wiring) — see `apps/frontend/CLAUDE.md` / `AGENTS.md` for frontend-specific conventions. Has a real build/lint/dev toolchain (`npm run build`, `npm run lint`, `npm run dev`). **Exception: `/ingestion`** is wired live to `services/ingestion-service` via server-only Route Handlers under `src/app/api/ingestion/` (BFF proxy pattern — see `apps/frontend/todo.md`'s "Post-Phase-3" section) and needs `apps/frontend/.env.local` (copy from `.env.example`) plus the backend actually running to do anything.
+- **`services/ingestion-service/`** — real, working FastAPI + Celery + uv backend. File upload/validation API (PDF/image bills, NEM12 CSVs, REC/LGC certificates, PPA contracts) backed by async SQLAlchemy 2 + PostgreSQL + S3(MinIO), with a Celery pipeline (RabbitMQ broker, Redis backend) that structurally validates uploads then dispatches them to `ocr-service`/`energy-data-service`/`offset-service` over HTTP. JWT auth (RS256 prod / HS256 local dev) enforcing the repo's tenant-scoping + envelope-response conventions (see below). Has a real toolchain — see `services/ingestion-service/README.md` for `uv sync` / `uv run uvicorn` / `uv run celery` / `uv run pytest` / `uv run ruff check .` / `uv run alembic upgrade head`.
+- **`services/*`** (all others) — planning only. Every other service directory holds a one-line placeholder `README.md` ("planned — not yet implemented"), **except** `services/iam-service/` and `services/tenant-service/`, which have real planning content (auth/tenancy model, API shapes — see below). Don't infer implementation details from the placeholders; they exist purely to keep the tree matching the README's Microservices Catalog.
 - **`scripts/synthictic_bill_generator.py`** — real, working Python script (generates synthetic Australian energy bills for OCR testing). Everything else under `scripts/` is a placeholder stub.
 - Everything else (`infrastructure/`, `deployments/`, `shared/`, `tools/`, `.github/`, root `docker-compose.yml`/`Makefile`) is placeholder-only.
 
@@ -22,7 +23,7 @@ CarbonIQ/
 │   ├── iam-service/         real planning docs (README.md, example_api.md)
 │   ├── auth-service/        placeholder only
 │   ├── tenant-service/      real planning docs (README.md, example_api.md)
-│   ├── ingestion-service/   placeholder only
+│   ├── ingestion-service/   real FastAPI + Celery + uv backend (see below)
 │   ├── ocr-service/         placeholder only
 │   ├── energy-data-service/ placeholder only
 │   ├── grid-data-service/   placeholder only
@@ -49,7 +50,7 @@ CarbonIQ/
 └── README.md
 ```
 
-Because backend code doesn't exist yet, there are no backend lint/build/test commands to run. For the frontend, `cd apps/frontend` and use `npm run build` / `npm run lint` / `npm run dev` — see `apps/frontend/CLAUDE.md` for details. When backend implementation begins, update this file with the actual commands.
+Most backend services don't exist yet, so most of `services/*` has no lint/build/test commands to run. The two exceptions: for the frontend, `cd apps/frontend` and use `npm run build` / `npm run lint` / `npm run dev` (see `apps/frontend/CLAUDE.md`); for `services/ingestion-service`, `cd services/ingestion-service` and use `uv run pytest` / `uv run ruff check .` / `uv run uvicorn app.main:app --reload` (see `services/ingestion-service/README.md`). When another service's implementation begins, update this file with its actual commands too.
 
 ## Target architecture (per README.md and service docs — mostly not yet built)
 

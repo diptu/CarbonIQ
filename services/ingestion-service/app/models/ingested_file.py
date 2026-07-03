@@ -16,7 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db import Base
 
 
-class FileType(str, enum.Enum):
+class FileType(enum.StrEnum):
     BILL_PDF = "bill_pdf"
     BILL_IMAGE = "bill_image"
     NEM12_CSV = "nem12_csv"
@@ -25,7 +25,7 @@ class FileType(str, enum.Enum):
     PPA_CONTRACT = "ppa_contract"
 
 
-class IngestionStatus(str, enum.Enum):
+class IngestionStatus(enum.StrEnum):
     PENDING = "pending"
     VALIDATING = "validating"
     VALIDATED = "validated"

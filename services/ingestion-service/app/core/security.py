@@ -59,9 +59,9 @@ def decode_token(token: str, settings: Settings) -> dict:
             token,
             key=key,
             algorithms=[settings.jwt_algorithm],
-            audience=settings.jwt_audience,
+            audience=settings.jwt_audience or None,
             issuer=settings.jwt_issuer,
-            options={"verify_aud": settings.jwt_audience is not None},
+            options={"verify_aud": bool(settings.jwt_audience)},
         )
     except jwt.ExpiredSignatureError as exc:
         raise _unauthorized("Access token has expired") from exc
