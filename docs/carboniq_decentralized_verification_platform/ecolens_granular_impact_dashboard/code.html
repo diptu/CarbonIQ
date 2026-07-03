@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EcoLens Engineering Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-highest": "#2d3730",
+                    "on-tertiary-fixed-variant": "#554500",
+                    "background": "#0c150f",
+                    "secondary-fixed": "#b7eaff",
+                    "on-secondary-container": "#00566b",
+                    "surface-bright": "#323c34",
+                    "on-secondary-fixed-variant": "#004e60",
+                    "on-primary": "#00391f",
+                    "on-error-container": "#ffdad6",
+                    "primary": "#f4fff3",
+                    "surface-tint": "#00e38b",
+                    "on-surface": "#dae5da",
+                    "on-error": "#690005",
+                    "outline": "#849587",
+                    "secondary-container": "#14d1ff",
+                    "tertiary-fixed": "#ffe17a",
+                    "surface-container-lowest": "#07100a",
+                    "primary-fixed": "#56ffa8",
+                    "inverse-surface": "#dae5da",
+                    "tertiary-fixed-dim": "#e4c44f",
+                    "on-surface-variant": "#b9cbbc",
+                    "primary-fixed-dim": "#00e38b",
+                    "outline-variant": "#3b4a3f",
+                    "on-primary-fixed": "#002110",
+                    "error": "#ffb4ab",
+                    "on-tertiary-fixed": "#231b00",
+                    "on-tertiary": "#3b2f00",
+                    "tertiary": "#fffaff",
+                    "on-secondary": "#003543",
+                    "on-tertiary-container": "#766000",
+                    "on-primary-container": "#007143",
+                    "primary-container": "#00ff9d",
+                    "on-secondary-fixed": "#001f28",
+                    "on-primary-fixed-variant": "#00522f",
+                    "surface-container-low": "#141e17",
+                    "surface": "#0c150f",
+                    "secondary": "#a6e6ff",
+                    "surface-dim": "#0c150f",
+                    "surface-variant": "#2d3730",
+                    "inverse-on-surface": "#29332b",
+                    "secondary-fixed-dim": "#4cd6ff",
+                    "inverse-primary": "#006d40",
+                    "error-container": "#93000a",
+                    "on-background": "#dae5da",
+                    "tertiary-container": "#ffdd65",
+                    "surface-container-high": "#232c25",
+                    "surface-container": "#18221b"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "container-max": "1280px",
+                    "unit": "4px",
+                    "gutter": "24px",
+                    "margin-desktop": "64px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-sm": ["Geist"],
+                    "label-md": ["Geist"],
+                    "body-sm": ["Inter"],
+                    "headline-md": ["Geist"],
+                    "headline-xl": ["Geist"],
+                    "headline-lg-mobile": ["Geist"],
+                    "headline-lg": ["Geist"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .active-glow {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        .verified-badge-glow {
+            filter: drop-shadow(0 0 4px #00FF9D);
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: 0; }
+        }
+        .animate-dash {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: dash 3s ease-in-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen overflow-x-hidden">
+<!-- Sidebar Component (Shared Component: SideNavBar) -->
+<aside class="fixed left-0 top-0 h-full w-64 z-40 bg-surface-container-low/60 backdrop-blur-xl border-r border-white/10 flex flex-col hidden md:flex">
+<div class="px-6 py-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary-fixed">EcoLens</h1>
+<p class="text-on-surface-variant font-label-md text-label-md">CarbonIQ Microservice</p>
+</div>
+<nav class="flex-1 px-2 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-primary-fixed bg-primary/10 border-r-2 border-primary-fixed transition-all duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest/50 hover:text-on-surface transition-colors" href="#">
+<span class="material-symbols-outlined">dataset</span>
+<span class="font-body-md">Assets</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest/50 hover:text-on-surface transition-colors" href="#">
+<span class="material-symbols-outlined">query_stats</span>
+<span class="font-body-md">Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest/50 hover:text-on-surface transition-colors" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-body-md">Ledger</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest/50 hover:text-on-surface transition-colors" href="#">
+<span class="material-symbols-outlined">verified_user</span>
+<span class="font-body-md">Compliance</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest/50 hover:text-on-surface transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md">Settings</span>
+</a>
+</nav>
+<div class="p-4 mt-auto">
+<button class="w-full bg-primary-container text-on-primary-container font-label-md text-label-md py-3 rounded-lg font-bold flex items-center justify-center gap-2 active-glow hover:brightness-110 transition-all">
+<span class="material-symbols-outlined">add</span>
+                New Analysis
+            </button>
+<div class="mt-6 flex items-center gap-3 px-2">
+<img class="w-10 h-10 rounded-full border border-primary-fixed/30 object-cover" data-alt="Close up professional portrait of a sustainability engineer with a clean tech background, dark green studio lighting, cinematic quality, soft focus background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYZgpsQ41WQTnMMe5UAUQ7LAATtyyiz-lL31duU7IdilmYD3BqEGyS5Mwb2S-qUMAPMRfvQAWqKGQJKwG-o9Ap6BGe-NBAKTcXnzFkGD9Bq5gL7tQWOLW-hNi_WRFlb8qvcMrfuyC98yJcHs5UD745JdUZOJrvn94cmosBehn6MEjnqSAqWxnJpjt-1B5FFGNkie5ZcKEFaXbrsesqzWR9U5ok7B4vh_YlBHZhO-f73CcFXpLPF6M3ewIQth2yD1X3w38PIdQTgjUl"/>
+<div class="overflow-hidden">
+<p class="text-sm font-bold truncate">Alex Chen</p>
+<p class="text-xs text-on-surface-variant truncate">Lead Engineer</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="md:ml-64 min-h-screen flex flex-col">
+<!-- TopAppBar (Shared Component: TopNavBar) -->
+<header class="flex justify-between items-center w-full px-8 md:px-margin-desktop py-4 sticky top-0 z-30 backdrop-blur-md border-b border-white/5 bg-surface-container-lowest/40">
+<div class="flex items-center gap-6 flex-1">
+<div class="relative w-full max-w-md hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-black/20 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm focus:border-primary-fixed focus:ring-0 outline-none transition-all" placeholder="Search systems or nodes..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<!-- Timeframe Toggle -->
+<div class="flex bg-surface-container-high rounded-lg p-1 mr-4">
+<button class="px-3 py-1 text-xs font-label-md rounded bg-primary-fixed text-on-primary-fixed">Real-time</button>
+<button class="px-3 py-1 text-xs font-label-md text-on-surface-variant hover:text-on-surface">Daily</button>
+<button class="px-3 py-1 text-xs font-label-md text-on-surface-variant hover:text-on-surface">Monthly</button>
+<button class="px-3 py-1 text-xs font-label-md text-on-surface-variant hover:text-on-surface">Yearly</button>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary-fixed transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary-fixed transition-colors">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+</div>
+<div class="h-6 w-px bg-white/10 mx-2"></div>
+<button class="text-label-md font-label-md text-on-surface-variant border border-white/10 px-4 py-2 rounded-lg hover:border-primary-fixed/50 transition-colors">Export</button>
+<button class="text-label-md font-label-md bg-primary-fixed text-on-primary-fixed px-4 py-2 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all">Sync Data</button>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="p-8 md:p-margin-desktop grid grid-cols-12 gap-gutter max-w-container-max mx-auto w-full">
+<!-- Impact Score Gauge -->
+<section class="col-span-12 lg:col-span-4 glass-card rounded-xl p-8 flex flex-col items-center justify-center relative overflow-hidden">
+
+<div class="relative z-10 text-center mb-6">
+<h2 class="font-label-md text-label-md uppercase tracking-widest text-primary-fixed">Impact Score</h2>
+<p class="text-on-surface-variant text-xs mt-1">Global ESG Performance Index</p>
+</div>
+<div class="relative w-48 h-48 flex items-center justify-center z-10">
+<svg class="w-full h-full -rotate-90">
+<circle class="text-white/5" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary-fixed active-glow" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-dasharray="552.92" stroke-dashoffset="110.58" stroke-linecap="round" stroke-width="12"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-headline-xl text-headline-xl text-white">82</span>
+<span class="font-label-md text-label-md text-primary-fixed font-bold">OPTIMIZED</span>
+</div>
+</div>
+<div class="mt-8 grid grid-cols-2 gap-8 w-full z-10">
+<div class="text-center">
+<p class="text-xs text-on-surface-variant uppercase mb-1">Status</p>
+<div class="flex items-center justify-center gap-1">
+<span class="w-2 h-2 rounded-full bg-primary-fixed animate-pulse"></span>
+<span class="font-bold text-sm text-primary">Live</span>
+</div>
+</div>
+<div class="text-center">
+<p class="text-xs text-on-surface-variant uppercase mb-1">Trust</p>
+<div class="flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-primary-fixed text-sm verified-badge-glow" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="font-bold text-sm text-primary">Verified</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Real-time Carbon Intensity Sparkline -->
+<section class="col-span-12 lg:col-span-8 glass-card rounded-xl p-8 flex flex-col">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h2 class="font-headline-md text-headline-md text-white mb-1">Carbon Intensity</h2>
+<p class="text-on-surface-variant text-body-sm font-body-sm">gCO₂e per kWh • System-wide Aggregation</p>
+</div>
+<div class="text-right">
+<p class="text-headline-md font-headline-md text-primary-fixed">142.4</p>
+<p class="text-xs text-error flex items-center justify-end gap-1">
+<span class="material-symbols-outlined text-xs">trending_up</span> +2.4% vs last hour
+                        </p>
+</div>
+</div>
+<div class="flex-1 w-full min-h-[160px] relative mt-4">
+<!-- Simple SVG Sparkline visualization -->
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 800 160">
+<defs>
+<lineargradient id="gradient" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#00FF9D" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="#00FF9D" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path class="animate-dash" d="M0 140 Q 50 130, 100 150 T 200 120 T 300 140 T 400 100 T 500 130 T 600 110 T 700 140 T 800 80" fill="none" stroke="#00FF9D" stroke-width="3"></path>
+<path d="M0 140 Q 50 130, 100 150 T 200 120 T 300 140 T 400 100 T 500 130 T 600 110 T 700 140 T 800 80 V 160 H 0 Z" fill="url(#gradient)"></path>
+</svg>
+<!-- Grid Lines -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-10">
+<div class="border-t border-white w-full"></div>
+<div class="border-t border-white w-full"></div>
+</div></div></section></div></main></body></html>

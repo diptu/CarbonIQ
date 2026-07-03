@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Smart Contracts | CarbonIQ Protocol</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed-dim": "#00e38b",
+                    "primary-container": "#00ff9d",
+                    "on-tertiary-fixed": "#231b00",
+                    "on-error": "#690005",
+                    "on-primary": "#00391f",
+                    "surface-container-low": "#141e17",
+                    "background": "#0c150f",
+                    "secondary": "#a6e6ff",
+                    "on-primary-container": "#007143",
+                    "secondary-fixed": "#b7eaff",
+                    "primary": "#f4fff3",
+                    "surface-container": "#18221b",
+                    "inverse-primary": "#006d40",
+                    "surface-dim": "#0c150f",
+                    "on-tertiary-fixed-variant": "#554500",
+                    "surface-bright": "#323c34",
+                    "on-secondary-fixed": "#001f28",
+                    "surface-container-high": "#232c25",
+                    "primary-fixed": "#56ffa8",
+                    "on-primary-fixed-variant": "#00522f",
+                    "outline-variant": "#3b4a3f",
+                    "surface-container-highest": "#2d3730",
+                    "on-secondary-container": "#00566b",
+                    "error-container": "#93000a",
+                    "on-tertiary-container": "#766000",
+                    "secondary-container": "#14d1ff",
+                    "on-surface-variant": "#b9cbbc",
+                    "surface-tint": "#00e38b",
+                    "on-primary-fixed": "#002110",
+                    "surface": "#0c150f",
+                    "inverse-surface": "#dae5da",
+                    "outline": "#849587",
+                    "tertiary": "#fffaff",
+                    "on-tertiary": "#3b2f00",
+                    "tertiary-fixed": "#ffe17a",
+                    "inverse-on-surface": "#29332b",
+                    "secondary-fixed-dim": "#4cd6ff",
+                    "surface-variant": "#2d3730",
+                    "surface-container-lowest": "#07100a",
+                    "on-background": "#dae5da",
+                    "tertiary-fixed-dim": "#e4c44f",
+                    "tertiary-container": "#ffdd65",
+                    "on-secondary": "#003543",
+                    "on-surface": "#dae5da",
+                    "on-secondary-fixed-variant": "#004e60",
+                    "on-error-container": "#ffdad6",
+                    "error": "#ffb4ab"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Geist"],
+                    "body-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-sm": ["Geist"],
+                    "label-md": ["Geist"],
+                    "headline-xl": ["Geist"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Geist"],
+                    "mono": ["JetBrains Mono"]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(0, 255, 157, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.05);
+        }
+        .neon-glow {
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
+        }
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="min-h-screen overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
+<!-- Sidebar Navigation Shell -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest/60 backdrop-blur-xl border-r border-outline-variant/20 flex flex-col py-8 px-4 gap-6 z-50">
+<div class="flex items-center gap-3 px-2 mb-4">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">eco</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-primary-fixed-dim leading-none">CarbonIQ</h2>
+<p class="text-xs text-on-surface-variant font-label-sm tracking-wider uppercase">Mainnet</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 rounded-xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-container/10 text-primary-fixed-dim border-r-2 border-primary-fixed-dim rounded-l-xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined">security</span>
+<span class="font-label-md text-label-md">Protocols</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 rounded-xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined">verified_user</span>
+<span class="font-label-md text-label-md">Verification</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 rounded-xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-label-md text-label-md">Registry</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 rounded-xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined">query_stats</span>
+<span class="font-label-md text-label-md">Analytics</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-outline-variant/20">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-all" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-md text-label-md">Documentation</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 p-margin-desktop min-h-screen">
+<!-- Header Section -->
+<header class="flex justify-between items-end mb-12">
+<div>
+<h1 class="font-headline-xl text-headline-xl text-primary-fixed-dim mb-2">Smart Contracts</h1>
+<p class="text-on-surface-variant text-body-lg max-w-2xl">Manage and interact with the CarbonIQ Protocol's decentralized infrastructure. Securely monitor verification engines and credit registries on-chain.</p>
+</div>
+<button class="bg-primary-container text-on-primary-container px-6 py-3 rounded-full font-label-md text-label-md hover:scale-105 transition-transform duration-150 neon-glow flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+                Connect Wallet
+            </button>
+</header>
+<!-- Bento Grid for Core Contracts -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+<!-- Verification Engine -->
+<div class="glass-card p-6 rounded-2xl flex flex-col gap-4 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-[80px]">gavel</span>
+</div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-primary-container/20 rounded-lg">
+<span class="material-symbols-outlined text-primary-container">verified</span>
+</div>
+<h3 class="font-headline-md text-headline-md">Verification Engine</h3>
+</div>
+<span class="bg-surface-container-highest text-primary-fixed-dim text-xs px-2 py-1 rounded border border-primary-fixed-dim/20">v2.4.1</span>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-black/20 rounded-xl">
+<code class="text-sm font-mono text-on-surface-variant">0x71C...93A2</code>
+<button class="hover:text-primary-container transition-colors"><span class="material-symbols-outlined text-[18px]">content_copy</span></button>
+</div>
+<div class="flex items-center gap-4 mt-2">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-[16px]">shield_lock</span>
+<span class="text-xs font-label-sm">Audited by CertiK</span>
+</div>
+<a class="flex items-center gap-1.5 text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">
+<span class="material-symbols-outlined text-[16px]">open_in_new</span>
+<span class="text-xs font-label-sm">View on Explorer</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Credit Registry -->
+<div class="glass-card p-6 rounded-2xl flex flex-col gap-4 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-[80px]">list_alt</span>
+</div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-secondary/20 rounded-lg">
+<span class="material-symbols-outlined text-secondary">database</span>
+</div>
+<h3 class="font-headline-md text-headline-md">Credit Registry</h3>
+</div>
+<span class="bg-surface-container-highest text-primary-fixed-dim text-xs px-2 py-1 rounded border border-primary-fixed-dim/20">v1.1.0</span>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-black/20 rounded-xl">
+<code class="text-sm font-mono text-on-surface-variant">0x4F2...E881</code>
+<button class="hover:text-primary-container transition-colors"><span class="material-symbols-outlined text-[18px]">content_copy</span></button>
+</div>
+<div class="flex items-center gap-4 mt-2">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-[16px]">shield_lock</span>
+<span class="text-xs font-label-sm">Audited by CertiK</span>
+</div>
+<a class="flex items-center gap-1.5 text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">
+<span class="material-symbols-outlined text-[16px]">open_in_new</span>
+<span class="text-xs font-label-sm">View on Explorer</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Governance DAO -->
+<div class="glass-card p-6 rounded-2xl flex flex-col gap-4 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-[80px]">account_tree</span>
+</div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-tertiary-container/20 rounded-lg">
+<span class="material-symbols-outlined text-tertiary-container">groups</span>
+</div>
+<h3 class="font-headline-md text-headline-md">Governance DAO</h3>
+</div>
+<span class="bg-surface-container-highest text-primary-fixed-dim text-xs px-2 py-1 rounded border border-primary-fixed-dim/20">v3.0.0</span>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-black/20 rounded-xl">
+<code class="text-sm font-mono text-on-surface-variant">0xBE9...77C0</code>
+<button class="hover:text-primary-container transition-colors"><span class="material-symbols-outlined text-[18px]">content_copy</span></button>
+</div>
+<div class="flex items-center gap-4 mt-2">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-[16px]">shield_lock</span>
+<span class="text-xs font-label-sm">Audited by CertiK</span>
+</div>
+<a class="flex items-center gap-1.5 text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">
+<span class="material-symbols-outlined text-[16px]">open_in_new</span>
+<span class="text-xs font-label-sm">View on Explorer</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Oracle Manager -->
+<div class="glass-card p-6 rounded-2xl flex flex-col gap-4 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-[80px]">hub</span>
+</div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-primary-fixed-dim/20 rounded-lg">
+<span class="material-symbols-outlined text-primary-fixed-dim">sensors</span>
+</div>
+<h3 class="font-headline-md text-headline-md">Oracle Manager</h3>
+</div>
+<span class="bg-surface-container-highest text-primary-fixed-dim text-xs px-2 py-1 rounded border border-primary-fixed-dim/20">v1.2.4</span>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-black/20 rounded-xl">
+<code class="text-sm font-mono text-on-surface-variant">0x0A1...DD44</code>
+<button class="hover:text-primary-container transition-colors"><span class="material-symbols-outlined text-[18px]">content_copy</span></button>
+</div>
+<div class="flex items-center gap-4 mt-2">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-[16px]">shield_lock</span>
+<span class="text-xs font-label-sm">Audited by CertiK</span>
+</div>
+<a class="flex items-center gap-1.5 text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">
+<span class="material-symbols-outlined text-[16px]">open_in_new</span>
+<span class="text-xs font-label-sm">View on Explorer</span>
+</a>
+</div>
+</div>
+</div>
+</section>
+<!-- Technical Tabs: Function Explorer & Deployment History -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+<!-- Left: Function Explorer -->
+<div class="xl:col-span-2 flex flex-col gap-6">
+<div class="glass-card p-8 rounded-3xl">
+<div class="flex items-center justify-between mb-8">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container">terminal</span>
+<h2 class="font-headline-md text-headline-md">Function Explorer</h2>
+</div>
+<div class="flex bg-black/20 p-1 rounded-lg">
+<button class="px-4 py-1.5 rounded-md bg-primary-container text-on-primary-container text-label-md font-label-md">Read</button>
+<button class="px-4 py-1.5 rounded-md text-on-surface-variant hover:text-primary-container transition-colors text-label-md font-label-md">Write</button>
+</div>
+</div>
+<div class="space-y-4">
+<!-- Function 1 -->
+<details class="group bg-surface-container-low border border-outline-variant/30 rounded-2xl transition-all">
+<summary class="flex items-center justify-between p-4 cursor-pointer list-none">
+<div class="flex items-center gap-4">
+<span class="font-mono text-primary-container">getVerificationStatus</span>
+<span class="text-xs text-on-surface-variant font-label-sm opacity-50 px-2 py-0.5 border border-outline-variant/30 rounded">view</span>
+</div>
+<span class="material-symbols-outlined group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-4 pb-4 border-t border-outline-variant/30 pt-4">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="space-y-2">
+<p class="text-xs text-on-surface-variant uppercase font-label-sm">Inputs</p>
+<input class="w-full bg-black/20 border border-outline-variant/30 rounded-xl px-4 py-2 text-sm focus:ring-1 focus:ring-primary-container outline-none transition-all" placeholder="assetID (uint256)" type="text"/>
+</div>
+<div class="space-y-2">
+<p class="text-xs text-on-surface-variant uppercase font-label-sm">Actions</p>
+<button class="w-full h-10 bg-surface-container-high text-primary-fixed-dim rounded-xl font-label-md text-sm border border-primary-fixed-dim/20 hover:bg-primary-container hover:text-on-primary-container transition-all">Execute Query</button>
+</div>
+</div>
+</div>
+</details>
+<!-- Function 2 -->
+<details class="group bg-surface-container-low border border-outline-variant/30 rounded-2xl transition-all">
+<summary class="flex items-center justify-between p-4 cursor-pointer list-none">
+<div class="flex items-center gap-4">
+<span class="font-mono text-primary-container">totalSupply</span>
+<span class="text-xs text-on-surface-variant font-label-sm opacity-50 px-2 py-0.5 border border-outline-variant/30 rounded">view</span>
+</div>
+<span class="material-symbols-outlined group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-4 pb-4 border-t border-outline-variant/30 pt-4">
+<div class="flex items-center justify-between">
+<p class="text-sm text-on-surface-variant">Returns the current total supply of Carbon Credits circulating on-chain.</p>
+<button class="bg-surface-container-high text-primary-fixed-dim px-6 h-10 rounded-xl font-label-md text-sm border border-primary-fixed-dim/20 hover:bg-primary-container hover:text-on-primary-container transition-all">Query</button>
+</div>
+</div>
+</details>
+<!-- Function 3 -->
+<details class="group bg-surface-container-low border border-outline-variant/30 rounded-2xl transition-all">
+<summary class="flex items-center justify-between p-4 cursor-pointer list-none">
+<div class="flex items-center gap-4">
+<span class="font-mono text-primary-container">getProjectOracleData</span>
+<span class="text-xs text-on-surface-variant font-label-sm opacity-50 px-2 py-0.5 border border-outline-variant/30 rounded">view</span>
+</div>
+<span class="material-symbols-outlined group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-4 pb-4 border-t border-outline-variant/30 pt-4">
+<div class="space-y-4">
+<input class="w-full bg-black/20 border border-outline-variant/30 rounded-xl px-4 py-2 text-sm focus:ring-1 focus:ring-primary-container outline-none transition-all" placeholder="projectAddress (address)" type="text"/>
+<button class="w-full h-10 bg-surface-container-high text-primary-fixed-dim rounded-xl font-label-md text-sm border border-primary-fixed-dim/20 hover:bg-primary-container hover:text-on-primary-container transition-all">Fetch Data</button>
+</div>
+</div>
+</details>
+</div>
+</div>
+<!-- Integration Snippets -->
+<div class="glass-card p-8 rounded-3xl overflow-hidden">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-secondary">integration_instructions</span>
+<h2 class="font-headline-md text-headline-md">Integration Snippets</h2>
+</div>
+<div class="code-block p-6 rounded-2xl border border-outline-variant/20">
+<div class="flex items-center justify-between mb-4 pb-2 border-b border-outline-variant/10">
+<div class="flex gap-4">
+<span class="text-xs text-primary-container border-b border-primary-container pb-2 cursor-pointer">Javascript</span>
+<span class="text-xs text-on-surface-variant pb-2 cursor-pointer hover:text-on-surface transition-colors">Python</span>
+<span class="text-xs text-on-surface-variant pb-2 cursor-pointer hover:text-on-surface transition-colors">Solidity</span>
+</div>
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant cursor-pointer hover:text-white">content_copy</span>
+</div>
+<pre class="text-sm leading-relaxed overflow-x-auto scrollbar-hide"><span class="text-secondary">const</span> { CarbonIQSDK } = <span class="text-primary-container">require</span>(<span class="text-secondary">'@carboniq/core'</span>);
+
+<span class="text-tertiary-container">async function</span> <span class="text-primary-fixed-dim">getVerification</span>(assetId) {
+  <span class="text-secondary">const</span> sdk = <span class="text-secondary">new</span> <span class="text-primary-fixed-dim">CarbonIQSDK</span>({ network: <span class="text-secondary">'mainnet'</span> });
+  <span class="text-secondary">const</span> result = <span class="text-secondary">await</span> sdk.contracts.engine.<span class="text-primary-fixed-dim">call</span>(<span class="text-secondary">'getVerificationStatus'</span>, [assetId]);
+  
+  <span class="text-primary-container">console</span>.<span class="text-primary-fixed-dim">log</span>(<span class="text-secondary">`Asset ${assetId} status: ${result}`</span>);
+}</pre>
+</div>
+</div>
+</div>
+<!-- Right: Deployment History -->
+<div class="flex flex-col gap-6">
+<div class="glass-card p-8 rounded-3xl h-full">
+<div class="flex items-center gap-3 mb-8">
+<span class="material-symbols-outlined text-tertiary-container">history</span>
+<h2 class="font-headline-md text-headline-md">History</h2>
+</div>
+<div class="relative space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-0 before:w-0.5 before:bg-outline-variant/30">
+<!-- Event 1 -->
+<div class="relative pl-8">
+<div class="absolute left-0 top-1.5 w-6 h-6 rounded-full bg-surface-container border-2 border-primary-container flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-primary-container"></div>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-xs text-on-surface-variant font-label-sm uppercase tracking-wider">Oct 24, 2023 • 14:22</p>
+<h4 class="text-body-md font-semibold text-primary">Proxy Upgrade: Verification Engine</h4>
+<p class="text-sm text-on-surface-variant">Implementation updated to v2.4.1. Optimized gas costs for multi-asset verification by 12%.</p>
+<a class="text-xs text-primary-fixed-dim hover:underline flex items-center gap-1 mt-1" href="#">
+                                    TX: 0x98f2...1a23 <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+</a>
+</div>
+</div>
+<!-- Event 2 -->
+<div class="relative pl-8">
+<div class="absolute left-0 top-1.5 w-6 h-6 rounded-full bg-surface-container border-2 border-secondary flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-xs text-on-surface-variant font-label-sm uppercase tracking-wider">Oct 12, 2023 • 09:15</p>
+<h4 class="text-body-md font-semibold text-primary">Parameter Changed: Registry Fee</h4>
+<p class="text-sm text-on-surface-variant">DAO Governance Vote #82: Reduced verification fee from 0.05 ETH to 0.035 ETH.</p>
+<a class="text-xs text-primary-fixed-dim hover:underline flex items-center gap-1 mt-1" href="#">
+                                    TX: 0x42e1...bb90 <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+</a>
+</div>
+</div>
+<!-- Event 3 -->
+<div class="relative pl-8">
+<div class="absolute left-0 top-1.5 w-6 h-6 rounded-full bg-surface-container border-2 border-tertiary-container flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-tertiary-container"></div>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-xs text-on-surface-variant font-label-sm uppercase tracking-wider">Sep 28, 2023 • 22:45</p>
+<h4 class="text-body-md font-semibold text-primary">Contract Deployed: Oracle Manager</h4>
+<p class="text-sm text-on-surface-variant">Genesis deployment of the decentralized Oracle aggregator for environmental satellite data.</p>
+<a class="text-xs text-primary-fixed-dim hover:underline flex items-center gap-1 mt-1" href="#">
+                                    TX: 0x11c7...44d2 <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+</a>
+</div>
+</div>
+<!-- Event 4 -->
+<div class="relative pl-8 opacity-60">
+<div class="absolute left-0 top-1.5 w-6 h-6 rounded-full bg-surface-container border-2 border-outline-variant flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-xs text-on-surface-variant font-label-sm uppercase tracking-wider">Sep 15, 2023 • 11:00</p>
+<h4 class="text-body-md font-semibold text-primary">Audit Completion</h4>
+<p class="text-sm text-on-surface-variant">CertiK finalized the core protocol security audit. Total score: 98/100.</p>
+</div>
+</div>
+</div>
+<button class="w-full mt-10 py-3 border border-outline-variant/30 rounded-xl text-on-surface-variant hover:bg-surface-container-high transition-colors text-label-md font-label-md">View Full History</button>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Micro-interaction for Copy to Clipboard (Simulation)
+        document.querySelectorAll('button .material-symbols-outlined').forEach(icon => {
+            if (icon.textContent === 'content_copy') {
+                icon.parentElement.addEventListener('click', function() {
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '<span class="material-symbols-outlined text-[18px] text-primary-container">check</span>';
+                    setTimeout(() => {
+                        this.innerHTML = originalText;
+                    }, 2000);
+                });
+            }
+        });
+
+        // Simple entrance animation simulation
+        window.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.glass-card').forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 100 * index);
+            });
+        });
+    </script>
+</body></html>

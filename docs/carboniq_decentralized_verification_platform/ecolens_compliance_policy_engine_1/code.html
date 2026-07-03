@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EcoLens Compliance &amp; Policy Engine</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            backdrop-filter: blur(16px);
+            background: rgba(6, 44, 34, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glow-mint {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            overflow-x: hidden;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0c150f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3730;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00e38b;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#00e38b",
+                        "on-tertiary": "#3b2f00",
+                        "surface-glass": "rgba(6, 44, 34, 0.6)",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-low": "#141e17",
+                        "primary-container": "#00ff9d",
+                        "on-error": "#690005",
+                        "on-surface-variant": "#b9cbbc",
+                        "on-primary-fixed-variant": "#00522f",
+                        "on-tertiary-fixed-variant": "#554500",
+                        "secondary-fixed-dim": "#4cd6ff",
+                        "on-primary": "#00391f",
+                        "outline-variant": "#3b4a3f",
+                        "primary": "#f4fff3",
+                        "secondary-container": "#14d1ff",
+                        "on-secondary-fixed": "#001f28",
+                        "secondary-fixed": "#b7eaff",
+                        "text-on-surface": "#DAE5DA",
+                        "tertiary": "#fffaff",
+                        "tertiary-fixed-dim": "#e4c44f",
+                        "active-glow": "rgba(0, 255, 157, 0.15)",
+                        "inverse-on-surface": "#29332b",
+                        "on-secondary-container": "#00566b",
+                        "on-secondary": "#003543",
+                        "inverse-surface": "#dae5da",
+                        "on-secondary-fixed-variant": "#004e60",
+                        "error": "#ffb4ab",
+                        "surface": "#0c150f",
+                        "surface-container": "#18221b",
+                        "surface-bright": "#323c34",
+                        "on-primary-container": "#007143",
+                        "inverse-primary": "#006d40",
+                        "tertiary-container": "#ffdd65",
+                        "on-tertiary-fixed": "#231b00",
+                        "background-deep": "#0C150F",
+                        "outline": "#849587",
+                        "on-primary-fixed": "#002110",
+                        "border-low-opacity": "rgba(255, 255, 255, 0.1)",
+                        "primary-fixed-dim": "#00e38b",
+                        "secondary": "#a6e6ff",
+                        "text-muted": "#B9CBBC",
+                        "on-tertiary-container": "#766000",
+                        "background": "#0c150f",
+                        "tertiary-fixed": "#ffe17a",
+                        "error-accent": "#FFB4AB",
+                        "surface-dim": "#0c150f",
+                        "on-background": "#dae5da",
+                        "error-container": "#93000a",
+                        "primary-fixed": "#56ffa8",
+                        "on-surface": "#dae5da",
+                        "surface-container-high": "#232c25",
+                        "surface-variant": "#2d3730",
+                        "surface-container-lowest": "#07100a",
+                        "surface-container-highest": "#2d3730"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "margin-desktop": "64px",
+                        "container-max": "1280px",
+                        "unit": "4px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Inter"],
+                        "headline-xl": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "label-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-body-md text-on-surface">
+<!-- SideNavBar Integration -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-surface-glass backdrop-blur-xl border-r border-border-low-opacity shadow-sm flex flex-col py-8 px-4 z-[60]">
+<div class="mb-12">
+<div class="flex items-center gap-3 px-2">
+<div class="w-10 h-10 rounded-lg bg-primary-fixed-dim flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">eco</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary-fixed-dim">EcoLens</h1>
+<p class="text-label-sm font-label-sm text-text-muted">Microservice Compliance</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 text-primary-fixed-dim font-bold border-r-2 border-primary-fixed-dim bg-active-glow transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined">gavel</span>
+<span class="font-body-md">Policy</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant font-medium hover:bg-active-glow hover:text-primary-fixed-dim transition-colors duration-200 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">fact_check</span>
+<span class="font-body-md">Audit</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant font-medium hover:bg-active-glow hover:text-primary-fixed-dim transition-colors duration-200 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md">Reporting</span>
+</a>
+</nav>
+<div class="pt-8 mt-8 border-t border-border-low-opacity space-y-2">
+<button class="w-full py-3 bg-primary-fixed-dim text-on-primary font-bold rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-all mb-4">
+                Generate Report
+            </button>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant font-medium hover:text-primary-fixed-dim transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant font-medium hover:text-primary-fixed-dim transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md">Support</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar Integration -->
+<header class="fixed top-0 right-0 w-[calc(100%-256px)] h-16 bg-surface-glass backdrop-blur-md border-b border-border-low-opacity shadow-sm flex justify-between items-center px-margin-desktop z-50">
+<div class="flex items-center gap-4">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-body-sm">search</span>
+<input class="bg-black/20 border border-border-low-opacity rounded-full pl-10 pr-4 py-1.5 text-label-md focus:border-primary-fixed-dim outline-none transition-all w-64" placeholder="Search system compliance..." type="text"/>
+</div>
+<h2 class="font-headline-md text-headline-md font-bold text-primary-fixed-dim ml-4">Compliance &amp; Policy Engine</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<button class="text-on-surface-variant hover:text-primary-fixed-dim transition-colors font-label-md flex items-center gap-2">
+<span class="material-symbols-outlined">sync</span> Sync System
+                </button>
+<button class="bg-primary-fixed-dim/10 border border-primary-fixed-dim text-primary-fixed-dim px-4 py-1.5 rounded-lg hover:bg-primary-fixed-dim hover:text-on-primary transition-all font-label-md">
+                    Export Data
+                </button>
+</div>
+<div class="h-6 w-[1px] bg-border-low-opacity"></div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary-fixed-dim">notifications</span>
+<div class="w-8 h-8 rounded-full border border-primary-fixed-dim p-0.5">
+<img class="w-full h-full rounded-full object-cover" data-alt="A professional headshot of a female sustainability engineer with a focus on data systems, wearing modern minimalist tech attire. The lighting is crisp with emerald green accents reflecting in the background, creating a high-tech clean energy atmosphere. The style is professional, sharp, and consistent with a corporate technical dashboard aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYDifkEZkMd6CuEwZ-Hxe4fFc_eMBnG8dDa3_VOu7DuJtjxMqEpfRZO0F_1EK853qGEP4pQr3_XgH0ExZLBvVWw7Vob5IPD_pvyNHDzxdBqicETX61_qHPZXrQc_WSTQk5pledso7hgH1Rlir8XDex1CiQ5GBOa3tdrYtqWY7pSBBnxxM7xIKDouSeEr1OjgPy-LJlBVvlmXqdcp7dzKr0BNSI3rQrKhYddxJE_v7gjWst7cz2aNdHMXwuars-BsD8koe462rQnTFW"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-64 pt-24 pb-12 px-margin-desktop min-h-screen">
+<div class="max-w-container-max mx-auto space-y- gutter">
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Section 1: Policy Engine -->
+<section class="col-span-12 lg:col-span-8 glass-card rounded-xl p-8 space-y-8">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-lg text-headline-lg text-primary-fixed-dim">Policy Engine</h3>
+<p class="text-text-muted mt-1">Configure real-time anomaly detection and emission thresholds.</p>
+</div>
+<div class="flex gap-2">
+<span class="bg-primary-fixed-dim/20 text-primary-fixed-dim px-3 py-1 rounded-full text-label-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">bolt</span> Live Monitoring
+                            </span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Controls -->
+<div class="space-y-6">
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<label class="font-label-md text-on-surface">Scope 1 Emissions Limit</label>
+<span class="text-primary-fixed-dim font-bold">42.5 tCO2e</span>
+</div>
+<input class="w-full h-1.5 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-primary-fixed-dim" type="range"/>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<label class="font-label-md text-on-surface">Energy Intensity Cap</label>
+<span class="text-primary-fixed-dim font-bold">180 kW/h</span>
+</div>
+<input class="w-full h-1.5 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-primary-fixed-dim" type="range"/>
+</div>
+<div class="space-y-4">
+<label class="font-label-md text-on-surface block">Anomaly Trigger Action</label>
+<select class="w-full bg-black/40 border border-border-low-opacity rounded-xl px-4 py-3 text-body-md focus:ring-2 focus:ring-primary-fixed-dim outline-none appearance-none">
+<option>Immediate Lockout &amp; Alert</option>
+<option>Log &amp; Soft Warning</option>
+<option>Service Throttling</option>
+<option>Manual Review Request</option>
+</select>
+</div>
+</div>
+<!-- Simulation Sparkline -->
+<div class="bg-black/20 rounded-xl p-6 border border-border-low-opacity relative overflow-hidden group">
+<div class="flex justify-between items-center mb-4">
+<span class="text-label-md font-bold uppercase tracking-wider text-text-muted">Threshold Simulation</span>
+<span class="text-label-sm text-primary-fixed-dim">24h Forecast</span>
+</div>
+<div class="h-32 flex items-end gap-1">
+<!-- Simulated Sparkline Bars -->
+<div class="w-full h-16 bg-primary-fixed-dim/20 rounded-t-sm hover:bg-primary-fixed-dim transition-all" style="height: 40%"></div>
+<div class="w-full h-16 bg-primary-fixed-dim/20 rounded-t-sm hover:bg-primary-fixed-dim transition-all" style="height: 55%"></div>
+<div class="w-full h-16 bg-primary-fixed-dim/20 rounded-t-sm hover:bg-primary-fixed-dim transition-all" style="height: 45%"></div>
+<div class="w-full h-16 bg-primary-fixed-dim/20 rounded-t-sm hover:bg-primary-fixed-dim transition-all" style="height: 70%"></div>
+<div class="w-full h-16 bg-primary-fixed-dim/20 rounded-t-sm hover:bg-primary-fixed-dim transition-all" style="height: 85%"></div>
+<div class="w-full h-16 bg-primary-fixed-dim/20 rounded-t-sm hover:bg-primary-fixed-dim transition-all" style="height: 60%"></div>
+<div class="w-full h-16 bg-primary-fixed-dim/20 rounded-t-sm hover:bg-primary-fixed-dim transition-all" style="height: 40%"></div>
+<div class="w-full h-16 bg-error/40 rounded-t-sm hover:bg-error transition-all" style="height: 95%"></div>
+<div class="w-full h-16 bg-primary-fixed-dim/20 rounded-t-sm hover:bg-primary-fixed-dim transition-all" style="height: 50%"></div>
+<div class="w-full h-16 bg-primary-fixed-dim/20 rounded-t-sm hover:bg-primary-fixed-dim transition-all" style="height: 35%"></div>
+<div class="w-full h-16 bg-primary-fixed-dim/20 rounded-t-sm hover:bg-primary-fixed-dim transition-all" style="height: 45%"></div>
+<div class="w-full h-16 bg-primary-fixed-dim/20 rounded-t-sm hover:bg-primary-fixed-dim transition-all" style="height: 60%"></div>
+</div>
+<div class="absolute inset-0 pointer-events-none bg-gradient-to-t from-primary-fixed-dim/10 to-transparent opacity-50"></div>
+<p class="text-label-sm text-text-muted mt-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-[16px]">warning</span>
+                                Predicted threshold breach at 04:00 AM based on historical load.
+                            </p>
+</div>
+</div>
+</section>
+<!-- Section 2: Reporting Center -->
+<aside class="col-span-12 lg:col-span-4 glass-card rounded-xl p-8 space-y-6">
+<h3 class="font-headline-md text-headline-md text-primary-fixed-dim">Reporting Center</h3>
+<div class="space-y-4">
+<!-- Report Card -->
+<div class="group p-4 rounded-xl bg-surface-container hover:bg-surface-container-high border border-border-low-opacity transition-all">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-variant flex items-center justify-center text-primary-fixed-dim">
+<span class="material-symbols-outlined">article</span>
+</div>
+<div class="flex-1">
+<h4 class="font-body-md font-semibold text-on-surface">Annual ESG Statement</h4>
+<p class="text-label-sm text-text-muted">PDF • Updated 2h ago</p>
+</div>
+</div>
+<div class="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="flex-1 py-2 rounded-lg bg-primary-fixed-dim text-on-primary font-bold text-label-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">download</span> Download
+                                </button>
+<button class="p-2 rounded-lg border border-border-low-opacity text-on-surface hover:border-primary-fixed-dim transition-colors">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</button>
+</div>
+</div>
+<!-- Report Card -->
+<div class="group p-4 rounded-xl bg-surface-container hover:bg-surface-container-high border border-border-low-opacity transition-all">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-variant flex items-center justify-center text-primary-fixed-dim">
+<span class="material-symbols-outlined">data_object</span>
+</div>
+<div class="flex-1">
+<h4 class="font-body-md font-semibold text-on-surface">GHG Protocol Export</h4>
+<p class="text-label-sm text-text-muted">JSON/CSV • Direct API</p>
+</div>
+</div>
+<div class="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="flex-1 py-2 rounded-lg bg-primary-fixed-dim text-on-primary font-bold text-label-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">download</span> Download
+                                </button>
+<button class="p-2 rounded-lg border border-border-low-opacity text-on-surface hover:border-primary-fixed-dim transition-colors">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</button>
+</div>
+</div>
+<!-- Report Card -->
+<div class="group p-4 rounded-xl bg-surface-container hover:bg-surface-container-high border border-border-low-opacity transition-all">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-variant flex items-center justify-center text-error">
+<span class="material-symbols-outlined">priority_high</span>
+</div>
+<div class="flex-1">
+<h4 class="font-body-md font-semibold text-on-surface">Supply Chain Anomaly</h4>
+<p class="text-label-sm text-text-muted">XLSX • 14 unresolved</p>
+</div>
+</div>
+<div class="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="flex-1 py-2 rounded-lg bg-primary-fixed-dim text-on-primary font-bold text-label-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">download</span> Download
+                                </button>
+<button class="p-2 rounded-lg border border-border-low-opacity text-on-surface hover:border-primary-fixed-dim transition-colors">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</button>
+</div>
+</div>
+</div>
+<button class="w-full py-4 rounded-xl border border-dashed border-border-low-opacity text-text-muted hover:text-primary-fixed-dim hover:border-primary-fixed-dim transition-all font-label-md flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">add</span> Schedule Recurring Export
+                    </button>
+</aside>
+<!-- Section 3: Immutable Audit Trail -->
+<section class="col-span-12 glass-card rounded-xl overflow-hidden">
+<div class="p-8 border-b border-border-low-opacity flex justify-between items-center">
+<div>
+<h3 class="font-headline-md text-headline-md text-primary-fixed-dim flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+                                Immutable Audit Trail
+                            </h3>
+<p class="text-text-muted text-label-md">Ledger of all compliance events recorded on distributed block-hash.</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-surface-container-highest px-4 py-2 rounded-lg text-label-md flex items-center gap-2 border border-border-low-opacity">
+<span class="material-symbols-outlined text-[18px]">filter_list</span> Filter Logs
+                            </button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-black/40 text-label-sm font-bold uppercase tracking-widest text-text-muted">
+<tr>
+<th class="px-8 py-4">Timestamp</th>
+<th class="px-8 py-4">Event Type</th>
+<th class="px-8 py-4">Originating Asset</th>
+<th class="px-8 py-4">Status</th>
+<th class="px-8 py-4">Blockchain Hash</th>
+<th class="px-8 py-4">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-low-opacity">
+<tr class="hover:bg-white/[0.02] transition-colors">
+<td class="px-8 py-6 font-mono text-label-sm">2023-10-27 14:22:01</td>
+<td class="px-8 py-6 font-semibold">Threshold Breach</td>
+<td class="px-8 py-6">DataCenter_US-EAST-01</td>
+<td class="px-8 py-6">
+<span class="px-3 py-1 rounded-full bg-error/10 text-error text-[10px] font-extrabold uppercase border border-error/20">Critical</span>
+</td>
+<td class="px-8 py-6 font-mono text-label-sm text-text-muted">0x8f2a...392d</td>
+<td class="px-8 py-6">
+<button class="text-primary-fixed-dim hover:underline text-label-md">View Details</button>
+</td>
+</tr>
+<tr class="hover:bg-white/[0.02] transition-colors">
+<td class="px-8 py-6 font-mono text-label-sm">2023-10-27 12:45:12</td>
+<td class="px-8 py-6 font-semibold">Policy Update</td>
+<td class="px-8 py-6">Compliance_Engine_v4</td>
+<td class="px-8 py-6">
+<span class="px-3 py-1 rounded-full bg-secondary-fixed-dim/10 text-secondary-fixed-dim text-[10px] font-extrabold uppercase border border-secondary-fixed-dim/20">Config</span>
+</td>
+<td class="px-8 py-6 font-mono text-label-sm text-text-muted">0xa1c4...ff29</td>
+<td class="px-8 py-6">
+<button class="text-primary-fixed-dim hover:underline text-label-md">View Details</button>
+</td>
+</tr>
+<tr class="hover:bg-white/[0.02] transition-colors">
+<td class="px-8 py-6 font-mono text-label-sm">2023-10-27 10:11:59</td>
+<td class="px-8 py-6 font-semibold">Periodic Validation</td>
+<td class="px-8 py-6">SupplyChain_Node_77</td>
+<td class="px-8 py-6">
+<span class="px-3 py-1 rounded-full bg-primary-fixed-dim/10 text-primary-fixed-dim text-[10px] font-extrabold uppercase border border-primary-fixed-dim/20">Verified</span>
+</td>
+<td class="px-8 py-6 font-mono text-label-sm text-text-muted">0x2b8e...11a3</td>
+<td class="px-8 py-6">
+<button class="text-primary-fixed-dim hover:underline text-label-md">View Details</button>
+</td>
+</tr>
+<tr class="hover:bg-white/[0.02] transition-colors">
+<td class="px-8 py-6 font-mono text-label-sm">2023-10-27 09:30:00</td>
+<td class="px-8 py-6 font-semibold">Asset Registration</td>
+<td class="px-8 py-6">SolarArray_DE_04</td>
+<td class="px-8 py-6">
+<span class="px-3 py-1 rounded-full bg-primary-fixed-dim/10 text-primary-fixed-dim text-[10px] font-extrabold uppercase border border-primary-fixed-dim/20">Verified</span>
+</td>
+<td class="px-8 py-6 font-mono text-label-sm text-text-muted">0x67d2...cc12</td>
+<td class="px-8 py-6">
+<button class="text-primary-fixed-dim hover:underline text-label-md">View Details</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Micro-interaction Scripts -->
+<script>
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                const value = e.target.value;
+                // Add logic for dynamic glow or numeric update here if needed
+            });
+        });
+
+        // Hover effect for table rows to enhance "high-precision" feel
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            row.addEventListener('mouseenter', () => {
+                row.style.boxShadow = 'inset 4px 0 0 #00e38b';
+            });
+            row.addEventListener('mouseleave', () => {
+                row.style.boxShadow = 'none';
+            });
+        });
+    </script>
+</body></html>

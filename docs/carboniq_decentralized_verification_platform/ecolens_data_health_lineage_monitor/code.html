@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EcoLens | Data Health &amp; Lineage</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .active-glow-effect {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            overflow-x: hidden;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #00e38b;
+            border-radius: 10px;
+        }
+        @keyframes pulse-glow {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+        .animate-pulse-glow {
+            animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-fixed-dim": "#00e38b",
+                      "on-primary-fixed-variant": "#00522f",
+                      "on-primary-fixed": "#002110",
+                      "surface-bright": "#323c34",
+                      "surface-container-highest": "#2d3730",
+                      "text-muted": "#B9CBBC",
+                      "surface-variant": "#2d3730",
+                      "on-secondary-container": "#00566b",
+                      "on-error-container": "#ffdad6",
+                      "on-surface-variant": "#b9cbbc",
+                      "on-tertiary": "#3b2f00",
+                      "surface-glass": "rgba(6, 44, 34, 0.6)",
+                      "on-background": "#dae5da",
+                      "background": "#0c150f",
+                      "tertiary-fixed-dim": "#e4c44f",
+                      "on-tertiary-container": "#766000",
+                      "secondary-container": "#14d1ff",
+                      "tertiary-fixed": "#ffe17a",
+                      "surface-tint": "#00e38b",
+                      "on-secondary-fixed-variant": "#004e60",
+                      "outline-variant": "#3b4a3f",
+                      "primary-container": "#00ff9d",
+                      "inverse-surface": "#dae5da",
+                      "surface-container-low": "#141e17",
+                      "tertiary": "#fffaff",
+                      "error": "#ffb4ab",
+                      "on-primary": "#00391f",
+                      "inverse-primary": "#006d40",
+                      "outline": "#849587",
+                      "on-tertiary-fixed": "#231b00",
+                      "secondary": "#a6e6ff",
+                      "surface": "#0c150f",
+                      "primary": "#f4fff3",
+                      "primary-fixed": "#56ffa8",
+                      "text-on-surface": "#DAE5DA",
+                      "surface-container-lowest": "#07100a",
+                      "background-deep": "#0C150F",
+                      "inverse-on-surface": "#29332b",
+                      "active-glow": "rgba(0, 255, 157, 0.15)",
+                      "surface-dim": "#0c150f",
+                      "error-accent": "#FFB4AB",
+                      "on-secondary-fixed": "#001f28",
+                      "on-surface": "#dae5da",
+                      "tertiary-container": "#ffdd65",
+                      "on-primary-container": "#007143",
+                      "surface-container": "#18221b",
+                      "surface-container-high": "#232c25",
+                      "border-low-opacity": "rgba(255, 255, 255, 0.1)",
+                      "on-error": "#690005",
+                      "on-secondary": "#003543",
+                      "on-tertiary-fixed-variant": "#554500",
+                      "secondary-fixed-dim": "#4cd6ff",
+                      "secondary-fixed": "#b7eaff",
+                      "error-container": "#93000a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-desktop": "64px",
+                      "margin-mobile": "16px",
+                      "gutter": "24px",
+                      "unit": "4px",
+                      "container-max": "1280px"
+              },
+              "fontFamily": {
+                      "label-sm": ["Geist"],
+                      "headline-lg-mobile": ["Geist"],
+                      "headline-md": ["Geist"],
+                      "headline-xl": ["Geist"],
+                      "body-lg": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "headline-lg": ["Geist"],
+                      "body-md": ["Inter"],
+                      "label-md": ["Geist"]
+              },
+              "fontSize": {
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="font-body-md text-on-surface">
+<!-- Global Background Shader -->
+
+<!-- SideNavBar -->
+<aside class="w-64 fixed h-screen left-0 top-0 backdrop-blur-md border-r border-white/10 flex flex-col py-8 px-4 z-50">
+<div class="mb-12 px-2">
+<h1 class="font-headline-md text-headline-md font-bold text-primary-fixed-dim tracking-tighter">EcoLens</h1>
+<p class="font-label-sm text-label-sm text-text-muted">Precision Microservice</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-text-muted opacity-80 hover:bg-white/5 hover:text-primary-fixed-dim transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-text-muted opacity-80 hover:bg-white/5 hover:text-primary-fixed-dim transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md">Analytics</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg bg-active-glow text-primary-fixed-dim font-bold border-r-2 border-primary-fixed-dim active:scale-95 duration-150 shadow-sm" href="#">
+<span class="material-symbols-outlined">health_and_safety</span>
+<span class="font-label-md text-label-md">Data Health</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-text-muted opacity-80 hover:bg-white/5 hover:text-primary-fixed-dim transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">verified_user</span>
+<span class="font-label-md text-label-md">Compliance</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-text-muted opacity-80 hover:bg-white/5 hover:text-primary-fixed-dim transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</nav>
+<button class="mt-auto bg-primary-fixed-dim text-on-primary-fixed px-4 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-95">
+<span class="material-symbols-outlined">add</span>
+<span class="font-label-md text-label-md">New Analysis</span>
+</button>
+</aside>
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-256px)] h-16 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-margin-desktop z-40 shadow-sm">
+<div class="flex items-center gap-8">
+<span class="font-headline-md text-headline-md font-bold text-primary-fixed-dim">Data Health &amp; Lineage</span>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-primary-fixed-dim border-b-2 border-primary-fixed-dim font-label-sm text-label-sm h-16 flex items-center" href="#">Systems</a>
+<a class="text-text-muted hover:text-primary-fixed-dim transition-colors font-label-sm text-label-sm" href="#">Protocols</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-text-muted hover:text-primary-fixed-dim p-2 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="h-8 w-[1px] bg-white/10"></div>
+<button class="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10 hover:border-primary-fixed-dim transition-all">
+<span class="material-symbols-outlined text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">account_circle</span>
+<span class="font-label-sm text-label-sm">Admin_Sys</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 mt-16 p-margin-desktop max-w-container-max mx-auto w-full">
+<!-- Header Section -->
+<div class="mb-12 flex justify-between items-end">
+<div>
+<p class="text-primary-fixed-dim font-label-md text-label-md mb-2 tracking-widest uppercase">System Integrity Dashboard</p>
+<h2 class="font-headline-xl text-headline-xl">Precision Monitoring</h2>
+</div>
+<div class="flex gap-3">
+<button class="px-6 py-2.5 rounded-full border border-white/10 hover:border-primary-fixed-dim font-label-md text-label-md transition-all active:opacity-80">Export Logs</button>
+<button class="px-6 py-2.5 rounded-full bg-primary-fixed-dim text-on-primary-fixed font-bold font-label-md text-label-md hover:shadow-[0_0_15px_rgba(0,227,139,0.4)] transition-all">Sync All Data</button>
+</div>
+</div>
+<!-- Dashboard Grid -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- 1) Data Health Monitor (8 Columns) -->
+<section class="col-span-8 glass-card rounded-xl p-8 active-glow-effect">
+<div class="flex justify-between items-center mb-8">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-fixed-dim text-3xl">sensors</span>
+<h3 class="font-headline-md text-headline-md">Live Connection Hub</h3>
+</div>
+<span class="bg-primary-fixed-dim/10 text-primary-fixed-dim px-3 py-1 rounded-full text-label-sm font-bold flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary-fixed-dim animate-pulse-glow"></span>
+                        98.4% System Uptime
+                    </span>
+</div>
+<div class="space-y-4">
+<!-- Sensor Row -->
+<div class="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/5 hover:border-white/20 transition-all">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary-fixed-dim">thermostat</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md font-bold">HVAC Telemetry Sensors</h4>
+<p class="text-label-sm text-text-muted">Edge Device Cluster 04-A</p>
+</div>
+</div>
+<div class="flex items-center gap-8">
+<div class="text-right">
+<p class="text-label-sm text-text-muted">Latency</p>
+<p class="font-label-md text-label-md text-primary-fixed-dim">12ms</p>
+</div>
+<div class="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+<div class="w-full h-full bg-primary-fixed-dim"></div>
+</div>
+<span class="material-symbols-outlined text-primary-fixed-dim">check_circle</span>
+</div>
+</div>
+<!-- ERP Row -->
+<div class="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/5 hover:border-white/20 transition-all">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-secondary-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary-fixed-dim">database</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md font-bold">SAP/ERP Connector</h4>
+<p class="text-label-sm text-text-muted">Financial Ledger Sync</p>
+</div>
+</div>
+<div class="flex items-center gap-8">
+<div class="text-right">
+<p class="text-label-sm text-text-muted">Last Sync</p>
+<p class="font-label-md text-label-md text-secondary-fixed-dim">2m ago</p>
+</div>
+<div class="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+<div class="w-3/4 h-full bg-secondary-fixed-dim"></div>
+</div>
+<span class="material-symbols-outlined text-secondary-fixed-dim">sync</span>
+</div>
+</div>
+<!-- API Row -->
+<div class="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/5 hover:border-white/20 transition-all">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-tertiary-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary-fixed-dim">cloud_sync</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md font-bold">Grd-Integrate API</h4>
+<p class="text-label-sm text-text-muted">External Utility Pricing Feed</p>
+</div>
+</div>
+<div class="flex items-center gap-8">
+<div class="text-right">
+<p class="text-label-sm text-text-muted">Status</p>
+<p class="font-label-md text-label-md text-error">Reconnecting</p>
+</div>
+<div class="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+<div class="w-1/4 h-full bg-error"></div>
+</div>
+<span class="material-symbols-outlined text-error animate-pulse">warning</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 2) Confidence Scoring visualization (4 Columns) -->
+<section class="col-span-4 glass-card rounded-xl p-8 flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary-fixed-dim">verified</span>
+<h3 class="font-headline-md text-headline-md">Confidence Score</h3>
+</div>
+<div class="relative flex justify-center items-center py-8">
+<svg class="w-48 h-48 transform -rotate-90">
+<circle class="text-white/5" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-width="12"></circle>
+<circle class="text-primary-fixed-dim transition-all duration-1000" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-dasharray="552.92" stroke-dashoffset="66.35" stroke-width="12"></circle>
+</svg>
+<div class="absolute text-center">
+<span class="text-4xl font-bold font-headline-xl">88%</span>
+<p class="text-label-sm text-text-muted uppercase tracking-widest">Global Integrity</p>
+</div>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center text-label-sm">
+<span class="text-primary-fixed-dim flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-primary-fixed-dim"></span> Measured
+                        </span>
+<span class="text-white">74.2 GWh</span>
+</div>
+<div class="flex justify-between items-center text-label-sm">
+<span class="text-text-muted flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-white/20"></span> Estimated (ML)
+                        </span>
+<span class="text-white">10.8 GWh</span>
+</div>
+<div class="pt-4 border-t border-white/5">
+<p class="text-label-sm text-text-muted italic">"Data integrity remains high. 12% reliance on estimation models for missing grid pulses."</p>
+</div>
+</div>
+</section>
+<!-- 3) Input Management section (12 Columns) -->
+<section class="col-span-12 glass-card rounded-xl p-8">
+<div class="flex flex-col md:flex-row gap-12">
+<!-- API Key Config -->
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-8">
+<span class="material-symbols-outlined text-primary-fixed-dim">key</span>
+<h3 class="font-headline-md text-headline-md">Credential Management</h3>
+</div>
+<div class="space-y-6">
+<div>
+<label class="block text-label-sm text-text-muted mb-2">Energy Meter API Gateway</label>
+<div class="relative">
+<input class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 focus:border-primary-fixed-dim focus:ring-0 transition-all font-mono text-sm" type="password" value="************************"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+<div class="flex gap-4">
+<button class="flex-1 py-3 bg-white/5 border border-white/10 rounded-lg font-label-md text-label-md hover:bg-white/10 transition-all">Rotate Keys</button>
+<button class="flex-1 py-3 bg-white/5 border border-white/10 rounded-lg font-label-md text-label-md hover:bg-white/10 transition-all">View Permissions</button>
+</div>
+</div>
+</div>
+<!-- Visual Separator -->
+<div class="hidden md:block w-[1px] bg-white/5"></div>
+<!-- Bulk Upload -->
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-8">
+<span class="material-symbols-outlined text-primary-fixed-dim">upload_file</span>
+<h3 class="font-headline-md text-headline-md">Ingest Legacy Data</h3>
+</div>
+<div class="border-2 border-dashed border-white/10 rounded-xl p-8 flex flex-col items-center justify-center gap-4 hover:border-primary-fixed-dim/40 transition-all cursor-pointer bg-white/[0.02] group">
+<div class="w-16 h-16 rounded-full bg-primary-container/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary-fixed-dim text-3xl">cloud_upload</span>
+</div>
+<div class="text-center">
+<p class="font-label-md text-label-md font-bold mb-1">Bulk CSV / XLSX Dropzone</p>
+<p class="text-label-sm text-text-muted">Maximum file size 500MB per batch</p>
+</div>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-white/5 rounded-full text-[10px] text-text-muted uppercase font-bold border border-white/5">ISO-8601 Ready</span>
+<span class="px-3 py-1 bg-white/5 rounded-full text-[10px] text-text-muted uppercase font-bold border border-white/5">Auto-Validation</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- System Architecture Visualization (Asymmetric Feature) -->
+<div class="mt-gutter grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="glass-card rounded-xl p-8 overflow-hidden relative group h-64">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-8xl">account_tree</span>
+</div>
+<h4 class="font-headline-md text-headline-md mb-2">Lineage Map</h4>
+<p class="text-body-sm text-text-muted mb-6">Trace every data point from its sensor origin to the final executive report.</p>
+<button class="flex items-center gap-2 text-primary-fixed-dim font-bold">
+                    Launch Visualizer <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+<div class="glass-card rounded-xl p-8 md:col-span-2 flex gap-8 items-center overflow-hidden">
+<div class="flex-1">
+<h4 class="font-headline-md text-headline-md mb-2">Protocol: V2.4 Stable</h4>
+<p class="text-body-sm text-text-muted mb-4">Engineering-grade transparency. All data segments are hash-verified for immutable audit trails.</p>
+<div class="flex gap-4">
+<div class="px-4 py-2 bg-white/5 rounded border border-white/10">
+<p class="text-[10px] text-text-muted uppercase">Primary Ledger</p>
+<p class="font-mono text-xs text-primary-fixed-dim">0x882A...F31C</p>
+</div>
+<div class="px-4 py-2 bg-white/5 rounded border border-white/10">
+<p class="text-[10px] text-text-muted uppercase">Validator</p>
+<p class="font-mono text-xs text-secondary-fixed-dim">EcoLens-Node-01</p>
+</div>
+</div>
+</div>
+<div class="w-48 h-full hidden lg:flex items-center justify-center">
+
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-8 ml-64 border-t border-white/5 flex justify-between items-center px-margin-desktop max-w-container-max text-label-sm text-text-muted bg-background-deep">
+<div>
+            © 2024 EcoLens Engineering. Protocol: V2.4 Stable.
+        </div>
+<div class="flex gap-8">
+<a class="hover:text-white transition-colors" href="#">Documentation</a>
+<a class="hover:text-white transition-colors" href="#">API Status</a>
+<a class="hover:text-white transition-colors" href="#">Support</a>
+</div>
+</footer>
+<!-- Interactive Layer: Notification Toast (Simulated Interaction) -->
+<div class="fixed bottom-8 right-8 glass-card border-primary-fixed-dim/30 p-4 rounded-xl flex items-center gap-4 translate-y-32 opacity-0 transition-all duration-500 z-[100] active-glow-effect" id="toast">
+<div class="w-10 h-10 rounded-full bg-primary-fixed-dim flex items-center justify-center text-on-primary-fixed">
+<span class="material-symbols-outlined">refresh</span>
+</div>
+<div>
+<p class="font-bold text-sm">System Resync Complete</p>
+<p class="text-xs text-text-muted">3,421 data points validated successfully.</p>
+</div>
+<button class="ml-4 hover:text-white" onclick="document.getElementById('toast').classList.add('translate-y-32', 'opacity-0')">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<script>
+        // Micro-interaction: Show toast after 2 seconds
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.remove('translate-y-32', 'opacity-0');
+            }, 2000);
+        });
+    </script>
+</body></html>

@@ -1,0 +1,5 @@
+# Status: planned — not yet implemented.
+#
+# Will orchestrate local development: PostgreSQL, Redis, RabbitMQ, the
+# services under services/, apps/gateway, and apps/frontend.
+# See README.md "Local Development" for the intended `docker compose up --build` workflow.

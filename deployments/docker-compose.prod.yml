@@ -1,0 +1,5 @@
+# Status: planned — not yet implemented.
+#
+# Prod-like local stack for pre-deploy verification: same services as
+# docker-compose.yml but built from production Dockerfiles (no hot-reload,
+# no dev volumes) with resource limits matching the target cluster.

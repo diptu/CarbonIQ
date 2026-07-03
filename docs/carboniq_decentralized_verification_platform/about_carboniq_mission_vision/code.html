@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>About | CarbonIQ - Architecting Environmental Trust</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        :root {
+            --neon-mint: #00ff9d;
+            --deep-forest: #062C22;
+        }
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(0, 255, 157, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.05);
+        }
+        .text-glow {
+            text-shadow: 0 0 15px rgba(0, 255, 157, 0.4);
+        }
+        .mint-gradient-text {
+            background: linear-gradient(135deg, #f4fff3 0%, #00ff9d 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0, 255, 157, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error": "#ffb4ab",
+                        "primary-fixed-dim": "#00e38b",
+                        "surface-bright": "#323c34",
+                        "outline-variant": "#3b4a3f",
+                        "surface-container-high": "#232c25",
+                        "outline": "#849587",
+                        "on-primary-container": "#007143",
+                        "on-error-container": "#ffdad6",
+                        "on-surface-variant": "#b9cbbc",
+                        "on-secondary-fixed-variant": "#004e60",
+                        "tertiary": "#fffaff",
+                        "on-primary-fixed-variant": "#00522f",
+                        "primary": "#f4fff3",
+                        "on-background": "#dae5da",
+                        "on-error": "#690005",
+                        "surface-container-highest": "#2d3730",
+                        "on-surface": "#dae5da",
+                        "secondary-fixed": "#b7eaff",
+                        "tertiary-fixed-dim": "#e4c44f",
+                        "surface-container-lowest": "#07100a",
+                        "on-tertiary-container": "#766000",
+                        "on-secondary-container": "#00566b",
+                        "background": "#0c150f",
+                        "primary-fixed": "#56ffa8",
+                        "inverse-primary": "#006d40",
+                        "inverse-on-surface": "#29332b",
+                        "surface-tint": "#00e38b",
+                        "inverse-surface": "#dae5da",
+                        "surface-container-low": "#141e17",
+                        "secondary": "#a6e6ff",
+                        "on-tertiary": "#3b2f00",
+                        "surface": "#0c150f",
+                        "surface-dim": "#0c150f",
+                        "on-tertiary-fixed": "#231b00",
+                        "tertiary-fixed": "#ffe17a",
+                        "on-tertiary-fixed-variant": "#554500",
+                        "primary-container": "#00ff9d",
+                        "secondary-container": "#14d1ff",
+                        "on-primary-fixed": "#002110",
+                        "on-primary": "#00391f",
+                        "secondary-fixed-dim": "#4cd6ff",
+                        "on-secondary-fixed": "#001f28",
+                        "error-container": "#93000a",
+                        "tertiary-container": "#ffdd65",
+                        "surface-variant": "#2d3730",
+                        "on-secondary": "#003543",
+                        "surface-container": "#18221b"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Geist"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-xl": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Geist"],
+                        "headline-lg-mobile": ["Geist"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "gutter": "24px",
+                        "container-max": "1280px",
+                        "margin-desktop": "64px",
+                        "unit": "4px"
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-background/60 backdrop-blur-lg border-b border-white/10 shadow-sm">
+<div class="flex justify-between items-center h-16 px-margin-desktop max-w-container-max mx-auto">
+<div class="font-headline-md text-headline-md font-bold text-primary-container tracking-tight">CarbonIQ</div>
+<div class="hidden md:flex items-center space-x-8">
+<a class="text-on-surface-variant font-medium hover:text-primary-fixed-dim transition-colors duration-200" href="#">Marketplace</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-fixed-dim transition-colors duration-200" href="#">Methodology</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-fixed-dim transition-colors duration-200" href="#">Verify</a>
+<a class="text-primary-container font-bold border-b-2 border-primary-container pb-1 transition-colors duration-200" href="#">About</a>
+</div>
+<button class="bg-primary-container text-on-primary font-bold py-2 px-6 rounded-lg transition-all active:scale-95 hover:bg-primary-fixed-dim shadow-[0_0_15px_rgba(0,255,157,0.3)]">
+                Connect Wallet
+            </button>
+</div>
+</nav>
+<main class="pt-16">
+<!-- Hero Section -->
+<section class="relative min-h-[716px] flex items-center justify-center overflow-hidden px-margin-mobile md:px-margin-desktop">
+<div class="hero-glow -top-20 -left-20"></div>
+<div class="hero-glow bottom-0 right-0 opacity-50"></div>
+<div class="absolute inset-0 z-0">
+<div class="w-full h-full opacity-30 grayscale" data-alt="An ultra-modern, abstract 3D visualization of a carbon cycle represented by flowing digital particles and crystalline geometric structures. The scene is set in a professional dark-mode atmosphere with deep charcoal tones and striking neon mint light rays piercing through the darkness. The style is cinematic and high-tech, evoking the precision of environmental blockchain science." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBvbMaf9HnvUj0Q0wGDQirTjWQiGrrkiuq5m_TQaEhVb4_RSr9iGucxcwIpuSw2kLQ3pGjdV9_AnCs_SqGkigZlW2L507XmvspdQk-ceB34P80kjH3KeVRc2eW6zzXFAz7-sni6R_GJDix27e0tI9e5gNl2sh4rB0vlg5vyU0Pf3yPoIyv4PQ0uZKt0CFWiTzAgkjTE8DGZdiACXqTc5398aH9RFVsrs0a0dUs7w_fFyK5f_ww3fbvTrgGnL-94rITsMhipjIkdnqhh')"></div>
+<div class="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background"></div>
+</div>
+<div class="relative z-10 text-center max-w-4xl">
+<span class="inline-block font-label-md text-label-md text-primary-fixed-dim tracking-[0.2em] mb-6 animate-pulse">ESTABLISHING GLOBAL STANDARDS</span>
+<h1 class="font-headline-xl text-headline-xl md:text-6xl mint-gradient-text mb-8">Architecting the Future of Environmental Trust.</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">
+                    CarbonIQ merges distributed ledger technology with satellite-grade AI to create the world's most robust verification infrastructure for the green economy.
+                </p>
+<div class="mt-12 flex flex-col md:flex-row gap-4 justify-center">
+<button class="px-8 py-4 bg-primary-container text-on-primary font-bold rounded-lg transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(0,255,157,0.4)]">
+                        Launch Explorer
+                    </button>
+<button class="px-8 py-4 bg-transparent border border-white/20 text-on-surface font-bold rounded-lg transition-all hover:bg-white/5 backdrop-blur-md">
+                        Read Whitepaper
+                    </button>
+</div>
+</div>
+</section>
+<!-- Mission & Vision Section -->
+<section class="py-24 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<div class="glass-card p-10 rounded-2xl relative group overflow-hidden">
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-primary-container/10 rounded-full blur-3xl group-hover:bg-primary-container/20 transition-all"></div>
+<div class="flex items-center gap-4 mb-6">
+<span class="material-symbols-outlined text-primary-container text-4xl" data-weight="fill">target</span>
+<h2 class="font-headline-lg text-headline-lg">Our Mission</h2>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+                        To decentralize environmental integrity by providing the world's most accurate and transparent carbon verification engine. We empower stakeholders with verifiable proof, eliminating greenwashing through code and climate science.
+                    </p>
+</div>
+<div class="glass-card p-10 rounded-2xl relative group overflow-hidden">
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-secondary-container/10 rounded-full blur-3xl group-hover:bg-secondary-container/20 transition-all"></div>
+<div class="flex items-center gap-4 mb-6">
+<span class="material-symbols-outlined text-secondary-container text-4xl" data-weight="fill">visibility</span>
+<h2 class="font-headline-lg text-headline-lg">Our Vision</h2>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+                        A global economy where every environmental claim is backed by immutable data and verified intelligence. We envision a future where climate action is as liquid and transparent as global finance.
+                    </p>
+</div>
+</div>
+</section>
+<!-- Core Values Section -->
+<section class="py-24 bg-surface-container-low px-margin-mobile md:px-margin-desktop">
+<div class="max-w-container-max mx-auto">
+<div class="text-center mb-16">
+<h2 class="font-headline-lg text-headline-lg mb-4">Core Principles</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Built on the foundation of scientific rigor and cryptographic truth.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Value 1 -->
+<div class="flex flex-col items-center text-center p-8">
+<div class="w-16 h-16 rounded-2xl bg-primary-container/10 flex items-center justify-center mb-6 border border-primary-container/20">
+<span class="material-symbols-outlined text-primary-container text-3xl" data-weight="fill">shield_lock</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Radical Transparency</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Every verification event is recorded on-chain, accessible to anyone, anywhere, forever.</p>
+</div>
+<!-- Value 2 -->
+<div class="flex flex-col items-center text-center p-8">
+<div class="w-16 h-16 rounded-2xl bg-secondary-container/10 flex items-center justify-center mb-6 border border-secondary-container/20">
+<span class="material-symbols-outlined text-secondary-container text-3xl" data-weight="fill">neurology</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">AI-Driven Precision</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Advanced machine learning models analyze multi-spectral satellite imagery to detect anomalies.</p>
+</div>
+<!-- Value 3 -->
+<div class="flex flex-col items-center text-center p-8">
+<div class="w-16 h-16 rounded-2xl bg-tertiary-fixed-dim/10 flex items-center justify-center mb-6 border border-tertiary-fixed-dim/20">
+<span class="material-symbols-outlined text-tertiary-fixed-dim text-3xl" data-weight="fill">account_balance_wallet</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Decentralized Trust</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Distributed validator networks ensure no single entity can manipulate environmental data.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Our Story Section -->
+<section class="py-32 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto overflow-hidden">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+<div class="relative">
+<div class="absolute -z-10 w-full h-full bg-primary-container/5 rounded-full blur-[100px] -left-20"></div>
+<div class="aspect-square rounded-3xl overflow-hidden border border-white/10 glass-card">
+<img class="w-full h-full object-cover" data-alt="A futuristic laboratory scene where high-end computer terminals display complex global temperature maps and blockchain ledger streams. Scientists in modern, minimalist apparel are working at sleek workstations, surrounded by lush green vertical gardens and glowing biological monitors. The lighting is low-key with vibrant neon mint accents, creating a professional and visionary climate-tech atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsIivGrbRWfYPMFlwVaX6KxoT9UvQfSL9Em0A9o_Dt_-KYtzOKo-3KC1JD-1xwXdG2TzqA8LdzxOGixW_cel_6EIcgm9ypbrv1Yx47bVXtoBJ5HrpFbzJrMcCMo6TqrhgDEiYbZzGhz9SFlFn8PGTyGEGCWBPXDSgpYhk2zjBr7e7HBsa-AXcWEEkMtNZMV_fwGH7mxx9COv4Oq5mNh48tKJVHzyMQQz90jgZCKxdbtfCnTsXdWRjyREO2d5S8QUM3V-sGA4cySef1"/>
+</div>
+<!-- Stats Overlay -->
+<div class="absolute -bottom-10 -right-10 glass-card p-6 rounded-2xl border-primary-container/20 hidden md:block">
+<div class="text-primary-container font-headline-md text-3xl mb-1">50M+</div>
+<div class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">Tons Verified</div>
+</div>
+</div>
+<div>
+<h2 class="font-headline-lg text-headline-lg mb-8">Our Story</h2>
+<div class="space-y-6 font-body-lg text-body-lg text-on-surface-variant">
+<p>
+                            Born at the intersection of climate science and cryptographic innovation, CarbonIQ began with a single question: <span class="text-on-surface font-semibold italic">How do we trust the invisible?</span>
+</p>
+<p>
+                            In 2021, our founders—a collective of remote sensing engineers and decentralized finance architects—recognized a fatal flaw in the voluntary carbon market: a profound lack of real-time, immutable verification.
+                        </p>
+<p>
+                            We built CarbonIQ to bridge this gap. By leveraging the speed of AI to analyze ecological shifts and the permanence of blockchain to store that intelligence, we've created a "Source of Truth" for the planet. Today, we stand as the definitive layer of trust for institutional investors and climate advocates alike.
+                        </p>
+</div>
+<div class="mt-10 flex gap-12">
+<div>
+<div class="text-on-surface font-headline-md">2021</div>
+<div class="text-on-surface-variant font-label-sm">Founded</div>
+</div>
+<div>
+<div class="text-on-surface font-headline-md">120+</div>
+<div class="text-on-surface-variant font-label-sm">Nodes Active</div>
+</div>
+<div>
+<div class="text-on-surface font-headline-md">14</div>
+<div class="text-on-surface-variant font-label-sm">Protocols Supported</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="py-24 px-margin-mobile md:px-margin-desktop mb-12">
+<div class="max-w-container-max mx-auto glass-card rounded-[2rem] p-12 md:p-24 text-center border-primary-container/30 relative overflow-hidden">
+<div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,255,157,0.05)_0%,transparent_70%)]"></div>
+<h2 class="font-headline-xl text-headline-xl mb-6 relative z-10">Join the Verification Revolution</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto mb-10 relative z-10">
+                    Ready to explore the most transparent ledger of environmental impact? Start tracking verified carbon offsets today.
+                </p>
+<div class="flex flex-col md:flex-row gap-4 justify-center relative z-10">
+<button class="px-10 py-5 bg-primary-container text-on-primary font-extrabold rounded-full transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(0,255,157,0.4)]">
+                        Enter Marketplace
+                    </button>
+<button class="px-10 py-5 bg-white/10 backdrop-blur-md text-on-surface font-bold rounded-full transition-all hover:bg-white/20 border border-white/10">
+                        Contact Sales
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest w-full py-12 border-t border-white/5">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter px-margin-desktop max-w-container-max mx-auto">
+<div class="flex flex-col gap-4">
+<div class="font-headline-md text-headline-md text-on-surface">CarbonIQ</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-sm">
+                    © 2024 CarbonIQ. Verification for a Greener Future. All environmental data is cryptographic proof and mathematically verified.
+                </p>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-8">
+<div class="flex flex-col gap-2">
+<span class="font-label-md text-label-md text-primary-fixed-dim uppercase tracking-tighter">Resources</span>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary-container transition-colors" href="#">Documentation</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary-container transition-colors" href="#">Github</a>
+</div>
+<div class="flex flex-col gap-2">
+<span class="font-label-md text-label-md text-primary-fixed-dim uppercase tracking-tighter">Legal</span>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary-container transition-colors" href="#">Privacy Policy</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary-container transition-colors" href="#">Terms of Service</a>
+</div>
+<div class="flex flex-col gap-2">
+<span class="font-label-md text-label-md text-primary-fixed-dim uppercase tracking-tighter">Social</span>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary-container transition-colors" href="#">Twitter</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary-container transition-colors" href="#">Contact</a>
+</div>
+</div>
+</div>
+</footer>
+<script>
+        // Micro-interaction for mouse movement glow
+        document.addEventListener('mousemove', (e) => {
+            const glows = document.querySelectorAll('.hero-glow');
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+            
+            glows.forEach((glow, index) => {
+                const moveFactor = (index + 1) * 20;
+                glow.style.transform = `translate(${x * moveFactor}px, ${y * moveFactor}px)`;
+            });
+        });
+
+        // Intersection Observer for fade-in animations
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-10');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.glass-card, section h2, .grid > div').forEach(el => {
+            el.classList.add('transition-all', 'duration-700', 'opacity-0', 'translate-y-10');
+            observer.observe(el);
+        });
+    </script>
+</body></html>

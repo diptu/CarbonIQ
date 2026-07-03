@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Data Integration &amp; Sources | EcoLens</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(0, 255, 157, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.05);
+        }
+        .active-glow {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        .status-pulse {
+            position: relative;
+        }
+        .status-pulse::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.4;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.4; }
+            50% { transform: scale(2); opacity: 0; }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #00e38b;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "border-low-opacity": "rgba(255, 255, 255, 0.1)",
+                        "on-error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#4cd6ff",
+                        "secondary-fixed": "#b7eaff",
+                        "on-tertiary-fixed": "#231b00",
+                        "on-surface-variant": "#b9cbbc",
+                        "surface-variant": "#2d3730",
+                        "primary-fixed-dim": "#00e38b",
+                        "surface-tint": "#00e38b",
+                        "on-primary-fixed": "#002110",
+                        "on-surface": "#dae5da",
+                        "surface-container-low": "#141e17",
+                        "on-primary-fixed-variant": "#00522f",
+                        "text-muted": "#B9CBBC",
+                        "outline-variant": "#3b4a3f",
+                        "surface-dim": "#0c150f",
+                        "secondary": "#a6e6ff",
+                        "text-on-surface": "#DAE5DA",
+                        "surface-container-high": "#232c25",
+                        "on-secondary-container": "#00566b",
+                        "secondary-container": "#14d1ff",
+                        "error": "#ffb4ab",
+                        "outline": "#849587",
+                        "tertiary": "#fffaff",
+                        "surface-container-highest": "#2d3730",
+                        "surface": "#0c150f",
+                        "tertiary-fixed-dim": "#e4c44f",
+                        "primary-container": "#00ff9d",
+                        "tertiary-container": "#ffdd65",
+                        "on-primary-container": "#007143",
+                        "background": "#0c150f",
+                        "surface-container-lowest": "#07100a",
+                        "on-secondary": "#003543",
+                        "on-primary": "#00391f",
+                        "on-background": "#dae5da",
+                        "inverse-primary": "#006d40",
+                        "surface-glass": "rgba(6, 44, 34, 0.6)",
+                        "error-accent": "#FFB4AB",
+                        "error-container": "#93000a",
+                        "primary": "#f4fff3",
+                        "on-secondary-fixed": "#001f28",
+                        "inverse-on-surface": "#29332b",
+                        "tertiary-fixed": "#ffe17a",
+                        "background-deep": "#0C150F",
+                        "active-glow": "rgba(0, 255, 157, 0.15)",
+                        "on-error": "#690005",
+                        "primary-fixed": "#56ffa8",
+                        "surface-bright": "#323c34",
+                        "surface-container": "#18221b",
+                        "on-tertiary-container": "#766000",
+                        "inverse-surface": "#dae5da",
+                        "on-tertiary-fixed-variant": "#554500",
+                        "on-secondary-fixed-variant": "#004e60",
+                        "on-tertiary": "#3b2f00"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-xl": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "label-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background-deep text-on-surface selection:bg-primary-fixed-dim/30">
+<!-- SIDEBAR -->
+<aside class="w-64 fixed h-screen left-0 top-0 backdrop-blur-md border-r border-white/10 flex flex-col py-8 px-4 z-50">
+<div class="mb-10 px-2">
+<span class="font-headline-md text-headline-md font-bold text-primary-fixed-dim tracking-tighter">EcoLens</span>
+<p class="text-[10px] text-text-muted tracking-widest uppercase mt-1">Precision Microservice</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-text-muted opacity-80 hover:bg-white/5 hover:text-primary-fixed-dim transition-all active:scale-95 duration-150 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-text-muted opacity-80 hover:bg-white/5 hover:text-primary-fixed-dim transition-all active:scale-95 duration-150 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                Analytics
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl bg-active-glow text-primary-fixed-dim font-bold border-r-2 border-primary-fixed-dim font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">health_and_safety</span>
+                Data Health
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-text-muted opacity-80 hover:bg-white/5 hover:text-primary-fixed-dim transition-all active:scale-95 duration-150 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">verified_user</span>
+                Compliance
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-text-muted opacity-80 hover:bg-white/5 hover:text-primary-fixed-dim transition-all active:scale-95 duration-150 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</nav>
+<div class="mt-auto pt-6 border-t border-white/5">
+<button class="w-full py-3 px-4 bg-primary-fixed-dim text-on-primary font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 font-label-md">
+<span class="material-symbols-outlined text-lg">add</span>
+                New Analysis
+            </button>
+</div>
+</aside>
+<!-- TOP NAV -->
+<header class="fixed top-0 right-0 w-[calc(100%-256px)] h-16 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-margin-desktop z-40">
+<div class="flex items-center gap-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary-fixed-dim">Data Integration</h1>
+<nav class="flex gap-6">
+<a class="text-primary-fixed-dim border-b-2 border-primary-fixed-dim py-5 font-label-sm text-label-sm" href="#">Systems</a>
+<a class="text-text-muted hover:text-primary-fixed-dim transition-colors py-5 font-label-sm text-label-sm" href="#">Protocols</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center bg-surface-container-low rounded-full px-4 py-1.5 border border-white/5">
+<span class="material-symbols-outlined text-sm text-text-muted mr-2">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-label-sm w-48 text-on-surface placeholder:text-text-muted/50" placeholder="Search sources..." type="text"/>
+</div>
+<button class="p-2 text-text-muted hover:text-primary-fixed-dim transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-primary-fixed-dim/30">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a female sustainability engineer with a focused expression, wearing a clean technical vest. The background is a blurred high-tech lab with glowing green LED accents and translucent glass interfaces, matching the EcoLens emerald and obsidian aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAR0zTV1rK_qFnepKL6jDEMGawMwCNuVXiXhm_sovec6iQdLbTQZTGLRQfuu8jrhhFojyFoilehyeAlQd081y6W9DLRv07YqsTqPt5eSAj6sUK9pJnDJFMezfX-7Mz8PbulaRK8VBAx3MuF_bIPw2HFuSy4lkAboLq4W-x2GSwT-7TRA5RRkCnY4T2WGUDVSJfYaQj5ZcFH7DlPArolyJ-vlzm0-MMFgBWcZhqSH6-wRI84VATEdoAm3Lzf6oSs-uOl41cfJq0jY7cD"/>
+</div>
+</div>
+</header>
+<!-- MAIN CONTENT -->
+<main class="ml-64 pt-24 pb-16 px-margin-desktop max-w-container-max mx-auto">
+<!-- HEADER SECTION -->
+<section class="mb-10 flex justify-between items-end">
+<div>
+<p class="text-primary-fixed-dim font-label-md uppercase tracking-widest mb-2">System Core</p>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Integration Control Center</h2>
+<p class="text-text-muted mt-2 max-w-xl">Monitor and manage bidirectional data flows between local telemetry nodes and global reporting standards.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-5 py-2.5 rounded-full border border-white/10 hover:border-primary-fixed-dim/50 text-label-md transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">sync</span> Sync Data
+                </button>
+<button class="px-5 py-2.5 rounded-full border border-white/10 hover:border-primary-fixed-dim/50 text-label-md transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">download</span> Export
+                </button>
+</div>
+</section>
+<!-- BENTO GRID -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- DATA HEALTH MONITOR (SPAN 8) -->
+<div class="col-span-8 glass-card rounded-3xl p-8">
+<div class="flex justify-between items-center mb-8">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-fixed-dim">sensors</span>
+<h3 class="font-headline-md text-headline-md">Real-time Connectivity</h3>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-lowest px-3 py-1.5 rounded-full border border-white/5">
+<span class="w-2 h-2 rounded-full bg-primary-fixed-dim status-pulse"></span>
+<span class="text-label-sm font-label-sm text-primary-fixed-dim">All Systems Operational</span>
+</div>
+</div>
+<div class="space-y-4">
+<!-- Source Row 1 -->
+<div class="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-primary-fixed-dim/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary-fixed-dim">thermostat</span>
+</div>
+<div>
+<h4 class="font-label-md text-on-surface">HVAC Telemetry</h4>
+<p class="text-label-sm text-text-muted">Edge Node Cluster A-14</p>
+</div>
+</div>
+<div class="flex items-center gap-12">
+<div class="text-right">
+<p class="text-label-sm text-text-muted mb-1">Latency</p>
+<p class="text-label-md text-primary-fixed-dim font-bold">12ms</p>
+</div>
+<div class="px-4 py-1.5 rounded-full bg-primary-fixed-dim/10 text-primary-fixed-dim border border-primary-fixed-dim/20 text-label-sm">Active</div>
+<button class="material-symbols-outlined text-text-muted hover:text-on-surface">more_vert</button>
+</div>
+</div>
+<!-- Source Row 2 -->
+<div class="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-secondary-fixed-dim/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary-fixed-dim">corporate_fare</span>
+</div>
+<div>
+<h4 class="font-label-md text-on-surface">SAP/ERP Connector</h4>
+<p class="text-label-sm text-text-muted">Enterprise Data Bridge</p>
+</div>
+</div>
+<div class="flex items-center gap-12">
+<div class="text-right">
+<p class="text-label-sm text-text-muted mb-1">Latency</p>
+<p class="text-label-md text-secondary-fixed-dim font-bold">450ms</p>
+</div>
+<div class="px-4 py-1.5 rounded-full bg-secondary-fixed-dim/10 text-secondary-fixed-dim border border-secondary-fixed-dim/20 text-label-sm">Syncing</div>
+<button class="material-symbols-outlined text-text-muted hover:text-on-surface">more_vert</button>
+</div>
+</div>
+<!-- Source Row 3 -->
+<div class="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-tertiary-fixed-dim/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary-fixed-dim">electric_bolt</span>
+</div>
+<div>
+<h4 class="font-label-md text-on-surface">Grd-Integrate</h4>
+<p class="text-label-sm text-text-muted">Utility Provider API</p>
+</div>
+</div>
+<div class="flex items-center gap-12">
+<div class="text-right">
+<p class="text-label-sm text-text-muted mb-1">Latency</p>
+<p class="text-label-md text-tertiary-fixed-dim font-bold">-- ms</p>
+</div>
+<div class="px-4 py-1.5 rounded-full bg-tertiary-fixed-dim/10 text-tertiary-fixed-dim border border-tertiary-fixed-dim/20 text-label-sm">Reconnecting</div>
+<button class="material-symbols-outlined text-text-muted hover:text-on-surface">more_vert</button>
+</div>
+</div>
+</div>
+</div>
+<!-- CONFIDENCE SCORING (SPAN 4) -->
+<div class="col-span-4 glass-card rounded-3xl p-8 overflow-hidden relative">
+<div class="absolute -top-10 -right-10 w-40 h-40 bg-primary-fixed-dim/5 blur-3xl rounded-full"></div>
+<div class="relative z-10">
+<div class="flex items-center gap-3 mb-8">
+<span class="material-symbols-outlined text-primary-fixed-dim">verified</span>
+<h3 class="font-headline-md text-headline-md">Quality Index</h3>
+</div>
+<div class="space-y-6">
+<!-- Segment 1 -->
+<div>
+<div class="flex justify-between items-end mb-2">
+<span class="text-label-md font-bold">Scope 1: Direct Combustion</span>
+<span class="text-label-sm text-primary-fixed-dim font-bold">98.4% Reliability</span>
+</div>
+<div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-primary-fixed-dim active-glow" style="width: 98.4%"></div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] text-text-muted uppercase tracking-tighter">
+<span>100% Measured</span>
+<span>0% Estimated</span>
+</div>
+</div>
+<!-- Segment 2 -->
+<div>
+<div class="flex justify-between items-end mb-2">
+<span class="text-label-md font-bold">Scope 2: Purchased Energy</span>
+<span class="text-label-sm text-primary-fixed-dim font-bold">92.1% Reliability</span>
+</div>
+<div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-primary-fixed-dim active-glow" style="width: 92.1%"></div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] text-text-muted uppercase tracking-tighter">
+<span>85% Measured</span>
+<span>15% Estimated (ML)</span>
+</div>
+</div>
+<!-- Segment 3 -->
+<div>
+<div class="flex justify-between items-end mb-2">
+<span class="text-label-md font-bold">Scope 3: Supply Chain</span>
+<span class="text-label-sm text-secondary-fixed-dim font-bold">64.5% Reliability</span>
+</div>
+<div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-secondary-fixed-dim" style="width: 64.5%"></div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] text-text-muted uppercase tracking-tighter">
+<span>12% Measured</span>
+<span>88% Estimated (ML)</span>
+</div>
+</div>
+</div>
+<a class="mt-8 block text-center py-3 border border-white/10 rounded-xl hover:bg-white/5 transition-all text-label-sm flex items-center justify-center gap-2" href="#">
+                        View Detailed Audit Trail <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- INPUT MANAGEMENT (SPAN 12) -->
+<div class="col-span-12 grid grid-cols-2 gap-gutter">
+<!-- API KEY MANAGEMENT -->
+<div class="glass-card rounded-3xl p-8">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary-fixed-dim">key</span>
+<h3 class="font-headline-md text-headline-md">Ingestion Gateways</h3>
+</div>
+<div class="bg-surface-container-lowest rounded-2xl p-6 border border-white/5">
+<div class="flex justify-between items-center mb-4">
+<label class="text-label-sm text-text-muted">Energy Meter API Key</label>
+<span class="text-[10px] px-2 py-0.5 rounded bg-primary-fixed-dim/20 text-primary-fixed-dim font-bold">SECURE</span>
+</div>
+<div class="flex gap-3 mb-6">
+<div class="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 flex items-center justify-between">
+<code class="text-primary-fixed-dim font-mono text-sm">••••••••••••••••••••••••••••••</code>
+<button class="material-symbols-outlined text-text-muted hover:text-white transition-colors">visibility</button>
+</div>
+<button class="px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all">
+<span class="material-symbols-outlined">content_copy</span>
+</button>
+</div>
+<div class="flex items-center justify-between text-label-sm">
+<p class="text-text-muted italic">Last rotated: 12 days ago</p>
+<button class="text-primary-fixed-dim hover:underline font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">refresh</span> Rotate Credentials
+                            </button>
+</div>
+</div>
+</div>
+<!-- DROPZONE -->
+<div class="glass-card rounded-3xl p-8 flex flex-col">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary-fixed-dim">upload_file</span>
+<h3 class="font-headline-md text-headline-md">Legacy Data Upload</h3>
+</div>
+<div class="flex-1 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center p-8 hover:border-primary-fixed-dim/40 hover:bg-primary-fixed-dim/5 transition-all group cursor-pointer">
+<div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl text-text-muted group-hover:text-primary-fixed-dim">cloud_upload</span>
+</div>
+<p class="font-label-md text-on-surface mb-1">Drag &amp; drop files here</p>
+<p class="text-label-sm text-text-muted">Supports .CSV, .XLSX, and .JSON (Max 50MB)</p>
+<button class="mt-6 px-6 py-2 bg-white/10 hover:bg-white/20 rounded-full text-label-md transition-all">Browse System</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FOOTER -->
+<footer class="w-full py-6 ml-64 border-t border-white/5 flex justify-between items-center px-margin-desktop bg-background-deep z-30">
+<p class="text-label-sm text-text-muted">© 2024 EcoLens Engineering. Protocol: V2.4 Stable.</p>
+<div class="flex gap-6">
+<a class="text-label-sm text-text-muted hover:text-white transition-colors" href="#">Documentation</a>
+<a class="text-label-sm text-text-muted hover:text-white transition-colors flex items-center gap-1" href="#">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-fixed-dim"></span> API Status
+            </a>
+<a class="text-label-sm text-text-muted hover:text-white transition-colors" href="#">Support</a>
+</div>
+</footer>
+<!-- INTERACTION SCRIPTS -->
+<script>
+        // Simple sparkline-style dash offset animation trigger
+        document.addEventListener('DOMContentLoaded', () => {
+            const progressBars = document.querySelectorAll('.bg-primary-fixed-dim, .bg-secondary-fixed-dim');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.transition = 'width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                    bar.style.width = width;
+                }, 300);
+            });
+        });
+    </script>
+</body></html>

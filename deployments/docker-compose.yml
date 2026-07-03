@@ -1,0 +1,6 @@
+# Status: planned — not yet implemented.
+#
+# Local dev stack: PostgreSQL, TimescaleDB, Redis, RabbitMQ, ClickHouse,
+# MinIO (S3 mock), all services under services/, apps/gateway, and
+# apps/frontend. Distinct from the root docker-compose.yml, which is the
+# one-command entrypoint documented in README.md's Quick Start.

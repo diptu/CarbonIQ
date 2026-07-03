@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CarbonIQ | Journey to Credit</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            overflow-x: hidden;
+        }
+
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(0, 255, 157, 0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 0 30px rgba(0, 255, 157, 0.1);
+        }
+
+        .timeline-spine {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(to bottom, #00ff9d 0%, rgba(0, 255, 157, 0.1) 100%);
+            z-index: 0;
+        }
+
+        .node-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(0, 255, 157, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0); }
+        }
+
+        .glow-mint {
+            filter: drop-shadow(0 0 10px rgba(0, 255, 157, 0.4));
+        }
+
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        .scroll-reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0c150f; }
+        ::-webkit-scrollbar-thumb { background: #18221b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ff9d; }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-bright": "#323c34",
+                    "on-tertiary-fixed-variant": "#554500",
+                    "primary-container": "#00ff9d",
+                    "secondary-fixed": "#b7eaff",
+                    "inverse-surface": "#dae5da",
+                    "primary-fixed": "#56ffa8",
+                    "on-secondary": "#003543",
+                    "on-secondary-container": "#00566b",
+                    "surface": "#0c150f",
+                    "background": "#0c150f",
+                    "surface-tint": "#00e38b",
+                    "surface-container-high": "#232c25",
+                    "on-surface-variant": "#b9cbbc",
+                    "surface-dim": "#0c150f",
+                    "on-tertiary": "#3b2f00",
+                    "error-container": "#93000a",
+                    "outline": "#849587",
+                    "tertiary": "#fffaff",
+                    "primary-fixed-dim": "#00e38b",
+                    "surface-variant": "#2d3730",
+                    "on-surface": "#dae5da",
+                    "on-tertiary-fixed": "#231b00",
+                    "surface-container-lowest": "#07100a",
+                    "tertiary-fixed": "#ffe17a",
+                    "on-tertiary-container": "#766000",
+                    "on-secondary-fixed": "#001f28",
+                    "on-background": "#dae5da",
+                    "surface-container-highest": "#2d3730",
+                    "secondary-container": "#14d1ff",
+                    "primary": "#f4fff3",
+                    "error": "#ffb4ab",
+                    "tertiary-container": "#ffdd65",
+                    "surface-container": "#18221b",
+                    "secondary-fixed-dim": "#4cd6ff",
+                    "on-primary-fixed": "#002110",
+                    "inverse-primary": "#006d40",
+                    "on-primary-fixed-variant": "#00522f",
+                    "inverse-on-surface": "#29332b",
+                    "tertiary-fixed-dim": "#e4c44f",
+                    "surface-container-low": "#141e17",
+                    "on-error-container": "#ffdad6",
+                    "secondary": "#a6e6ff",
+                    "on-secondary-fixed-variant": "#004e60",
+                    "on-error": "#690005",
+                    "outline-variant": "#3b4a3f",
+                    "on-primary": "#00391f",
+                    "on-primary-container": "#007143"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "container-max": "1280px",
+                    "unit": "4px",
+                    "margin-desktop": "64px",
+                    "gutter": "24px",
+                    "margin-mobile": "16px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Geist"],
+                    "headline-lg-mobile": ["Geist"],
+                    "label-sm": ["Geist"],
+                    "label-md": ["Geist"],
+                    "headline-lg": ["Geist"],
+                    "headline-xl": ["Geist"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-body-md text-on-surface">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-16 h-16 bg-surface/60 backdrop-blur-lg border-b border-white/10 shadow-sm">
+<div class="font-headline-md text-headline-md font-bold text-primary-container">CarbonIQ</div>
+<nav class="hidden md:flex gap-8">
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors font-label-md text-label-md" href="#">Dashboard</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors font-label-md text-label-md" href="#">Marketplace</a>
+<a class="text-primary-container font-bold border-b-2 border-primary-container pb-1 font-label-md text-label-md" href="#">Journey</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-container transition-colors font-label-md text-label-md" href="#">Analytics</a>
+</nav>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-surface-variant/50 p-2 rounded-full transition-all">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-surface-variant/50 p-2 rounded-full transition-all">settings</span>
+</div>
+<button class="bg-primary-container text-on-primary-container px-6 py-2 rounded-full font-label-md text-label-md font-bold transition-all duration-200 active:scale-95 hover:shadow-[0_0_20px_rgba(0,255,157,0.3)]">
+                Connect Wallet
+            </button>
+</div>
+</header>
+<main class="relative pt-32 pb-40 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto overflow-hidden">
+<!-- Hero Section -->
+<section class="text-center mb-32 relative">
+<div class="absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary-container/5 blur-[120px] rounded-full -z-10"></div>
+<span class="text-primary-container font-label-md text-label-md uppercase tracking-widest mb-4 inline-block px-4 py-1 rounded-full border border-primary-container/20 bg-primary-container/5">RWA Pipeline v2.4</span>
+<h1 class="font-headline-xl text-headline-xl mb-6 tracking-tighter">Journey to Credit: <span class="text-primary-container">From Data to Tradeable NFT</span></h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">Discover the lifecycle of high-integrity carbon credits. Our automated pipeline transforms verifiable environmental data into institutional-grade digital assets.</p>
+</section>
+<!-- Spine Timeline Container -->
+<div class="relative min-h-[1200px]">
+<!-- The Central Spine -->
+<div class="timeline-spine" id="spineLine"></div>
+<!-- Step 1: Data Ingestion -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-24 mb-48 relative scroll-reveal">
+<!-- User Action -->
+<div class="flex flex-col items-end text-right md:pr-12">
+<div class="glass-card p-8 rounded-xl max-w-md">
+<div class="flex items-center justify-end gap-3 mb-4 text-primary-container">
+<span class="font-label-md text-label-md uppercase font-bold tracking-wider">Your Action</span>
+<span class="material-symbols-outlined">upload_file</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Upload IoT &amp; Bills</h3>
+<p class="text-on-surface-variant font-body-sm text-body-sm leading-relaxed">
+                            Initialize the pipeline by securely uploading your facility's utility bills and connecting live IoT sensors. We support standards like Green Button and LoRaWAN gateways.
+                        </p>
+</div>
+</div>
+<!-- Central Node 1 -->
+<div class="absolute left-1/2 top-10 -translate-x-1/2 z-10 w-6 h-6 bg-primary-container rounded-full node-pulse flex items-center justify-center">
+<div class="w-3 h-3 bg-on-primary rounded-full"></div>
+</div>
+<!-- System Response -->
+<div class="flex flex-col items-start text-left md:pl-12">
+<div class="glass-card p-8 rounded-xl max-w-md border-l-4 border-l-primary-container/40">
+<div class="flex items-center justify-start gap-3 mb-4 text-secondary">
+<span class="material-symbols-outlined">api</span>
+<span class="font-label-md text-label-md uppercase font-bold tracking-wider">System: Intake</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">API Intake &amp; Normalization</h3>
+<p class="text-on-surface-variant font-body-sm text-body-sm leading-relaxed">
+                            CarbonIQ's ingest engines normalize disparate data streams into standardized emission factors, removing noise and preparing data for high-fidelity auditing.
+                        </p>
+</div>
+</div>
+</div>
+<!-- Step 2: AI Validation -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-24 mb-48 relative scroll-reveal">
+<!-- System Response (Left on even) -->
+<div class="flex flex-col items-end text-right md:pr-12 order-2 md:order-1">
+<div class="glass-card p-8 rounded-xl max-w-md border-r-4 border-r-primary-container/40">
+<div class="flex items-center justify-end gap-3 mb-4 text-secondary">
+<span class="font-label-md text-label-md uppercase font-bold tracking-wider">System: Analysis</span>
+<span class="material-symbols-outlined" data-weight="fill">satellite_alt</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Satellite Biomass Analysis</h3>
+<p class="text-on-surface-variant font-body-sm text-body-sm leading-relaxed">
+                            Multi-spectral satellite data is analyzed via neural networks to confirm carbon sequestration claims against historical benchmarks and load profiling.
+                        </p>
+</div>
+</div>
+<!-- Central Node 2 -->
+<div class="absolute left-1/2 top-10 -translate-x-1/2 z-10 w-6 h-6 bg-primary-container rounded-full node-pulse flex items-center justify-center">
+<div class="w-3 h-3 bg-on-primary rounded-full"></div>
+</div>
+<!-- User Action (Right on even) -->
+<div class="flex flex-col items-start text-left md:pl-12 order-1 md:order-2">
+<div class="glass-card p-8 rounded-xl max-w-md">
+<div class="flex items-center justify-start gap-3 mb-4 text-primary-container">
+<span class="material-symbols-outlined">map</span>
+<span class="font-label-md text-label-md uppercase font-bold tracking-wider">Your Action</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Submit Project Area</h3>
+<p class="text-on-surface-variant font-body-sm text-body-sm leading-relaxed">
+                            Define your project boundaries using GeoJSON or shapefiles. Our AI will cross-reference this with land registry data to prevent double-spending.
+                        </p>
+</div>
+</div>
+</div>
+<!-- Step 3: Consensus Layer -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-24 mb-48 relative scroll-reveal">
+<!-- User Action -->
+<div class="flex flex-col items-end text-right md:pr-12">
+<div class="glass-card p-8 rounded-xl max-w-md">
+<div class="flex items-center justify-end gap-3 mb-4 text-primary-container">
+<span class="font-label-md text-label-md uppercase font-bold tracking-wider">Your Action</span>
+<span class="material-symbols-outlined">hourglass_empty</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Await Audit</h3>
+<p class="text-on-surface-variant font-body-sm text-body-sm leading-relaxed">
+                            Monitor the live validation pool. Your project is reviewed by an incentivized network of third-party validators for mathematical and scientific rigor.
+                        </p>
+</div>
+</div>
+<!-- Central Node 3 -->
+<div class="absolute left-1/2 top-10 -translate-x-1/2 z-10 w-6 h-6 bg-primary-container rounded-full node-pulse flex items-center justify-center">
+<div class="w-3 h-3 bg-on-primary rounded-full"></div>
+</div>
+<!-- System Response -->
+<div class="flex flex-col items-start text-left md:pl-12">
+<div class="glass-card p-8 rounded-xl max-w-md border-l-4 border-l-primary-container/40">
+<div class="flex items-center justify-start gap-3 mb-4 text-secondary">
+<span class="material-symbols-outlined">hub</span>
+<span class="font-label-md text-label-md uppercase font-bold tracking-wider">System: Consensus</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Validator Consensus</h3>
+<p class="text-on-surface-variant font-body-sm text-body-sm leading-relaxed">
+                            A decentralized Proof-of-Action protocol reaches 67% BFT consensus on your data veracity, locking the claim into the immutable ledger.
+                        </p>
+</div>
+</div>
+</div>
+<!-- Step 4: NFT Minting -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-24 mb-20 relative scroll-reveal">
+<!-- System Response (Left) -->
+<div class="flex flex-col items-end text-right md:pr-12 order-2 md:order-1">
+<div class="glass-card p-8 rounded-xl max-w-md border-r-4 border-r-primary-container/40 bg-surface-container-high/40">
+<div class="flex items-center justify-end gap-3 mb-4 text-secondary">
+<span class="font-label-md text-label-md uppercase font-bold tracking-wider">System: Finality</span>
+<span class="material-symbols-outlined">token</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Immutable Ledger Minting</h3>
+<p class="text-on-surface-variant font-body-sm text-body-sm leading-relaxed">
+                            The verified data is wrapped into an ERC-1155 token. All metadata, including sensor logs and satellite imagery hashes, are permanently attached.
+                        </p>
+</div>
+</div>
+<!-- Final Node -->
+<div class="absolute left-1/2 top-10 -translate-x-1/2 z-10 w-10 h-10 bg-primary-container rounded-full node-pulse flex items-center justify-center shadow-[0_0_30px_#00ff9d]">
+<span class="material-symbols-outlined text-on-primary text-xl">verified</span>
+</div>
+<!-- Final Result (Right) -->
+<div class="flex flex-col items-start text-left md:pl-12 order-1 md:order-2">
+<div class="glass-card p-8 rounded-xl max-w-md bg-primary-container/10 border-primary-container/40">
+<div class="flex items-center justify-start gap-3 mb-4 text-primary-container">
+<span class="material-symbols-outlined">currency_exchange</span>
+<span class="font-label-md text-label-md uppercase font-bold tracking-wider">Result: Verified</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Tradeable Asset Issued</h3>
+<p class="text-on-surface-variant font-body-sm text-body-sm leading-relaxed mb-6">
+                            Congratulations. Your carbon credit is now liquid. Trade, retire, or use it as collateral within the CarbonIQ Marketplace ecosystem.
+                        </p>
+<div class="flex gap-4">
+<button class="bg-primary-container text-on-primary-container px-4 py-2 rounded-lg font-label-md text-label-md font-bold hover:scale-105 transition-all">View Asset</button>
+<button class="border border-white/10 text-on-surface px-4 py-2 rounded-lg font-label-md text-label-md hover:bg-white/5 transition-all">Trade Now</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Data Visualization Accent -->
+<section class="mt-40 scroll-reveal">
+<div class="glass-card p-12 rounded-3xl relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-primary-container/5 to-transparent -z-10"></div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
+<div class="lg:col-span-1">
+<h2 class="font-headline-lg text-headline-lg mb-4">Real-time Pipeline Efficiency</h2>
+<p class="text-on-surface-variant font-body-md text-body-md">Our automated ingestion and satellite verification reduced processing time from 18 months to 14 days.</p>
+<div class="mt-8 flex gap-8">
+<div>
+<div class="text-primary-container font-headline-md text-headline-md">14d</div>
+<div class="text-on-surface-variant font-label-sm text-label-sm">AVG. TIME TO MINT</div>
+</div>
+<div>
+<div class="text-primary-container font-headline-md text-headline-md">0.02%</div>
+<div class="text-on-surface-variant font-label-sm text-label-sm">REJECTION RATE</div>
+</div>
+</div>
+</div>
+<div class="lg:col-span-2 h-64 relative">
+<!-- Abstract Data Visualization -->
+<div class="w-full h-full flex items-end gap-2 px-4">
+<div class="bg-primary-container/20 w-full rounded-t-lg transition-all duration-1000" style="height: 40%"></div>
+<div class="bg-primary-container/30 w-full rounded-t-lg transition-all duration-1000" style="height: 60%"></div>
+<div class="bg-primary-container/40 w-full rounded-t-lg transition-all duration-1000" style="height: 55%"></div>
+<div class="bg-primary-container/60 w-full rounded-t-lg transition-all duration-1000" style="height: 85%"></div>
+<div class="bg-primary-container w-full rounded-t-lg transition-all duration-1000" style="height: 70%"></div>
+<div class="bg-primary-container/80 w-full rounded-t-lg transition-all duration-1000" style="height: 95%"></div>
+<div class="bg-primary-container/40 w-full rounded-t-lg transition-all duration-1000" style="height: 45%"></div>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-[#0c150f] to-transparent pointer-events-none"></div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-16 px-margin-desktop bg-surface-container-lowest border-t border-white/5">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-gutter">
+<div class="flex flex-col gap-4">
+<div class="font-headline-md text-headline-md text-on-surface font-bold">CarbonIQ</div>
+<p class="text-on-surface-variant font-body-sm text-body-sm max-w-sm">Verified Climate Action on Ledger. Bridging environmental science with decentralized finance.</p>
+</div>
+<div class="flex flex-wrap gap-x-12 gap-y-6 justify-center">
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-sm text-label-sm" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-sm text-label-sm" href="#">Terms of Service</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-sm text-label-sm" href="#">Protocol Docs</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-sm text-label-sm" href="#">Support</a>
+</div>
+<div class="text-on-surface-variant font-body-sm text-body-sm text-center md:text-right">
+                © 2024 CarbonIQ. Verified Climate Action on Ledger.
+            </div>
+</div>
+</footer>
+<script>
+        // Intersection Observer for Scroll Animation
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
+
+        // Spine Scroll Height Control
+        window.addEventListener('scroll', () => {
+            const scrollPercent = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+            const spine = document.getElementById('spineLine');
+            // Dynamically clip or grow the gradient based on scroll if needed, 
+            // though the linear-gradient style is already present.
+        });
+
+        // Hover Effect Micro-interactions
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+    </script>
+</body></html>

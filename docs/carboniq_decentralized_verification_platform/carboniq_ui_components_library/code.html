@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CarbonIQ | Design System - UI Components</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-fixed-dim": "#4cd6ff",
+                      "on-primary": "#00391f",
+                      "background": "#0c150f",
+                      "outline": "#849587",
+                      "on-error-container": "#ffdad6",
+                      "error": "#ffb4ab",
+                      "on-primary-fixed": "#002110",
+                      "outline-variant": "#3b4a3f",
+                      "primary": "#f4fff3",
+                      "error-container": "#93000a",
+                      "secondary-fixed": "#b7eaff",
+                      "surface-bright": "#323c34",
+                      "secondary": "#a6e6ff",
+                      "on-background": "#dae5da",
+                      "on-surface-variant": "#b9cbbc",
+                      "surface": "#0c150f",
+                      "on-primary-container": "#007143",
+                      "inverse-surface": "#dae5da",
+                      "surface-tint": "#00e38b",
+                      "surface-container": "#18221b",
+                      "on-tertiary-container": "#766000",
+                      "on-secondary-fixed-variant": "#004e60",
+                      "on-secondary-fixed": "#001f28",
+                      "on-secondary-container": "#00566b",
+                      "on-primary-fixed-variant": "#00522f",
+                      "on-secondary": "#003543",
+                      "tertiary-fixed": "#ffe17a",
+                      "on-tertiary-fixed": "#231b00",
+                      "tertiary-container": "#ffdd65",
+                      "tertiary": "#fffaff",
+                      "secondary-container": "#14d1ff",
+                      "primary-container": "#00ff9d",
+                      "surface-container-high": "#232c25",
+                      "on-tertiary": "#3b2f00",
+                      "surface-variant": "#2d3730",
+                      "surface-dim": "#0c150f",
+                      "inverse-on-surface": "#29332b",
+                      "inverse-primary": "#006d40",
+                      "primary-fixed-dim": "#00e38b",
+                      "on-tertiary-fixed-variant": "#554500",
+                      "on-surface": "#dae5da",
+                      "tertiary-fixed-dim": "#e4c44f",
+                      "surface-container-lowest": "#07100a",
+                      "surface-container-low": "#141e17",
+                      "primary-fixed": "#56ffa8",
+                      "on-error": "#690005",
+                      "surface-container-highest": "#2d3730"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-desktop": "64px",
+                      "margin-mobile": "16px",
+                      "unit": "4px",
+                      "gutter": "24px",
+                      "container-max": "1280px"
+              },
+              "fontFamily": {
+                      "label-md": ["Geist"],
+                      "body-sm": ["Inter"],
+                      "headline-xl": ["Geist"],
+                      "headline-lg": ["Geist"],
+                      "headline-lg-mobile": ["Geist"],
+                      "label-sm": ["Geist"],
+                      "headline-md": ["Geist"],
+                      "body-lg": ["Inter"],
+                      "body-md": ["Inter"]
+              },
+              "fontSize": {
+                      "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                      "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(0, 255, 157, 0.4);
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.1);
+        }
+        .neon-glow {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-family: 'Geist', sans-serif;
+            font-weight: 500;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .badge-pending { background: rgba(255, 191, 0, 0.1); color: #ffbf00; border: 1px solid rgba(255, 191, 0, 0.2); }
+        .badge-verified { background: rgba(0, 255, 157, 0.1); color: #00ff9d; border: 1px solid rgba(0, 255, 157, 0.3); box-shadow: 0 0 10px rgba(0, 255, 157, 0.1); }
+        .badge-minted { background: rgba(0, 255, 157, 0.2); color: #f4fff3; border: 1px solid rgba(0, 255, 157, 0.4); }
+        .badge-flagged { background: rgba(255, 180, 171, 0.1); color: #ffb4ab; border: 1px solid rgba(255, 180, 171, 0.2); }
+        
+        .code-snippet {
+            font-family: 'monospace';
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #b9cbbc;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary-container selection:text-on-primary">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-margin-desktop h-16 bg-surface/60 backdrop-blur-lg border-b border-white/10">
+<div class="font-headline-md text-headline-md font-bold text-primary">CarbonIQ</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Components</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Foundation</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">API</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Guides</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-primary-container text-on-primary-container px-6 py-2 rounded-lg font-label-md text-label-md font-bold active:scale-95 transition-transform">
+                Connect Wallet
+            </button>
+</div>
+</nav>
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-16 bottom-0 w-64 py-8 px-4 flex flex-col bg-surface-container-low/40 backdrop-blur-xl border-r border-white/10">
+<div class="mb-8 px-4">
+<div class="font-headline-sm text-headline-sm text-on-surface font-bold">Design System</div>
+<div class="text-on-surface-variant text-xs mt-1">v1.2.0-beta</div>
+</div>
+<div class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/50 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">info</span>
+<span class="font-label-md text-label-md">Introduction</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-container text-on-primary-container rounded-lg font-bold translate-x-1 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard_customize</span>
+<span class="font-label-md text-label-md">Components</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/50 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">verified_user</span>
+<span class="font-label-md text-label-md">Status Badges</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/50 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">input</span>
+<span class="font-label-md text-label-md">Inputs</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/50 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">match_case</span>
+<span class="font-label-md text-label-md">Typography</span>
+</a>
+</div>
+<button class="mt-auto mx-4 p-3 border border-outline-variant text-on-surface-variant rounded-lg text-sm hover:border-primary-container hover:text-primary transition-all">
+            Beta Feedback
+        </button>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 pb-16 px-margin-desktop">
+<!-- Hero Section -->
+<section class="mb-20 max-w-4xl">
+<h1 class="font-headline-xl text-headline-xl text-primary mb-6">Core UI Components</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+                The CarbonIQ interface is built on a <span class="text-primary-container font-semibold">Refined Glassmorphic</span> architecture. 
+                By utilizing deep forest foundations and translucent surfacing, we create a visual metaphor for the transparent yet robust nature of climate-linked blockchain ledger systems.
+            </p>
+</section>
+<!-- Data Cards Section -->
+<section class="mb-24">
+<div class="flex items-center gap-4 mb-8">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Data Cards</h2>
+<div class="h-px flex-1 bg-white/10"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Large Metric: Total Carbon Sequestration -->
+<div class="md:col-span-8 glass-card p-8 rounded-xl relative overflow-hidden group">
+
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-12">
+<div>
+<span class="font-label-md text-label-md text-primary-container uppercase tracking-widest">Global Ecosystem Performance</span>
+<h3 class="font-headline-md text-headline-md text-on-surface mt-2">Total Carbon Sequestration</h3>
+</div>
+<span class="material-symbols-outlined text-primary-container">eco</span>
+</div>
+<div class="flex items-baseline gap-4">
+<div class="font-headline-xl text-[64px] leading-tight text-primary">1,248,390</div>
+<div class="font-headline-md text-on-surface-variant">tCO2e</div>
+</div>
+<div class="mt-8 flex items-center gap-4 py-4 border-t border-white/5">
+<div class="flex items-center gap-1 text-primary-container">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span class="font-label-sm text-label-sm">+12.4% vs LY</span>
+</div>
+<div class="text-on-surface-variant font-label-sm text-label-sm">Updated 2 minutes ago</div>
+</div>
+</div>
+</div>
+<!-- Identifying Info: Project ID -->
+<div class="md:col-span-4 glass-card p-6 rounded-xl flex flex-col justify-between">
+<div>
+<div class="font-label-md text-label-md text-on-surface-variant mb-1">Active Ledger Node</div>
+<div class="font-headline-md text-headline-md text-primary truncate">Project ID: CIQ-7724</div>
+</div>
+<div class="mt-12 space-y-4">
+<div class="flex justify-between items-center py-2 border-b border-white/5">
+<span class="text-on-surface-variant text-sm">Region</span>
+<span class="text-on-surface text-sm font-semibold">Amazon Basin</span>
+</div>
+<div class="flex justify-between items-center py-2 border-b border-white/5">
+<span class="text-on-surface-variant text-sm">Protocol</span>
+<span class="text-on-surface text-sm font-semibold">VCS v4.3</span>
+</div>
+<div class="flex justify-between items-center py-2">
+<span class="text-on-surface-variant text-sm">Node Status</span>
+<span class="status-badge badge-verified">Verified</span>
+</div>
+</div>
+</div>
+<!-- Percentage Metric: Node Efficiency -->
+<div class="md:col-span-12 glass-card p-8 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-12 items-center">
+<div class="flex flex-col gap-2">
+<span class="font-label-md text-label-md text-on-surface-variant">Compute Integrity</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Node Efficiency</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">System-wide resource allocation across decentralized monitoring stations.</p>
+</div>
+<div class="flex items-center justify-center relative h-32">
+<!-- Simulated Circular Progress -->
+<svg class="w-32 h-32 transform -rotate-90">
+<circle cx="64" cy="64" fill="none" r="56" stroke="rgba(255,255,255,0.05)" stroke-width="12"></circle>
+<circle class="neon-glow" cx="64" cy="64" fill="none" r="56" stroke="#00ff9d" stroke-dasharray="351.85" stroke-dashoffset="14" stroke-width="12"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center font-headline-md text-headline-md text-primary">
+                            96%
+                        </div>
+</div>
+<div class="space-y-4">
+<div class="p-3 bg-white/5 rounded-lg border border-white/10">
+<div class="flex justify-between mb-1">
+<span class="text-xs text-on-surface-variant">Uptime</span>
+<span class="text-xs text-primary-container">99.9%</span>
+</div>
+<div class="w-full bg-white/10 h-1 rounded-full">
+<div class="bg-primary-container h-full rounded-full" style="width: 99.9%"></div>
+</div>
+</div>
+<div class="p-3 bg-white/5 rounded-lg border border-white/10">
+<div class="flex justify-between mb-1">
+<span class="text-xs text-on-surface-variant">Latency</span>
+<span class="text-xs text-secondary-fixed-dim">12ms</span>
+</div>
+<div class="w-full bg-white/10 h-1 rounded-full">
+<div class="bg-secondary-fixed-dim h-full rounded-full" style="width: 15%"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Status Badges Section -->
+<section class="mb-24">
+<div class="flex items-center gap-4 mb-8">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Status Badges</h2>
+<div class="h-px flex-1 bg-white/10"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<div class="glass-card p-6 rounded-xl flex flex-col items-center gap-6 text-center">
+<span class="status-badge badge-pending">
+<span class="material-symbols-outlined text-[16px]">hourglass_empty</span>
+                        Pending
+                    </span>
+<div class="text-sm text-on-surface-variant px-4">Assets awaiting initial validation or node confirmation.</div>
+</div>
+<div class="glass-card p-6 rounded-xl flex flex-col items-center gap-6 text-center">
+<span class="status-badge badge-verified">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+                        Verified
+                    </span>
+<div class="text-sm text-on-surface-variant px-4">Validated environmental data with proof-of-integrity signatures.</div>
+</div>
+<div class="glass-card p-6 rounded-xl flex flex-col items-center gap-6 text-center">
+<span class="status-badge badge-minted">
+<span class="material-symbols-outlined text-[16px]">token</span>
+                        Minted
+                    </span>
+<div class="text-sm text-on-surface-variant px-4">Carbon credits officially issued on the CarbonIQ mainnet.</div>
+</div>
+<div class="glass-card p-6 rounded-xl flex flex-col items-center gap-6 text-center">
+<span class="status-badge badge-flagged">
+<span class="material-symbols-outlined text-[16px]">report</span>
+                        Flagged
+                    </span>
+<div class="text-sm text-on-surface-variant px-4">Discrepancy detected in source telemetry or satellite analysis.</div>
+</div>
+</div>
+</section>
+<!-- Usage Guidelines Section -->
+<section>
+<div class="flex items-center gap-4 mb-8">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Usage Guidelines</h2>
+<div class="h-px flex-1 bg-white/10"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+<div class="space-y-6">
+<h4 class="font-headline-md text-headline-md text-primary">Elevated Glass Surfaces</h4>
+<p class="text-on-surface-variant font-body-md">Surfaces must maintain a <code class="code-snippet">backdrop-blur-lg</code> of at least 16px to ensure readability over atmospheric background shaders. Use 1px white borders at 10% opacity for standard containers.</p>
+<div class="flex flex-wrap gap-2">
+<span class="text-xs py-1 px-2 border border-outline-variant rounded">#062C22 (60%)</span>
+<span class="text-xs py-1 px-2 border border-outline-variant rounded">16px Blur</span>
+<span class="text-xs py-1 px-2 border border-outline-variant rounded">1px Solid #FFFFFF (10%)</span>
+</div>
+</div>
+<div class="space-y-6">
+<h4 class="font-headline-md text-headline-md text-primary">Interaction Feedback</h4>
+<p class="text-on-surface-variant font-body-md">Interactive elements should leverage the <code class="code-snippet">active:scale-95</code> transform and transition to a <code class="code-snippet">#00FF9D</code> border-glow. Typography for metrics should use the Geist font for high technical clarity.</p>
+<div class="flex flex-wrap gap-2">
+<span class="text-xs py-1 px-2 border border-outline-variant rounded">Active Scale 0.95</span>
+<span class="text-xs py-1 px-2 border border-outline-variant rounded">Geist Font-Weight 700</span>
+<span class="text-xs py-1 px-2 border border-outline-variant rounded">20ms Ease-Out</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 px-margin-desktop flex justify-between items-center ml-64 bg-surface-container-lowest border-t border-white/5">
+<div class="flex flex-col gap-2">
+<div class="font-label-md text-label-md text-primary font-bold">CarbonIQ Ecosystem</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">© 2024 CarbonIQ Ecosystem. All rights reserved.</div>
+</div>
+<div class="flex gap-8">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary-fixed transition-colors" href="#">Documentation</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary-fixed transition-colors" href="#">Changelog</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary-fixed transition-colors" href="#">Security</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary-fixed transition-colors" href="#">GitHub</a>
+</div>
+</footer>
+<script>
+        // Optional micro-interaction for cards
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+    </script>
+</body></html>

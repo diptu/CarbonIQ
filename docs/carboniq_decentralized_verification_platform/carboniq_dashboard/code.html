@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CarbonIQ Dashboard | Verified Protocol</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@100..900&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-card:hover {
+            border-color: rgba(0, 255, 157, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.05);
+        }
+        .neon-glow {
+            filter: drop-shadow(0 0 8px rgba(0, 255, 157, 0.4));
+        }
+        .status-glow-mint {
+            box-shadow: 0 0 12px rgba(0, 255, 157, 0.3);
+        }
+        .status-glow-blue {
+            box-shadow: 0 0 12px rgba(20, 209, 255, 0.3);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0c150f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3730;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b4a3f;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-surface": "#dae5da",
+                      "surface-dim": "#0c150f",
+                      "tertiary": "#fffaff",
+                      "tertiary-fixed-dim": "#e4c44f",
+                      "secondary": "#a6e6ff",
+                      "primary": "#f4fff3",
+                      "secondary-fixed-dim": "#4cd6ff",
+                      "on-error": "#690005",
+                      "on-secondary-fixed": "#001f28",
+                      "surface-variant": "#2d3730",
+                      "on-secondary-container": "#00566b",
+                      "on-tertiary-fixed-variant": "#554500",
+                      "on-primary-fixed": "#002110",
+                      "on-background": "#dae5da",
+                      "on-secondary-fixed-variant": "#004e60",
+                      "surface-container-highest": "#2d3730",
+                      "tertiary-fixed": "#ffe17a",
+                      "outline-variant": "#3b4a3f",
+                      "inverse-on-surface": "#29332b",
+                      "primary-container": "#00ff9d",
+                      "surface-bright": "#323c34",
+                      "primary-fixed-dim": "#00e38b",
+                      "on-tertiary-fixed": "#231b00",
+                      "surface-container": "#18221b",
+                      "surface-container-low": "#141e17",
+                      "error-container": "#93000a",
+                      "surface-tint": "#00e38b",
+                      "on-secondary": "#003543",
+                      "primary-fixed": "#56ffa8",
+                      "surface": "#0c150f",
+                      "on-error-container": "#ffdad6",
+                      "on-primary-container": "#007143",
+                      "error": "#ffb4ab",
+                      "secondary-container": "#14d1ff",
+                      "inverse-primary": "#006d40",
+                      "outline": "#849587",
+                      "surface-container-lowest": "#07100a",
+                      "secondary-fixed": "#b7eaff",
+                      "on-tertiary": "#3b2f00",
+                      "tertiary-container": "#ffdd65",
+                      "on-primary-fixed-variant": "#00522f",
+                      "surface-container-high": "#232c25",
+                      "on-surface-variant": "#b9cbbc",
+                      "on-tertiary-container": "#766000",
+                      "on-primary": "#00391f",
+                      "inverse-surface": "#dae5da",
+                      "background": "#0c150f"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "unit": "4px",
+                      "container-max": "1280px",
+                      "margin-desktop": "64px",
+                      "gutter": "24px"
+              },
+              "fontFamily": {
+                      "body-sm": ["Inter"],
+                      "headline-lg-mobile": ["Geist"],
+                      "body-lg": ["Inter"],
+                      "headline-lg": ["Geist"],
+                      "headline-md": ["Geist"],
+                      "label-md": ["Geist"],
+                      "body-md": ["Inter"],
+                      "label-sm": ["Geist"],
+                      "headline-xl": ["Geist"]
+              },
+              "fontSize": {
+                      "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
+<!-- Sidebar Navigation -->
+<aside class="hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-surface-container/60 backdrop-blur-2xl py-8 border-r border-white/10 shadow-2xl z-50">
+<div class="px-6 mb-12">
+<h1 class="font-headline-md text-headline-md font-bold text-primary tracking-tight">CarbonIQ</h1>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-bold">Verified Protocol v2.1</p>
+</div>
+<nav class="flex-1 space-y-1 px-4">
+<a class="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary border-r-4 border-primary transition-all duration-300" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Overview</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 hover:text-on-surface transition-all duration-300" href="#">
+<span class="material-symbols-outlined">verified</span>
+<span class="font-label-md text-label-md">Verification</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 hover:text-on-surface transition-all duration-300" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+<span class="font-label-md text-label-md">Explorer</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 hover:text-on-surface transition-all duration-300" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-label-md text-label-md">Wallet</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 hover:text-on-surface transition-all duration-300" href="#">
+<span class="material-symbols-outlined">eco</span>
+<span class="font-label-md text-label-md">Impact</span>
+</a>
+</nav>
+<div class="mt-auto px-4 py-6 border-t border-white/5 space-y-4">
+<button class="w-full bg-primary-container text-on-primary-container font-label-md text-label-md py-3 rounded-lg flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(0,255,157,0.2)]">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                New Project
+            </button>
+<div class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:text-on-surface transition-colors" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Help</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:text-error transition-colors" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Wrapper -->
+<main class="lg:ml-64 min-h-screen relative">
+<!-- Atmospheric Background Element -->
+<div class="fixed inset-0 pointer-events-none z-0">
+
+</div>
+<!-- Top Bar -->
+<header class="sticky top-0 w-full z-40 h-20 bg-surface/60 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-6 lg:px-12">
+<div class="flex items-center gap-8">
+<div class="lg:hidden">
+<span class="material-symbols-outlined text-primary">menu</span>
+</div>
+<div class="hidden md:flex items-center bg-surface-container px-4 py-2 rounded-full border border-white/5 w-80">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm text-on-surface placeholder:text-on-surface-variant/50 w-full" placeholder="Search projects or hash..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">settings</span>
+</div>
+<button class="bg-surface-variant/40 border border-primary-container/30 px-5 py-2 rounded-full flex items-center gap-3 hover:bg-surface-variant transition-all">
+<div class="w-2 h-2 rounded-full bg-primary-container animate-pulse shadow-[0_0_8px_rgba(0,255,157,0.8)]"></div>
+<span class="font-label-md text-label-md tracking-wider text-primary">0x...F3A2</span>
+</button>
+</div>
+</header>
+<!-- Page Content -->
+<div class="relative z-10 px-6 lg:px-12 py-10 max-w-7xl mx-auto">
+<!-- Hero Section -->
+<section class="mb-12">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+<div>
+<h2 class="font-headline-xl text-headline-xl text-primary">Protocol Overview</h2>
+<p class="text-on-surface-variant mt-2 font-body-lg text-body-lg">Real-time telemetry of the decentralized carbon market.</p>
+</div>
+<div class="flex gap-4">
+<div class="bg-surface-container px-4 py-2 rounded-lg border border-white/5">
+<p class="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-widest">Network Status</p>
+<p class="text-primary-container font-label-md text-label-md">Optimized: 14.2 TPS</p>
+</div>
+</div>
+</div>
+<!-- Hero Metrics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Metric Card 1 -->
+<div class="glass-card p-8 rounded-xl flex flex-col justify-between h-48 relative overflow-hidden group">
+<div class="relative z-10">
+<p class="text-on-surface-variant font-label-md text-label-md mb-2">Total CO2e Offset</p>
+<h3 class="font-headline-xl text-headline-xl text-primary">1.2M <span class="text-body-lg opacity-60">Tons</span></h3>
+</div>
+<div class="mt-4 h-12 w-full flex items-end gap-1">
+<!-- Simple SVG Sparkline -->
+<svg class="w-full h-full text-primary-container overflow-visible" preserveaspectratio="none" viewbox="0 0 100 20">
+<path class="neon-glow" d="M0 18 Q 10 15, 20 17 T 40 10 T 60 14 T 80 5 T 100 12" fill="none" stroke="currentColor" stroke-width="2"></path>
+</svg>
+</div>
+<div class="absolute -right-4 -bottom-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-500">
+<span class="material-symbols-outlined text-[120px]">eco</span>
+</div>
+</div>
+<!-- Metric Card 2 -->
+<div class="glass-card p-8 rounded-xl flex flex-col justify-between h-48 relative overflow-hidden group">
+<div class="relative z-10">
+<p class="text-on-surface-variant font-label-md text-label-md mb-2">Active Projects</p>
+<h3 class="font-headline-xl text-headline-xl text-primary">42 <span class="text-body-lg opacity-60">Global</span></h3>
+</div>
+<div class="flex items-center gap-2 text-primary-container text-label-md mt-4">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>+8.2% from last epoch</span>
+</div>
+<div class="absolute -right-4 -bottom-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-500">
+<span class="material-symbols-outlined text-[120px]">public</span>
+</div>
+</div>
+<!-- Metric Card 3 -->
+<div class="glass-card p-8 rounded-xl flex flex-col justify-between h-48 relative overflow-hidden group">
+<div class="relative z-10">
+<p class="text-on-surface-variant font-label-md text-label-md mb-2">Verified Yield</p>
+<h3 class="font-headline-xl text-headline-xl text-primary">89.4 <span class="text-body-lg opacity-60">%</span></h3>
+</div>
+<div class="mt-4 h-12 w-full flex items-end gap-1">
+<svg class="w-full h-full text-secondary-container overflow-visible" preserveaspectratio="none" viewbox="0 0 100 20">
+<path d="M0 5 Q 15 15, 30 10 T 50 15 T 70 8 T 90 12 T 100 5" fill="none" stroke="currentColor" stroke-width="2" style="filter: drop-shadow(0 0 8px rgba(20, 209, 255, 0.4));"></path>
+</svg>
+</div>
+<div class="absolute -right-4 -bottom-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-500">
+<span class="material-symbols-outlined text-[120px]">check_circle</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Main Content Area: Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Verification Status Board -->
+<section class="lg:col-span-8 flex flex-col gap-6">
+<div class="glass-card p-8 rounded-xl flex flex-col h-full border-primary-container/10">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h4 class="font-headline-md text-headline-md text-primary">Active Verifications</h4>
+<p class="text-on-surface-variant font-body-sm text-body-sm mt-1">Satellite audit progress of ecosystem protocols.</p>
+</div>
+<button class="text-primary-container font-label-md text-label-md flex items-center gap-1 hover:underline">
+                                View History <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="space-y-6">
+<!-- Status Item 1 -->
+<div class="bg-surface-container-high/40 p-4 rounded-lg flex items-center justify-between group transition-colors hover:bg-surface-container-high/60">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded bg-surface flex items-center justify-center text-primary-container border border-white/5">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">forest</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Amazon Rainbelt #092</p>
+<p class="text-[12px] text-on-surface-variant">Protocol Phase: Bio-Acoustic Monitoring</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="text-right hidden md:block">
+<div class="w-32 h-1.5 bg-surface rounded-full overflow-hidden">
+<div class="h-full bg-primary-container status-glow-mint" style="width: 78%;"></div>
+</div>
+<p class="text-[10px] text-primary-container mt-1 font-bold">78% COMPLETE</p>
+</div>
+<div class="px-3 py-1 rounded-full bg-primary-container/10 border border-primary-container/30 text-primary-container text-[11px] font-bold">
+                                        IN PROGRESS
+                                    </div>
+</div>
+</div>
+<!-- Status Item 2 -->
+<div class="bg-surface-container-high/40 p-4 rounded-lg flex items-center justify-between group transition-colors hover:bg-surface-container-high/60">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded bg-surface flex items-center justify-center text-secondary-container border border-white/5">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">water_drop</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Ocean Kelp Farm v2</p>
+<p class="text-[12px] text-on-surface-variant">Protocol Phase: Blue Carbon Tallying</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="text-right hidden md:block">
+<div class="w-32 h-1.5 bg-surface rounded-full overflow-hidden">
+<div class="h-full bg-secondary-container status-glow-blue" style="width: 42%;"></div>
+</div>
+<p class="text-[10px] text-secondary-container mt-1 font-bold">42% COMPLETE</p>
+</div>
+<div class="px-3 py-1 rounded-full bg-secondary-container/10 border border-secondary-container/30 text-secondary-container text-[11px] font-bold">
+                                        QUEUED
+                                    </div>
+</div>
+</div>
+<!-- Status Item 3 -->
+<div class="bg-surface-container-high/40 p-4 rounded-lg flex items-center justify-between group transition-colors hover:bg-surface-container-high/60">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded bg-surface flex items-center justify-center text-primary-container border border-white/5">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">landscape</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Andean Highland Reforest</p>
+<p class="text-[12px] text-on-surface-variant">Protocol Phase: Final Certification</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="text-right hidden md:block">
+<div class="w-32 h-1.5 bg-surface rounded-full overflow-hidden">
+<div class="h-full bg-primary-container status-glow-mint" style="width: 95%;"></div>
+</div>
+<p class="text-[10px] text-primary-container mt-1 font-bold">95% COMPLETE</p>
+</div>
+<div class="px-3 py-1 rounded-full bg-primary-container/10 border border-primary-container/30 text-primary-container text-[11px] font-bold">
+                                        VERIFYING
+                                    </div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Sidebar Content: Small Map or Analytics -->
+<aside class="lg:col-span-4 space-y-6">
+<div class="glass-card rounded-xl overflow-hidden h-full flex flex-col">
+<div class="p-6 border-b border-white/10">
+<h4 class="font-headline-md text-headline-md text-primary">Global Impact</h4>
+<p class="text-on-surface-variant font-body-sm text-body-sm">Active project distribution.</p>
+</div>
+<div class="flex-1 relative min-h-[300px]">
+<div class="absolute inset-0 grayscale contrast-125 opacity-40 hover:opacity-60 transition-opacity duration-700 bg-cover bg-center" data-alt="A dark, cinematic satellite map of the Earth showing points of light in reforestation zones. The aesthetic is deep charcoal and neon mint, with glowing data clusters representing active carbon projects across South America, Africa, and Southeast Asia. Subtle scanlines and a HUD-style UI overlay give it a professional environmental monitoring station feel." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAuJPphqXNfOUP7cP2xW5rAb9e-nBTOyzQYAL1esrb0PpfhhSCsifYodh29pNfA_GkLZ988NbyBFN8tgCgXernfqX82-vdf_Cb09KuCut_Djs6-gsGlPn3qhL3UslgH8PX5LEXTD14Tj0wJULgsKt8YeVGUp93b7hGIVtLMw21hagJzk7DaG-eXW50eN--oWbejBuHOWoZ-3lPbIdF6znwF-hvUGt_D7mMzqwfk5rUfhQ7yBz601dEutDQPDraq7pRwBwyCfnL0jbD-')"></div>
+<!-- Custom Map Pin Tooltip (Floating) -->
+<div class="absolute top-1/2 left-1/3 p-2 bg-surface-container-highest border border-primary-container rounded shadow-2xl flex items-center gap-2 animate-bounce">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="text-[10px] font-bold">AMAZON-092: LIVE</span>
+</div>
+</div>
+<div class="p-6 bg-surface-container/40">
+<div class="flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant">
+<span>Most active region</span>
+<span class="text-primary">Sub-Saharan Africa</span>
+</div>
+</div>
+</div>
+</aside>
+</div>
+<!-- Latest Minted Credits Feed -->
+<section class="mt-12">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h4 class="font-headline-md text-headline-md text-primary">Latest Minted Credits</h4>
+<p class="text-on-surface-variant font-body-sm text-body-sm mt-1">Recent batch issuance on the Verified Ledger.</p>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-gutter">
+<!-- Credit NFT Card 1 -->
+<div class="glass-card group cursor-pointer rounded-xl overflow-hidden flex flex-col transition-all hover:-translate-y-2">
+<div class="aspect-video relative overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="A high-resolution abstract satellite photograph of a lush tropical forest canopy with shimmering iridescent emerald and deep teal colors. The image is stylized with a digital blockchain grid overlay and neon cyan glowing borders, suggesting a digitally verified carbon asset. The lighting is dramatic and cinematic, highlighting the complex textures of the leaves." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAee1ax-ohMU7X2rI73dhcVwXMLBV_3j-eE-Sg1eb17w1XOCEXxZnwGzmzRvj9lrYqQQvpFvfuX3_N3PdKj8Q4nKp_OQOdkuJaT45wSuRTS1sOhZipy8NnNi1_-LmQu_I66JNk6VxTLsM3r9DMo6lG5zC1o_OnTChtwA7EoBzp2RDtl_l4tXd7Gfg91jc-cKPqK-ggKKj7-cIYKEv8KrJnqRHcE061FTgseV0vVdr1FZb9PvBqMZZRAxq91anpGlZhkJEkkeV7pF_Dv"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent opacity-60"></div>
+<div class="absolute top-3 right-3 bg-surface/80 backdrop-blur px-2 py-1 rounded border border-white/10 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary-container" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="text-[10px] font-bold text-on-surface uppercase tracking-tight">Verified</span>
+</div>
+</div>
+<div class="p-5 flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h5 class="text-primary font-label-md text-label-md">T-CORE #8812</h5>
+<p class="text-[11px] text-on-surface-variant font-medium">CONGO BASIN RESTORATION</p>
+</div>
+<div class="text-right">
+<p class="text-secondary font-label-md text-label-md">1,400</p>
+<p class="text-[10px] text-on-surface-variant uppercase">TONS</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+<p class="text-[10px] text-on-surface-variant/60 font-mono">2 mins ago</p>
+<button class="text-on-surface hover:text-primary-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">open_in_new</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Credit NFT Card 2 -->
+<div class="glass-card group cursor-pointer rounded-xl overflow-hidden flex flex-col transition-all hover:-translate-y-2">
+<div class="aspect-video relative overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="A conceptual 3D render of a futuristic vertical forest skyscraper at night, illuminated by soft blue and mint green lights. The scene is shrouded in a light misty atmosphere, giving it a dreamlike environmental quality. The visual style is sleek and technical, with thin UI data lines floating around the structure to represent energy and carbon monitoring." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtNRHEnL6Dcwf9NQhSUEinlHQEYR0fLEqdCvCea7eP6JY0nAC7kXbh1qZfCN_koeVMo0-koz1hzpy34vP4HcJNRJGjkuuvrAF4o03F1cKyYMv8mE3lFRuJy8FFIO6OgUQhMImEwcJktXjFz0AGzsfSjhGHpDdwXuWZx3q2pwLvwF6Qyqtfgh_r-1jXtn2RoIfy0nPQNPxZgsdEI3ICNLwmGaOQmNKbb1DqcI0FgDFqxHu-0qhefERisatHiGnM9XZJuGkoBSSdH7NS"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent opacity-60"></div>
+<div class="absolute top-3 right-3 bg-surface/80 backdrop-blur px-2 py-1 rounded border border-white/10 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary-container" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="text-[10px] font-bold text-on-surface uppercase tracking-tight">Verified</span>
+</div>
+</div>
+<div class="p-5 flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h5 class="text-primary font-label-md text-label-md">T-CORE #8811</h5>
+<p class="text-[11px] text-on-surface-variant font-medium">SAHARA GREEN WALL</p>
+</div>
+<div class="text-right">
+<p class="text-secondary font-label-md text-label-md">3,250</p>
+<p class="text-[10px] text-on-surface-variant uppercase">TONS</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+<p class="text-[10px] text-on-surface-variant/60 font-mono">14 mins ago</p>
+<button class="text-on-surface hover:text-primary-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">open_in_new</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Credit NFT Card 3 -->
+<div class="glass-card group cursor-pointer rounded-xl overflow-hidden flex flex-col transition-all hover:-translate-y-2">
+<div class="aspect-video relative overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="A breathtaking aerial view of a winding blue river cutting through a deep green boreal forest during autumn, with patches of golden yellow leaves. The image has a sharp, ultra-high-definition quality, treated with a professional color grade of deep forest greens and glowing highlights. A subtle hexagonal data mesh is overlaid on the terrain to signify blockchain tracking." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6uyZBocSErNvP1EF7Rcj_HKvswRX1vQ7q47ngl-vDl3Avw-5km-RgnGTfpRfUgTYF10bRJSrvz5rUTrKYAYo04oGvkbYvab70j7VgpNDz1wtoqoLKl4Xe2z4qvRUa-_uYfLwNe9P-TEECpHOoiOFdzBW297zRLBwxVhj6w2PUf5ilUAc0QGSEKaGFtr6fHEvGkFewYVverz4r7ZGdpV2XzcgDYiLeVs4jyE2jpipU4uc5ASYjqmXOMBJhp2q8GdUDQ9i2zZMEvS56"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent opacity-60"></div>
+<div class="absolute top-3 right-3 bg-surface/80 backdrop-blur px-2 py-1 rounded border border-white/10 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary-container" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="text-[10px] font-bold text-on-surface uppercase tracking-tight">Verified</span>
+</div>
+</div>
+<div class="p-5 flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h5 class="text-primary font-label-md text-label-md">T-CORE #8810</h5>
+<p class="text-[11px] text-on-surface-variant font-medium">ARCTIC PEATLAND PROTECTION</p>
+</div>
+<div class="text-right">
+<p class="text-secondary font-label-md text-label-md">820</p>
+<p class="text-[10px] text-on-surface-variant uppercase">TONS</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+<p class="text-[10px] text-on-surface-variant/60 font-mono">1 hour ago</p>
+<button class="text-on-surface hover:text-primary-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">open_in_new</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Credit NFT Card 4 -->
+<div class="glass-card group cursor-pointer rounded-xl overflow-hidden flex flex-col transition-all hover:-translate-y-2">
+<div class="aspect-video relative overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Microscopic view of bright green algae cells glowing under a fluorescent microscope, creating an intricate web of life. The color palette consists of intense electric blue and vibrant neon mint. The image symbolizes a bio-tech carbon sequestration project, with subtle holographic UI elements showing cell health and carbon absorption rates, perfectly aligned with a dark mode futuristic aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqcQlrNGfQm6zIdWdXP3QbNJEygXzZEi9ehtimPZo9EuPAKgOvwsUnQalyH3HMBWajBzId7y69s9RkvasJezUXiwa_2FlXVxtvgR1l5sRZs5R7eHc1iHiwfCc2bBHpGD2rhI7nWqKYNAalWpzQpyZakXLUSD_DXhhcdv8W10nyLG3P1T4xkRipjVih74WizOVUvspW1bYrR1bpPxIMfO6mb9OLsoiml_Iwlsgu0Qh5U4jMVI_mdLbiRvD8X80xnYQ0eE38CB4nFH5K"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent opacity-60"></div>
+<div class="absolute top-3 right-3 bg-surface/80 backdrop-blur px-2 py-1 rounded border border-white/10 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary-container" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="text-[10px] font-bold text-on-surface uppercase tracking-tight">Verified</span>
+</div>
+</div>
+<div class="p-5 flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h5 class="text-primary font-label-md text-label-md">T-CORE #8809</h5>
+<p class="text-[11px] text-on-surface-variant font-medium">ALGAE BIO-REACTOR UNIT 4</p>
+</div>
+<div class="text-right">
+<p class="text-secondary font-label-md text-label-md">4,120</p>
+<p class="text-[10px] text-on-surface-variant uppercase">TONS</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+<p class="text-[10px] text-on-surface-variant/60 font-mono">3 hours ago</p>
+<button class="text-on-surface hover:text-primary-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">open_in_new</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Footer Info -->
+<footer class="px-6 lg:px-12 py-8 border-t border-white/5 text-on-surface-variant/40 text-[12px] flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="flex items-center gap-6">
+<span>© 2024 CarbonIQ Decentralized Autonomous Protocol</span>
+<span>Terms of Verification</span>
+<span>Whitepaper</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-primary-container"></div>
+<span>All systems operational • Block #19,442,103</span>
+</div>
+</footer>
+</main>
+<!-- Micro-interaction Script -->
+<script>
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+    </script>
+</body></html>

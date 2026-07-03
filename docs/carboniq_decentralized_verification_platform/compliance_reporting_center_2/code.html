@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Compliance Reporting Center | Carbon Ledger</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface": "#dae5da",
+                    "on-tertiary-fixed-variant": "#554500",
+                    "primary-container": "#00ff9d",
+                    "on-tertiary": "#3b2f00",
+                    "on-error": "#690005",
+                    "background": "#0c150f",
+                    "primary-fixed-dim": "#00e38b",
+                    "tertiary-container": "#ffdd65",
+                    "tertiary-fixed": "#ffe17a",
+                    "inverse-primary": "#006d40",
+                    "surface-container-low": "#141e17",
+                    "secondary-fixed-dim": "#4cd6ff",
+                    "surface-container": "#18221b",
+                    "outline-variant": "#3b4a3f",
+                    "on-surface-variant": "#b9cbbc",
+                    "secondary-fixed": "#b7eaff",
+                    "on-secondary-container": "#00566b",
+                    "inverse-surface": "#dae5da",
+                    "surface-tint": "#00e38b",
+                    "on-primary-fixed-variant": "#00522f",
+                    "on-primary": "#00391f",
+                    "secondary-container": "#14d1ff",
+                    "tertiary": "#fffaff",
+                    "secondary": "#a6e6ff",
+                    "on-background": "#dae5da",
+                    "surface-variant": "#2d3730",
+                    "surface-container-lowest": "#07100a",
+                    "on-tertiary-container": "#766000",
+                    "error-container": "#93000a",
+                    "surface-container-highest": "#2d3730",
+                    "surface": "#0c150f",
+                    "on-secondary": "#003543",
+                    "surface-bright": "#323c34",
+                    "on-secondary-fixed": "#001f28",
+                    "on-secondary-fixed-variant": "#004e60",
+                    "primary-fixed": "#56ffa8",
+                    "on-primary-container": "#007143",
+                    "surface-dim": "#0c150f",
+                    "error": "#ffb4ab",
+                    "surface-container-high": "#232c25",
+                    "on-primary-fixed": "#002110",
+                    "on-tertiary-fixed": "#231b00",
+                    "on-error-container": "#ffdad6",
+                    "tertiary-fixed-dim": "#e4c44f",
+                    "primary": "#f4fff3",
+                    "outline": "#849587",
+                    "inverse-on-surface": "#29332b"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "4px",
+                    "container-max": "1280px",
+                    "margin-mobile": "16px",
+                    "gutter": "24px",
+                    "margin-desktop": "64px"
+            },
+            "fontFamily": {
+                    "body-sm": ["Inter"],
+                    "body-md": ["Inter"],
+                    "label-sm": ["Geist"],
+                    "headline-lg": ["Geist"],
+                    "headline-xl": ["Geist"],
+                    "headline-lg-mobile": ["Geist"],
+                    "label-md": ["Geist"],
+                    "headline-md": ["Geist"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: border-color 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(0, 255, 157, 0.3);
+        }
+        .neo-glow {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        .neo-glow-text {
+            text-shadow: 0 0 8px rgba(0, 255, 157, 0.4);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #00ff9d;
+            border-radius: 10px;
+        }
+        .verified-badge-glow {
+            filter: drop-shadow(0 0 4px #00ff9d);
+        }
+    </style>
+</head>
+<body class="font-body-md text-body-md antialiased">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full bg-background/60 backdrop-blur-lg border-b border-white/10 shadow-sm flex items-center justify-between px-64 h-16 w-full z-50">
+<div class="flex items-center gap-8">
+<span class="font-headline-md text-headline-md font-bold text-primary-container tracking-tight">Carbon Ledger</span>
+<nav class="hidden md:flex gap-6">
+<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md" href="#">Dashboard</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md" href="#">Projects</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md" href="#">Explorer</a>
+<a class="text-primary-container border-b-2 border-primary-container pb-1 font-body-md text-body-md" href="#">Verification</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-primary-container rounded-full neo-glow"></span>
+</div>
+<button class="bg-primary-container text-on-primary px-4 py-2 rounded-lg font-label-md text-label-md font-bold active:scale-95 transition-all hover:bg-primary-fixed-dim">Connect Wallet</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-primary-container/30">
+<img class="w-full h-full object-cover" data-alt="A professional close-up headshot of a corporate environmental analyst in a dark green blazer, looking confidently at the camera, with a softly blurred high-tech green-tinted office background. The lighting is crisp and modern, matching a dark-mode climate-tech aesthetic with deep forest tones and sharp detail." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEgGkisfykPcMMWI4blWlnCZ9gzEHKVTpd5eyWr3vNUpIo4SmRVbYaQ5uDUHVAHNE-tTgYrSJPNkgCCmH5Bvr6tOUi2OHrzhHtFf_CHWrKwcgsAvdKb68Kpr8OiiE8cK6nY05_naVTL-5EwP73-mBWdwZUB-9FrhnX8SnOHFzw1k9rSLsm07Inbzs3SfLLyMYlkVPx0GDipIHLZRWf5OWJtCPNSacynuJ8oZfdSB_alJFOVVrmL9zpBx2-MwYPIVjLv71oYqa5ojlL"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-surface-container-low/60 backdrop-blur-xl border-r border-white/10 flex flex-col py-6 gap-2 z-40">
+<div class="px-6 mb-8">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Compliance Hub</h2>
+<p class="font-label-md text-label-md text-on-surface-variant opacity-60">V1.0.4 - Mainnet</p>
+</div>
+<div class="flex flex-col gap-1 px-3">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-white/5 hover:text-on-surface transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary-container">dashboard</span>
+<span class="font-label-md text-label-md">Overview</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-container/10 text-primary-container border-r-4 border-primary-container transition-all group" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="font-label-md text-label-md">Verification</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-white/5 hover:text-on-surface transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary-container">explore</span>
+<span class="font-label-md text-label-md">Explorer</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-white/5 hover:text-on-surface transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary-container">account_balance_wallet</span>
+<span class="font-label-md text-label-md">Wallet</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-white/5 hover:text-on-surface transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary-container">eco</span>
+<span class="font-label-md text-label-md">Impact</span>
+</a>
+</div>
+<div class="mt-auto px-6">
+<button class="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-on-surface py-3 rounded-xl font-label-md text-label-md transition-all">Generate Report</button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 mt-16 p-margin-desktop min-h-screen bg-background relative overflow-hidden">
+<!-- Ambient background elements -->
+
+<div class="relative z-10 max-w-container-max mx-auto">
+<!-- Header Section -->
+<div class="flex justify-between items-end mb-10">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="w-2 h-2 bg-primary-container rounded-full animate-pulse neo-glow"></span>
+<span class="font-label-md text-label-md text-primary-container tracking-widest uppercase">Audit Ready Environment</span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface">Compliance Reporting Center</h1>
+</div>
+<div class="flex gap-4">
+<button class="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-on-surface hover:bg-white/10 transition-all">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-md text-label-md">Audit Logs</span>
+</button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Section 1: Report Configuration (Span 8) -->
+<div class="col-span-12 lg:col-span-8 glass-card rounded-3xl p-8 flex flex-col gap-8">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-on-surface">1. Configure New Report</h3>
+<span class="font-label-sm text-label-sm px-3 py-1 bg-primary-container/10 text-primary-container rounded-full border border-primary-container/20">Active Session</span>
+</div>
+<div class="grid grid-cols-2 gap-8">
+<!-- Report Types -->
+<div class="flex flex-col gap-4">
+<label class="font-label-md text-label-md text-on-surface-variant">Standard Framework</label>
+<div class="flex flex-col gap-2">
+<label class="flex items-center justify-between p-4 rounded-xl border border-primary-container bg-primary-container/5 cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container">description</span>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-semibold">Climate Active</span>
+<span class="text-xs text-on-surface-variant">Carbon Neutral Standard</span>
+</div>
+</div>
+<input checked="" class="text-primary-container bg-transparent border-primary-container focus:ring-0" name="report_type" type="radio"/>
+</label>
+<label class="flex items-center justify-between p-4 rounded-xl border border-white/10 hover:border-white/20 transition-all cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant">account_balance</span>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-semibold">ASRS</span>
+<span class="text-xs text-on-surface-variant">Sustainability Reporting</span>
+</div>
+</div>
+<input class="text-primary-container bg-transparent border-white/20 focus:ring-0" name="report_type" type="radio"/>
+</label>
+<label class="flex items-center justify-between p-4 rounded-xl border border-white/10 hover:border-white/20 transition-all cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant">public</span>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-semibold">GHG Protocol</span>
+<span class="text-xs text-on-surface-variant">Corporate Standard</span>
+</div>
+</div>
+<input class="text-primary-container bg-transparent border-white/20 focus:ring-0" name="report_type" type="radio"/>
+</label>
+</div>
+</div>
+<!-- Date & Units -->
+<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-4">
+<label class="font-label-md text-label-md text-on-surface-variant">Reporting Period</label>
+<div class="bg-black/20 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+<span class="text-on-surface">FY 2023 - 2024</span>
+<span class="material-symbols-outlined text-on-surface-variant">calendar_month</span>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<label class="font-label-md text-label-md text-on-surface-variant">Facilities / Units</label>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs flex items-center gap-2">
+                                        Global HQ <span class="material-symbols-outlined text-[10px] cursor-pointer">close</span>
+</span>
+<span class="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs flex items-center gap-2">
+                                        APAC Data Center <span class="material-symbols-outlined text-[10px] cursor-pointer">close</span>
+</span>
+<button class="px-3 py-1 border border-primary-container/30 text-primary-container rounded-lg text-xs hover:bg-primary-container/5">+ Add Unit</button>
+</div>
+</div>
+</div>
+</div>
+<!-- CTA Container -->
+<div class="mt-4 pt-8 border-t border-white/10 flex items-center justify-between">
+<p class="text-xs text-on-surface-variant max-w-xs">Configuring these settings will initialize a live validation of your ledger data against the selected framework.</p>
+<div class="flex gap-4">
+<button class="px-8 py-4 bg-primary-container text-on-primary font-bold rounded-2xl neo-glow active:scale-95 transition-all">Generate Full Audit Report</button>
+</div>
+</div>
+</div>
+<!-- Section 2: Automated Compliance Checklist (Span 4) -->
+<div class="col-span-12 lg:col-span-4 glass-card rounded-3xl p-8 border-l-4 border-l-primary-container flex flex-col gap-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container verified-badge-glow" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Readiness Validator</h3>
+</div>
+<div class="flex flex-col gap-4">
+<div class="p-4 bg-black/20 rounded-2xl border border-white/5 flex items-start gap-4">
+<span class="material-symbols-outlined text-primary-container text-xl">check_circle</span>
+<div>
+<p class="font-body-md text-body-md text-on-surface font-semibold">Data Gaps Filled</p>
+<p class="text-xs text-on-surface-variant">100% Scope 1 &amp; 2 coverage identified.</p>
+</div>
+</div>
+<div class="p-4 bg-black/20 rounded-2xl border border-white/5 flex items-start gap-4">
+<span class="material-symbols-outlined text-primary-container text-xl">check_circle</span>
+<div>
+<p class="font-body-md text-body-md text-on-surface font-semibold">Renewables Matched</p>
+<p class="text-xs text-on-surface-variant">PPA certificates verified on-chain.</p>
+</div>
+</div>
+<div class="p-4 bg-black/20 rounded-2xl border border-white/5 flex items-start gap-4 relative">
+<span class="material-symbols-outlined text-secondary-container text-xl animate-pulse">pending</span>
+<div>
+<p class="font-body-md text-body-md text-on-surface font-semibold">Asset Inventory Verified</p>
+<p class="text-xs text-on-surface-variant">Validating 14 Scope 3 categories...</p>
+</div>
+<div class="absolute right-4 top-4 w-12 h-1 rounded-full bg-white/10 overflow-hidden">
+<div class="h-full bg-secondary-container w-[65%]"></div>
+</div>
+</div>
+<div class="p-4 bg-black/20 rounded-2xl border border-white/5 flex items-start gap-4 opacity-50">
+<span class="material-symbols-outlined text-on-surface-variant text-xl">radio_button_unchecked</span>
+<div>
+<p class="font-body-md text-body-md text-on-surface font-semibold">Executive Signature</p>
+<p class="text-xs text-on-surface-variant">Pending final report generation.</p>
+</div>
+</div>
+</div>
+<div class="mt-auto bg-surface-container-high p-4 rounded-2xl border border-white/10">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs text-on-surface-variant">Overall Compliance Score</span>
+<span class="text-primary-container font-bold">89%</span>
+</div>
+<div class="w-full h-2 bg-black/40 rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary-container to-secondary-container w-[89%] shadow-[0_0_8px_#00ff9d]"></div>
+</div>
+</div>
+</div>
+<!-- Section 3: Report History & Archive (Span 12) -->
+<div class="col-span-12 glass-card rounded-3xl p-8">
+<div class="flex items-center justify-between mb-8">
+<h3 class="font-headline-md text-headline-md text-on-surface">Historical Ledger Records</h3>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+</button>
+<button class="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10">
+<span class="material-symbols-outlined text-sm">search</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="border-b border-white/10 text-on-surface-variant text-xs uppercase tracking-widest font-label-md">
+<tr>
+<th class="pb-4 font-normal">Report Identity</th>
+<th class="pb-4 font-normal">Framework</th>
+<th class="pb-4 font-normal">Period</th>
+<th class="pb-4 font-normal">Status</th>
+<th class="pb-4 font-normal">Verification Hash</th>
+<th class="pb-4 font-normal text-right">Downloads</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/5">
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="py-6">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary-container/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary-container">file_present</span>
+</div>
+<div>
+<p class="text-on-surface font-semibold">Q1 Sustainability Ledger</p>
+<p class="text-[10px] text-on-surface-variant">Generated Mar 12, 2024</p>
+</div>
+</div>
+</td>
+<td class="py-6 text-on-surface-variant">Climate Active</td>
+<td class="py-6 text-on-surface-variant">Jan - Mar 2024</td>
+<td class="py-6">
+<span class="px-3 py-1 rounded-full bg-primary-container/10 text-primary-container text-[10px] border border-primary-container/20 font-bold uppercase tracking-tighter">Signed &amp; Sealed</span>
+</td>
+<td class="py-6 font-mono text-[10px] text-on-surface-variant opacity-50">0x71C...4e92</td>
+<td class="py-6">
+<div class="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-xs text-primary-container hover:underline">PDF</button>
+<button class="text-xs text-secondary-container hover:underline">CSV</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="py-6">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">history_edu</span>
+</div>
+<div>
+<p class="text-on-surface font-semibold">Annual Corporate Disclosure</p>
+<p class="text-[10px] text-on-surface-variant">Generated Feb 05, 2024</p>
+</div>
+</div>
+</td>
+<td class="py-6 text-on-surface-variant">GHG Protocol</td>
+<td class="py-6 text-on-surface-variant">FY 2023</td>
+<td class="py-6">
+<span class="px-3 py-1 rounded-full bg-white/10 text-on-surface text-[10px] border border-white/10 font-bold uppercase tracking-tighter">Archived</span>
+</td>
+<td class="py-6 font-mono text-[10px] text-on-surface-variant opacity-50">0x22F...9b11</td>
+<td class="py-6">
+<div class="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-xs text-primary-container hover:underline">PDF</button>
+<button class="text-xs text-secondary-container hover:underline">CSV</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="py-6">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-error-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-error">event_busy</span>
+</div>
+<div>
+<p class="text-on-surface font-semibold">Mid-Market Resilience Test</p>
+<p class="text-[10px] text-on-surface-variant">Generated Dec 20, 2023</p>
+</div>
+</div>
+</td>
+<td class="py-6 text-on-surface-variant">Internal Only</td>
+<td class="py-6 text-on-surface-variant">Nov 2023</td>
+<td class="py-6">
+<span class="px-3 py-1 rounded-full bg-error-container/10 text-error text-[10px] border border-error/20 font-bold uppercase tracking-tighter">Expired</span>
+</td>
+<td class="py-6 font-mono text-[10px] text-on-surface-variant opacity-50">0x4c2...de33</td>
+<td class="py-6">
+<div class="flex justify-end gap-3">
+<span class="text-[10px] text-on-surface-variant italic">Data outdated</span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<!-- Notification Integration / Toast Overlay (Bottom Right) -->
+<div class="fixed bottom-8 right-8 z-50 animate-bounce">
+<div class="glass-card p-4 rounded-2xl flex items-center gap-4 border-l-4 border-l-secondary-container shadow-2xl">
+<div class="w-10 h-10 rounded-full bg-secondary-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary-container">info</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-bold">New Data Sync Available</p>
+<p class="text-xs text-on-surface-variant">Scope 2 PPA certificates updated.</p>
+</div>
+<button class="ml-4 hover:bg-white/10 p-1 rounded-md transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">close</span>
+</button>
+</div>
+</div>
+</main>
+<script>
+        // Micro-interactions for compliance list items
+        document.querySelectorAll('input[name="report_type"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                // Clear all active classes
+                document.querySelectorAll('label').forEach(label => {
+                    label.classList.remove('border-primary-container', 'bg-primary-container/5');
+                    label.classList.add('border-white/10');
+                });
+                // Add to active
+                if (e.target.checked) {
+                    const container = e.target.closest('label');
+                    container.classList.remove('border-white/10');
+                    container.classList.add('border-primary-container', 'bg-primary-container/5');
+                }
+            });
+        });
+
+        // Simple animation for the checklist progress
+        let progress = 65;
+        const progressBar = document.querySelector('.bg-secondary-container');
+        setInterval(() => {
+            if (progress < 100) {
+                progress += 0.5;
+                if (progressBar) progressBar.style.width = `${progress}%`;
+            }
+        }, 3000);
+    </script>
+</body></html>

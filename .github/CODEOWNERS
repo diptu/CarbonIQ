@@ -1,0 +1,4 @@
+# Status: planned — not yet implemented.
+#
+# Will map paths under apps/, services/, shared/, infrastructure/ to the
+# teams/individuals required to review changes in each area.

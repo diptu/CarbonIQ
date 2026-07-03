@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Renewables Attribution | CarbonIQ</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=Geist:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-card-active {
+            border: 1px solid #00ff9d;
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.15);
+        }
+        .neon-glow {
+            text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+        }
+        .mint-gradient-border {
+            border-image: linear-gradient(to bottom right, #00ff9d, transparent) 1;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #00ff9d;
+            border-radius: 10px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary": "#fffaff",
+                        "surface-container": "#18221b",
+                        "error": "#ffb4ab",
+                        "on-tertiary": "#3b2f00",
+                        "on-error": "#690005",
+                        "tertiary-fixed-dim": "#e4c44f",
+                        "on-primary": "#00391f",
+                        "outline-variant": "#3b4a3f",
+                        "background": "#0c150f",
+                        "surface-container-lowest": "#07100a",
+                        "surface-container-highest": "#2d3730",
+                        "on-secondary-fixed-variant": "#004e60",
+                        "on-secondary-container": "#00566b",
+                        "inverse-on-surface": "#29332b",
+                        "secondary-fixed-dim": "#4cd6ff",
+                        "primary-fixed-dim": "#00e38b",
+                        "on-primary-fixed-variant": "#00522f",
+                        "on-tertiary-fixed-variant": "#554500",
+                        "secondary": "#a6e6ff",
+                        "outline": "#849587",
+                        "on-secondary-fixed": "#001f28",
+                        "on-tertiary-fixed": "#231b00",
+                        "on-surface-variant": "#b9cbbc",
+                        "on-background": "#dae5da",
+                        "on-surface": "#dae5da",
+                        "surface-variant": "#2d3730",
+                        "on-primary-fixed": "#002110",
+                        "primary-fixed": "#56ffa8",
+                        "primary-container": "#00ff9d",
+                        "secondary-container": "#14d1ff",
+                        "surface": "#0c150f",
+                        "on-tertiary-container": "#766000",
+                        "surface-bright": "#323c34",
+                        "tertiary-container": "#ffdd65",
+                        "tertiary-fixed": "#ffe17a",
+                        "on-secondary": "#003543",
+                        "on-primary-container": "#007143",
+                        "inverse-surface": "#dae5da",
+                        "inverse-primary": "#006d40",
+                        "surface-container-high": "#232c25",
+                        "surface-container-low": "#141e17",
+                        "secondary-fixed": "#b7eaff",
+                        "primary": "#f4fff3",
+                        "on-error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "margin-mobile": "16px",
+                        "margin-desktop": "64px",
+                        "container-max": "1280px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-md": ["Geist"],
+                        "headline-xl": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                },
+            }
+        }
+    </script>
+</head>
+<body class="overflow-hidden">
+<!-- Top Navigation Bar -->
+<header class="bg-surface/60 dark:bg-surface/60 backdrop-blur-md text-surface-tint dark:text-surface-tint fixed top-0 left-0 right-0 z-50 border-b border-white/10">
+<div class="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto h-16">
+<div class="flex items-center gap-8">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary tracking-tighter">VeriLedger</span>
+<nav class="hidden md:flex gap-6 items-center">
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary-container transition-colors font-label-md text-label-md" href="#">Dashboard</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary-container transition-colors font-label-md text-label-md" href="#">Projects</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary-container transition-colors font-label-md text-label-md" href="#">Explorer</a>
+<a class="text-primary dark:text-primary border-b-2 border-primary pb-1 font-label-md text-label-md" href="#">Verification</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="bg-surface-container-highest/30 border-none rounded-full pl-10 pr-4 py-1.5 text-sm focus:ring-1 focus:ring-primary-container w-64" placeholder="Search facilities..." type="text"/>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">settings</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-primary/20">
+<img class="w-full h-full object-cover" data-alt="Close-up high-resolution portrait of a professional woman with a confident expression, soft corporate lighting, against a dark, minimalist architectural background that reflects a high-end, futuristic carbon management company aesthetic with deep forest green accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3-_g03aGYAn4h04ozfJNxSRefD2AdGOWwiZGFB-5CTIOpSASreVrLKzFw8fK3TgkAibg7jF6IV5on99PM0Y0ewxvlUjr6ilT-VZPTzpk-AGFBS7rAXQ5Ux8k1a8yMQQ8rdT99dE14IrWD5XbjmQetW-q5ZS3IS-hGgw0OC8KCpCRWxRPFp-XjEuq6r6lrBU4JLZbJJDiGU5iMkRgkExSSkSm2FgnUazH-atRRVSM1tldNeXuQDG4B7kj_rvCqH9rlPSUYQDS0k2OQ"/>
+</div>
+</div>
+</div>
+</header>
+<div class="flex h-screen pt-16">
+<!-- Side Navigation Bar -->
+<aside class="hidden md:flex flex-col h-full py-8 px-4 bg-surface-container-low/60 dark:bg-surface-container-low/60 backdrop-blur-xl border-r border-white/10 w-64 shrink-0 overflow-y-auto">
+<div class="mb-8 flex items-center gap-3 p-3 glass-card rounded-xl">
+<div class="w-10 h-10 rounded-lg bg-primary-container/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">hub</span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md font-bold text-primary">Carbon Node 01</h3>
+<p class="text-[10px] text-primary/60 uppercase tracking-widest">Active Status</p>
+</div>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-white/5 transition-all rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">dashboard</span> Overview
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-primary dark:text-primary bg-primary/10 rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">electric_bolt</span> Renewables
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-white/5 transition-all rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span> Wallet
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-white/5 transition-all rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">eco</span> Impact
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-white/5 transition-all rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">monitoring</span> Analytics
+                </a>
+</nav>
+<div class="mt-auto pt-8 border-t border-white/5 space-y-2">
+<button class="w-full bg-primary-container text-on-primary-container py-3 rounded-lg font-label-md text-label-md font-bold hover:brightness-110 transition-all mb-4">Mint Credits</button>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:text-primary transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">help</span> Help
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:text-primary transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">logout</span> Logout
+                </a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto custom-scrollbar bg-background relative">
+<!-- Animated Background Gradient Shell -->
+
+<div class="max-w-container-max mx-auto px-margin-desktop py-8 relative z-10">
+<!-- Header & Status -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+<div>
+<h1 class="font-headline-xl text-headline-xl text-primary leading-tight">Renewables Attribution</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">Manage and match renewable energy certificates against site consumption across your global portfolio.</p>
+</div>
+<div class="flex items-center gap-3 px-4 py-2 bg-surface-container-high/40 border border-primary/20 rounded-full backdrop-blur-md">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-pulse shadow-[0_0_8px_#00ff9d]"></span>
+<span class="text-sm font-medium text-primary">GHG Protocol Compliance: <span class="text-primary-container">Verified</span></span>
+<span class="material-symbols-outlined text-primary-container text-base">verified</span>
+</div>
+</div>
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter mb-10">
+<div class="glass-card p-6 rounded-2xl">
+<div class="flex items-center justify-between mb-4">
+<span class="text-on-surface-variant text-sm font-medium">Total Consumption</span>
+<span class="material-symbols-outlined text-on-surface-variant opacity-50">data_usage</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-primary">12,482</span>
+<span class="text-on-surface-variant text-xs font-bold uppercase tracking-widest">MWh</span>
+</div>
+<div class="mt-4 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-[100%] shadow-[0_0_8px_#00ff9d]"></div>
+</div>
+</div>
+<div class="glass-card p-6 rounded-2xl glass-card-active">
+<div class="flex items-center justify-between mb-4">
+<span class="text-on-surface-variant text-sm font-medium">Matched Renewables</span>
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-primary-container neon-glow">84.2</span>
+<span class="text-on-surface-variant text-xs font-bold uppercase tracking-widest">%</span>
+</div>
+<div class="mt-4 flex items-center gap-2">
+<span class="text-xs text-primary-container">+5.4% from last month</span>
+</div>
+</div>
+<div class="glass-card p-6 rounded-2xl">
+<div class="flex items-center justify-between mb-4">
+<span class="text-on-surface-variant text-sm font-medium">Unmatched Load</span>
+<span class="material-symbols-outlined text-error opacity-70">warning</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-primary">1,972</span>
+<span class="text-on-surface-variant text-xs font-bold uppercase tracking-widest">MWh</span>
+</div>
+<div class="mt-4 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-error w-[15.8%] shadow-[0_0_8px_#ffb4ab]"></div>
+</div>
+</div>
+<div class="glass-card p-6 rounded-2xl">
+<div class="flex items-center justify-between mb-4">
+<span class="text-on-surface-variant text-sm font-medium">Net Emissions</span>
+<span class="material-symbols-outlined text-secondary-container">cloud_done</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-primary">482</span>
+<span class="text-on-surface-variant text-xs font-bold uppercase tracking-widest">tCO2e</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-4">Market-based method</p>
+</div>
+</div>
+<!-- Central Workspace (Bento Style) -->
+<div class="grid grid-cols-12 gap-gutter items-start">
+<!-- Residual Load Visualization -->
+<div class="col-span-12 lg:col-span-4 glass-card rounded-2xl p-8 h-full">
+<h3 class="font-headline-md text-headline-md text-primary mb-2">Net Zero Gap</h3>
+<p class="text-on-surface-variant text-sm mb-8">Visualization of hourly load matching vs grid emissions factor.</p>
+<div class="relative h-64 w-full flex items-end gap-1 px-2 border-l border-b border-white/10">
+<!-- Simulated Chart Bars -->
+<div class="flex-1 bg-primary-container/20 border-t border-primary-container h-4/5 relative group transition-all hover:bg-primary-container/40">
+<div class="absolute bottom-0 w-full bg-primary-container h-1/2 opacity-60"></div>
+</div>
+<div class="flex-1 bg-primary-container/20 border-t border-primary-container h-3/5 relative group">
+<div class="absolute bottom-0 w-full bg-primary-container h-2/3 opacity-60"></div>
+</div>
+<div class="flex-1 bg-error/20 border-t border-error h-full relative group">
+<div class="absolute bottom-0 w-full bg-error h-1/4 opacity-40"></div>
+</div>
+<div class="flex-1 bg-primary-container/20 border-t border-primary-container h-5/6 relative group">
+<div class="absolute bottom-0 w-full bg-primary-container h-3/4 opacity-60"></div>
+</div>
+<div class="flex-1 bg-primary-container/20 border-t border-primary-container h-2/3 relative group">
+<div class="absolute bottom-0 w-full bg-primary-container h-full opacity-60"></div>
+</div>
+<div class="flex-1 bg-error/20 border-t border-error h-5/6 relative group">
+<div class="absolute bottom-0 w-full bg-error h-1/3 opacity-40"></div>
+</div>
+<div class="flex-1 bg-primary-container/20 border-t border-primary-container h-4/5 relative group">
+<div class="absolute bottom-0 w-full bg-primary-container h-2/3 opacity-60"></div>
+</div>
+</div>
+<div class="mt-8 space-y-4">
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-sm bg-primary-container"></span>
+<span class="text-on-surface-variant">Attributed Renewables</span>
+</div>
+<span class="text-primary font-bold">10,510 MWh</span>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-sm bg-error opacity-60"></span>
+<span class="text-on-surface-variant">Fossil Fuel Load</span>
+</div>
+<span class="text-primary font-bold">1,972 MWh</span>
+</div>
+</div>
+<button class="w-full mt-8 py-3 bg-white/5 border border-white/10 rounded-xl text-sm font-medium hover:bg-white/10 transition-all">Download Detailed Gap Report</button>
+</div>
+<!-- Interactive Matching Workspace -->
+<div class="col-span-12 lg:col-span-8 flex flex-col gap-gutter">
+<!-- Inventory Matcher Tool -->
+<div class="glass-card rounded-2xl overflow-hidden border border-white/5">
+<div class="p-6 border-b border-white/10 flex justify-between items-center bg-white/2">
+<h3 class="font-headline-md text-headline-md text-primary">Inventory Matching Engine</h3>
+<div class="flex gap-2">
+<button class="px-4 py-1.5 bg-surface-container-highest text-xs font-bold rounded-lg hover:bg-white/10">Filter Assets</button>
+<button class="px-4 py-1.5 bg-primary-container text-on-primary-container text-xs font-bold rounded-lg shadow-[0_0_12px_rgba(0,255,157,0.3)]">Auto-Match (AI)</button>
+</div>
+</div>
+<div class="flex flex-col md:flex-row h-[500px]">
+<!-- Left Panel: Facilities (Consumers) -->
+<div class="w-full md:w-1/2 border-r border-white/10 overflow-y-auto custom-scrollbar">
+<div class="p-4 bg-white/5 sticky top-0 z-10 flex items-center justify-between">
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Unmatched Facilities</span>
+<span class="bg-surface-container text-[10px] px-2 py-0.5 rounded text-on-surface-variant">14 Pending</span>
+</div>
+<div class="p-2 space-y-2">
+<!-- Facility Card -->
+<div class="p-4 rounded-xl border border-white/5 bg-white/2 hover:border-primary/40 cursor-pointer transition-all group">
+<div class="flex justify-between items-start mb-2">
+<div>
+<p class="text-sm font-bold text-primary group-hover:text-primary-container">OSL-01 Data Center</p>
+<p class="text-xs text-on-surface-variant">Oslo, Norway</p>
+</div>
+<span class="bg-error/10 text-error text-[10px] px-2 py-0.5 rounded">0% Matched</span>
+</div>
+<div class="flex items-center justify-between text-xs text-on-surface-variant mt-3 pt-3 border-t border-white/5">
+<span>Load: 4,500 MWh</span>
+<span class="material-symbols-outlined text-base">arrow_forward_ios</span>
+</div>
+</div>
+<!-- Facility Card -->
+<div class="p-4 rounded-xl border border-white/5 bg-white/2 hover:border-primary/40 cursor-pointer transition-all group border-l-4 border-l-secondary-container">
+<div class="flex justify-between items-start mb-2">
+<div>
+<p class="text-sm font-bold text-primary group-hover:text-primary-container">SFO-Hub Terminal</p>
+<p class="text-xs text-on-surface-variant">California, USA</p>
+</div>
+<span class="bg-secondary-container/10 text-secondary-container text-[10px] px-2 py-0.5 rounded">42% Matched</span>
+</div>
+<div class="flex items-center justify-between text-xs text-on-surface-variant mt-3 pt-3 border-t border-white/5">
+<span>Remaining: 1,200 MWh</span>
+<span class="material-symbols-outlined text-base">arrow_forward_ios</span>
+</div>
+</div>
+<!-- Facility Card -->
+<div class="p-4 rounded-xl border border-white/5 bg-white/2 hover:border-primary/40 cursor-pointer transition-all group">
+<div class="flex justify-between items-start mb-2">
+<div>
+<p class="text-sm font-bold text-primary group-hover:text-primary-container">TYO-Logistics</p>
+<p class="text-xs text-on-surface-variant">Tokyo, JP</p>
+</div>
+<span class="bg-error/10 text-error text-[10px] px-2 py-0.5 rounded">12% Matched</span>
+</div>
+<div class="flex items-center justify-between text-xs text-on-surface-variant mt-3 pt-3 border-t border-white/5">
+<span>Remaining: 840 MWh</span>
+<span class="material-symbols-outlined text-base">arrow_forward_ios</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Panel: Available Assets (Supply) -->
+<div class="w-full md:w-1/2 overflow-y-auto custom-scrollbar bg-black/20">
+<div class="p-4 bg-white/5 sticky top-0 z-10 flex items-center justify-between">
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Available Assets (Supply)</span>
+<span class="bg-surface-container text-[10px] px-2 py-0.5 rounded text-on-surface-variant">REC / PPA</span>
+</div>
+<div class="p-4 space-y-3">
+<!-- Asset Token -->
+<div class="glass-card p-4 rounded-xl border-dashed border-white/20 hover:border-primary/50 cursor-grab active:cursor-grabbing transition-all">
+<div class="flex gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary-container">wb_sunny</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between">
+<span class="text-[10px] font-bold text-primary uppercase">Asset ID: RE-9021</span>
+<span class="text-[10px] text-on-surface-variant">V-2023</span>
+</div>
+<h4 class="text-sm font-medium text-primary mt-1">Solar Farm Alpha</h4>
+<p class="text-xs text-on-surface-variant">Spain (ES)</p>
+<div class="mt-3 flex items-center justify-between">
+<span class="text-primary-container font-bold">2,400 MWh</span>
+<span class="material-symbols-outlined text-sm opacity-40">drag_indicator</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Asset Token -->
+<div class="glass-card p-4 rounded-xl border-dashed border-white/20 hover:border-primary/50 cursor-grab transition-all">
+<div class="flex gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-secondary-container">air</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between">
+<span class="text-[10px] font-bold text-primary uppercase">Asset ID: WD-4481</span>
+<span class="text-[10px] text-on-surface-variant">V-2023</span>
+</div>
+<h4 class="text-sm font-medium text-primary mt-1">North Sea Wind II</h4>
+<p class="text-xs text-on-surface-variant">Norway (NO)</p>
+<div class="mt-3 flex items-center justify-between">
+<span class="text-primary-container font-bold">5,000 MWh</span>
+<span class="material-symbols-outlined text-sm opacity-40">drag_indicator</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Asset Token -->
+<div class="glass-card p-4 rounded-xl border-dashed border-white/20 hover:border-primary/50 cursor-grab transition-all">
+<div class="flex gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-tertiary-fixed-dim">water_drop</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between">
+<span class="text-[10px] font-bold text-primary uppercase">Asset ID: HY-2100</span>
+<span class="text-[10px] text-on-surface-variant">V-2024</span>
+</div>
+<h4 class="text-sm font-medium text-primary mt-1">Gorge Hydro Station</h4>
+<p class="text-xs text-on-surface-variant">Canada (CA)</p>
+<div class="mt-3 flex items-center justify-between">
+<span class="text-primary-container font-bold">1,150 MWh</span>
+<span class="material-symbols-outlined text-sm opacity-40">drag_indicator</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Asset Management Table -->
+<div class="glass-card rounded-2xl overflow-hidden">
+<div class="p-6 border-b border-white/10 bg-white/2">
+<h3 class="font-headline-md text-headline-md text-primary">Matched Allocation Ledger</h3>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest bg-white/5">
+<th class="px-6 py-4">Transaction ID</th>
+<th class="px-6 py-4">Facility</th>
+<th class="px-6 py-4">Instrument</th>
+<th class="px-6 py-4">Vintage</th>
+<th class="px-6 py-4 text-right">Qty (MWh)</th>
+<th class="px-6 py-4 text-center">Status</th>
+</tr>
+</thead>
+<tbody class="text-sm">
+<tr class="border-b border-white/5 hover:bg-white/2 transition-colors">
+<td class="px-6 py-4 font-mono text-xs text-primary/70">#TRX-94821</td>
+<td class="px-6 py-4 font-medium">SFO-Hub Terminal</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary-container">verified</span>
+                                                    REC (Solar)
+                                                </div>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">2023 Q4</td>
+<td class="px-6 py-4 text-right font-bold">1,500.00</td>
+<td class="px-6 py-4 text-center">
+<span class="px-2 py-1 rounded bg-primary-container/10 text-primary-container text-[10px] font-bold border border-primary-container/20">MATCHED</span>
+</td>
+</tr>
+<tr class="border-b border-white/5 hover:bg-white/2 transition-colors">
+<td class="px-6 py-4 font-mono text-xs text-primary/70">#TRX-94822</td>
+<td class="px-6 py-4 font-medium">OSL-01 Data Center</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary-container">description</span>
+                                                    PPA (Wind)
+                                                </div>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">2024 Q1</td>
+<td class="px-6 py-4 text-right font-bold">3,250.00</td>
+<td class="px-6 py-4 text-center">
+<span class="px-2 py-1 rounded bg-secondary-container/10 text-secondary-container text-[10px] font-bold border border-secondary-container/20">PENDING</span>
+</td>
+</tr>
+<tr class="border-b border-white/5 hover:bg-white/2 transition-colors">
+<td class="px-6 py-4 font-mono text-xs text-primary/70">#TRX-94823</td>
+<td class="px-6 py-4 font-medium">TYO-Logistics</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary-container">shield_with_heart</span>
+                                                    GreenPower
+                                                </div>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">2023 Q3</td>
+<td class="px-6 py-4 text-right font-bold">850.00</td>
+<td class="px-6 py-4 text-center">
+<span class="px-2 py-1 rounded bg-primary-container/10 text-primary-container text-[10px] font-bold border border-primary-container/20">MATCHED</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Micro-interaction Scripts -->
+<script>
+        // Simple drag feedback simulation
+        const assetTokens = document.querySelectorAll('.cursor-grab');
+        assetTokens.forEach(token => {
+            token.addEventListener('mousedown', () => {
+                token.classList.add('scale-95', 'opacity-70');
+            });
+            token.addEventListener('mouseup', () => {
+                token.classList.remove('scale-95', 'opacity-70');
+            });
+        });
+
+        // Hover animations for KPI cards
+        const kpiCards = document.querySelectorAll('.glass-card');
+        kpiCards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+                card.style.transition = 'all 0.3s ease';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body></html>

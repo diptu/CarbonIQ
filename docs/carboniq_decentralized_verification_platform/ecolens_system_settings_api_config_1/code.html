@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EcoLens Service Manager - Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            -webkit-font-smoothing: antialiased;
+        }
+        .glass-card {
+            backdrop-filter: blur(16px);
+            background: rgba(6, 44, 34, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(0, 255, 157, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.05);
+        }
+        .active-glow-shadow {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #56ffa8;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #3b4a3f;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary": "#a6e6ff",
+                    "inverse-surface": "#dae5da",
+                    "text-muted": "#B9CBBC",
+                    "on-tertiary-fixed": "#231b00",
+                    "on-primary-fixed": "#002110",
+                    "primary-fixed": "#56ffa8",
+                    "on-primary": "#00391f",
+                    "surface-container-high": "#232c25",
+                    "error": "#ffb4ab",
+                    "surface-glass": "rgba(6, 44, 34, 0.6)",
+                    "primary-fixed-dim": "#00e38b",
+                    "primary": "#f4fff3",
+                    "outline-variant": "#3b4a3f",
+                    "surface": "#0c150f",
+                    "on-primary-container": "#007143",
+                    "on-secondary-fixed": "#001f28",
+                    "secondary-fixed": "#b7eaff",
+                    "error-container": "#93000a",
+                    "tertiary-container": "#ffdd65",
+                    "on-secondary": "#003543",
+                    "on-tertiary-container": "#766000",
+                    "border-low-opacity": "rgba(255, 255, 255, 0.1)",
+                    "surface-container-highest": "#2d3730",
+                    "surface-container-lowest": "#07100a",
+                    "on-error-container": "#ffdad6",
+                    "surface-variant": "#2d3730",
+                    "surface-tint": "#00e38b",
+                    "on-tertiary": "#3b2f00",
+                    "tertiary-fixed": "#ffe17a",
+                    "secondary-fixed-dim": "#4cd6ff",
+                    "on-surface": "#dae5da",
+                    "tertiary": "#fffaff",
+                    "surface-container": "#18221b",
+                    "on-secondary-container": "#00566b",
+                    "secondary-container": "#14d1ff",
+                    "inverse-primary": "#006d40",
+                    "on-tertiary-fixed-variant": "#554500",
+                    "on-surface-variant": "#b9cbbc",
+                    "surface-dim": "#0c150f",
+                    "on-background": "#dae5da",
+                    "outline": "#849587",
+                    "tertiary-fixed-dim": "#e4c44f",
+                    "active-glow": "rgba(0, 255, 157, 0.15)",
+                    "error-accent": "#FFB4AB",
+                    "on-error": "#690005",
+                    "background-deep": "#0C150F",
+                    "surface-bright": "#323c34",
+                    "background": "#0c150f",
+                    "surface-container-low": "#141e17",
+                    "inverse-on-surface": "#29332b",
+                    "text-on-surface": "#DAE5DA",
+                    "on-secondary-fixed-variant": "#004e60",
+                    "primary-container": "#00ff9d",
+                    "on-primary-fixed-variant": "#00522f"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "margin-desktop": "64px",
+                    "container-max": "1280px",
+                    "unit": "4px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Geist"],
+                    "label-md": ["Geist"],
+                    "body-sm": ["Inter"],
+                    "headline-lg": ["Geist"],
+                    "headline-md": ["Geist"],
+                    "body-md": ["Inter"],
+                    "headline-xl": ["Geist"],
+                    "headline-lg-mobile": ["Geist"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background text-on-surface overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-64 fixed left-0 top-0 h-screen bg-surface-glass backdrop-blur-md border-r border-border-low-opacity shadow-sm flex flex-col py-8 z-[60]">
+<div class="px-6 mb-8 flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-primary-fixed flex items-center justify-center text-on-primary-fixed shadow-[0_0_15px_rgba(0,255,157,0.3)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">eco</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary-fixed tracking-tight">EcoLens</h1>
+<p class="font-label-sm text-label-sm text-text-muted">Carbon Tracking v2.4</p>
+</div>
+</div>
+<nav class="flex-1 px-3 space-y-1">
+<a class="flex items-center gap-3 px-3 py-3 font-label-md text-label-md text-text-muted hover:text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span> Dashboard
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 font-label-md text-label-md text-text-muted hover:text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">monitoring</span> Analytics
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 font-label-md text-label-md text-text-muted hover:text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">api</span> Integrations
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 font-label-md text-label-md text-primary-fixed bg-active-glow border-r-2 border-primary-fixed transition-all duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span> Settings
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 font-label-md text-label-md text-text-muted hover:text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">help</span> Support
+            </a>
+</nav>
+<div class="mt-auto px-6 mb-8">
+<button class="w-full py-3 bg-primary-fixed text-on-primary-fixed font-bold rounded hover:opacity-90 active:scale-95 transition-all text-sm uppercase tracking-wider shadow-[0_0_15px_rgba(0,255,157,0.2)]">
+                Deploy Microservice
+            </button>
+</div>
+<div class="px-3 pt-6 border-t border-border-low-opacity space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 font-label-md text-label-md text-text-muted hover:text-on-surface-variant transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">menu_book</span> Docs
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 font-label-md text-label-md text-text-muted hover:text-on-surface-variant transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">logout</span> Logout
+            </a>
+</div>
+</aside>
+<!-- Top App Bar -->
+<header class="h-16 fixed top-0 right-0 w-[calc(100%-256px)] z-50 bg-surface-glass backdrop-blur-md border-b border-border-low-opacity shadow-sm flex justify-between items-center px-margin-desktop">
+<h2 class="font-headline-md text-headline-md font-extrabold text-primary-fixed">EcoLens Service Manager</h2>
+<div class="flex items-center gap-8">
+<nav class="hidden lg:flex gap-6">
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary-fixed transition-colors" href="#">Configuration</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary-fixed transition-colors" href="#">Network</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary-fixed transition-colors" href="#">Security</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary-fixed cursor-pointer transition-colors">notifications</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-primary-fixed/30 cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="A professional close-up of a systems engineer in a high-tech control center. The lighting is moody with neon mint accents reflecting off the person's face. The overall aesthetic is clean, technical, and optimistic, matching the EcoLens brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDiwX5qhlCcaBYc3jq6KMcNDDERuHH01lhpDc_xebeBtgtkdCYvMEtlHXxfTJSkqBNb_v4hqTsyBBVo3qwwZge1ReM3w5IdxxFyfvlVeGDFYme21E0yVxXiPOZZ_7gkGeDoq3UNwkoiW5eUyXAKFFc_sqBvkFcZV3e_BMei9JEFo-BPlYGHUq0LofI08yOeVH16X1OHPIJ7z449_jaw-PI85qLiBnh3EySl70_kCsR_32ODnr9NZmA_BnArlxaEEez2TUycqDOnsnIi"/>
+</div>
+<button class="bg-primary-fixed text-on-primary-fixed font-bold px-4 py-2 rounded text-sm hover:opacity-90 active:opacity-80 transition-all">Save Changes</button>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 mt-16 h-[calc(100vh-64px)] overflow-y-auto custom-scrollbar">
+<div class="max-w-[1280px] mx-auto px-margin-desktop py-12">
+<!-- Header Section -->
+<section class="mb-12">
+<h1 class="font-headline-xl text-headline-xl text-primary-fixed mb-2">System Settings &amp; Configuration</h1>
+<p class="font-body-lg text-body-lg text-text-muted">Manage your microservice environment and integration handshakes.</p>
+</section>
+<!-- Settings Grid -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Section: Global Preferences -->
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-gutter">
+<div class="glass-card p-8 rounded-xl h-full flex flex-col gap-8">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-fixed">tune</span>
+<h3 class="font-headline-md text-headline-md">Global Preferences</h3>
+</div>
+<!-- Unit System -->
+<div class="space-y-3">
+<label class="font-label-md text-label-md text-text-muted block uppercase tracking-widest">Unit System</label>
+<div class="flex bg-surface-container-lowest p-1 rounded-lg border border-border-low-opacity">
+<button class="flex-1 py-2 font-label-md text-label-md rounded bg-primary-fixed text-on-primary-fixed shadow-[0_0_10px_rgba(0,255,157,0.2)]" onclick="toggleActive(this)">Metric</button>
+<button class="flex-1 py-2 font-label-md text-label-md text-text-muted hover:text-on-surface transition-colors" onclick="toggleActive(this)">Imperial</button>
+</div>
+</div>
+<!-- Base Currency -->
+<div class="space-y-3">
+<label class="font-label-md text-label-md text-text-muted block uppercase tracking-widest">Base Currency</label>
+<select class="w-full bg-surface-container-lowest border border-border-low-opacity text-on-surface font-body-md text-body-md px-4 py-3 rounded-lg focus:outline-none focus:border-primary-fixed transition-colors appearance-none">
+<option value="USD">USD - US Dollar ($)</option>
+<option value="EUR">EUR - Euro (€)</option>
+<option value="GBP">GBP - British Pound (£)</option>
+<option value="JPY">JPY - Japanese Yen (¥)</option>
+</select>
+</div>
+<!-- Decimal Precision -->
+<div class="space-y-3">
+<div class="flex justify-between items-end">
+<label class="font-label-md text-label-md text-text-muted uppercase tracking-widest">Decimal Precision</label>
+<span class="font-headline-md text-primary-fixed" id="precision-val">4</span>
+</div>
+<input class="w-full h-1 bg-surface-container-highest rounded-lg appearance-none cursor-pointer" max="8" min="0" oninput="document.getElementById('precision-val').innerText = this.value" type="range" value="4"/>
+<div class="flex justify-between text-[10px] text-text-muted/50 font-label-sm uppercase">
+<span>Coarse</span>
+<span>High Precision</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Section: Integration Tokens -->
+<div class="col-span-12 lg:col-span-8">
+<div class="glass-card p-8 rounded-xl flex flex-col gap-8 h-full">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-fixed">hub</span>
+<h3 class="font-headline-md text-headline-md">Integration Tokens</h3>
+</div>
+<!-- Status Indicator -->
+<div class="flex items-center gap-2 px-3 py-1 rounded-full bg-primary-fixed/10 border border-primary-fixed/20">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-fixed opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary-fixed"></span>
+</span>
+<span class="font-label-sm text-label-sm text-primary-fixed">Connection: Active</span>
+</div>
+</div>
+<!-- API Key -->
+<div class="space-y-3">
+<label class="font-label-md text-label-md text-text-muted block uppercase tracking-widest">Production API Key</label>
+<div class="flex gap-3">
+<div class="flex-1 bg-surface-container-lowest border border-border-low-opacity rounded-lg px-4 py-3 font-mono text-sm flex items-center justify-between text-text-muted">
+<span>ecolens_prod_••••••••••••••••••••3a9c</span>
+<span class="material-symbols-outlined text-primary-fixed/50 scale-75">lock</span>
+</div>
+<button class="px-4 py-2 border border-border-low-opacity rounded-lg hover:border-primary-fixed/50 hover:text-primary-fixed transition-all flex items-center gap-2 font-label-md">
+<span class="material-symbols-outlined text-lg">content_copy</span>
+                                    Copy
+                                </button>
+<button class="px-4 py-2 border border-border-low-opacity rounded-lg hover:border-error/50 hover:text-error transition-all flex items-center gap-2 font-label-md">
+<span class="material-symbols-outlined text-lg">refresh</span>
+                                    Rotate
+                                </button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Endpoint URL -->
+<div class="space-y-3">
+<label class="font-label-md text-label-md text-text-muted block uppercase tracking-widest">Endpoint URL</label>
+<div class="w-full bg-surface-container-lowest border border-border-low-opacity px-4 py-3 rounded-lg font-mono text-sm text-text-muted flex items-center overflow-hidden whitespace-nowrap">
+                                    https://api.carboniq.io/v2/stream/ingest
+                                </div>
+</div>
+<!-- Secret Hash -->
+<div class="space-y-3">
+<label class="font-label-md text-label-md text-text-muted block uppercase tracking-widest">Secret Hash</label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border border-border-low-opacity px-4 py-3 rounded-lg font-mono text-sm text-text-muted focus:outline-none" readonly="" type="password" value="sh_29384jkds9342kldfs"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-primary-fixed/60 hover:text-primary-fixed transition-colors">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Help text -->
+<div class="mt-4 p-4 rounded bg-surface-container-low border-l-4 border-primary-fixed">
+<p class="font-body-sm text-body-sm text-text-muted italic">
+                                "The 'Handshake' protocol ensures that data frames sent to CarbonIQ are encrypted using SHA-256 HMAC signatures. Please keep your Secret Hash private."
+                            </p>
+</div>
+</div>
+</div>
+<!-- Footer Stats: System Health -->
+<div class="col-span-12 grid grid-cols-1 md:grid-cols-3 gap-gutter mt-8">
+<div class="glass-card p-6 rounded-xl flex items-center justify-between group overflow-hidden relative">
+<!-- Decorative background glow -->
+<div class="absolute -right-8 -top-8 w-24 h-24 bg-primary-fixed/10 blur-3xl group-hover:bg-primary-fixed/20 transition-all"></div>
+<div>
+<p class="font-label-md text-label-md text-text-muted uppercase mb-1">Microservice Health</p>
+<h4 class="font-headline-md text-headline-md text-on-surface">99.98% <span class="text-primary-fixed text-sm font-label-sm">Uptime</span></h4>
+</div>
+<span class="material-symbols-outlined text-primary-fixed text-4xl opacity-40">memory</span>
+</div>
+<div class="glass-card p-6 rounded-xl flex items-center justify-between group overflow-hidden relative">
+<div class="absolute -right-8 -top-8 w-24 h-24 bg-secondary/10 blur-3xl group-hover:bg-secondary/20 transition-all"></div>
+<div>
+<p class="font-label-md text-label-md text-text-muted uppercase mb-1">Schema Version</p>
+<h4 class="font-headline-md text-headline-md text-on-surface">v2.4.12-rc</h4>
+</div>
+<span class="material-symbols-outlined text-secondary text-4xl opacity-40">schema</span>
+</div>
+<div class="glass-card p-6 rounded-xl flex items-center justify-between group overflow-hidden relative">
+<div class="absolute -right-8 -top-8 w-24 h-24 bg-tertiary-fixed/10 blur-3xl group-hover:bg-tertiary-fixed/20 transition-all"></div>
+<div>
+<p class="font-label-md text-label-md text-text-muted uppercase mb-1">Last Deployment</p>
+<h4 class="font-headline-md text-headline-md text-on-surface">14m Ago</h4>
+</div>
+<span class="material-symbols-outlined text-tertiary-fixed text-4xl opacity-40">history</span>
+</div>
+</div>
+</div>
+<!-- Page Footer Actions -->
+<div class="mt-12 flex justify-end gap-4 border-t border-border-low-opacity pt-8">
+<button class="px-6 py-3 border border-border-low-opacity rounded font-label-md text-label-md text-text-muted hover:bg-surface-container-high transition-all uppercase tracking-widest">
+                    Export Configuration
+                </button>
+<button class="px-8 py-3 bg-primary-fixed text-on-primary-fixed rounded font-bold hover:opacity-90 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,255,157,0.25)] uppercase tracking-widest">
+                    Commit Updates
+                </button>
+</div>
+</div>
+</main>
+<script>
+        function toggleActive(btn) {
+            const container = btn.parentNode;
+            const buttons = container.querySelectorAll('button');
+            buttons.forEach(b => {
+                b.classList.remove('bg-primary-fixed', 'text-on-primary-fixed', 'shadow-[0_0_10px_rgba(0,255,157,0.2)]');
+                b.classList.add('text-text-muted', 'hover:text-on-surface');
+            });
+            btn.classList.add('bg-primary-fixed', 'text-on-primary-fixed', 'shadow-[0_0_10px_rgba(0,255,157,0.2)]');
+            btn.classList.remove('text-text-muted', 'hover:text-on-surface');
+        }
+
+        // Add micro-interaction to cards
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+    </script>
+</body></html>

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CarbonIQ | The Standard for Decentralized Environmental Integrity</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @font-face {
+            font-family: 'Geist';
+            src: url('https://fonts.cdnfonts.com/css/geist-sans');
+        }
+
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            overflow-x: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+        }
+
+        .neon-glow {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #f4fff3 0%, #00e38b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .mint-border-gradient {
+            border: 1px solid transparent;
+            background: linear-gradient(#062c22, #062c22) padding-box,
+                        linear-gradient(to bottom right, #00ff9d, transparent) border-box;
+        }
+
+        .mesh-grid {
+            background-image: radial-gradient(circle at 1px 1px, rgba(0, 255, 157, 0.05) 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                "outline": "#849587",
+                "surface-tint": "#00e38b",
+                "surface-container-highest": "#2d3730",
+                "secondary-container": "#14d1ff",
+                "inverse-primary": "#006d40",
+                "error-container": "#93000a",
+                "surface-bright": "#323c34",
+                "secondary": "#a6e6ff",
+                "on-secondary": "#003543",
+                "on-secondary-container": "#00566b",
+                "on-tertiary-fixed-variant": "#554500",
+                "tertiary-fixed-dim": "#e4c44f",
+                "on-tertiary-container": "#766000",
+                "on-background": "#dae5da",
+                "primary-container": "#00ff9d",
+                "tertiary-fixed": "#ffe17a",
+                "primary-fixed-dim": "#00e38b",
+                "on-secondary-fixed-variant": "#004e60",
+                "surface-container-high": "#232c25",
+                "surface": "#0c150f",
+                "on-primary-fixed": "#002110",
+                "on-error-container": "#ffdad6",
+                "surface-container-low": "#141e17",
+                "tertiary-fixed-dim": "#e4c44f",
+                "surface-dim": "#0c150f",
+                "outline-variant": "#3b4a3f",
+                "on-surface-variant": "#b9cbbc",
+                "on-primary-fixed-variant": "#00522f",
+                "on-secondary-fixed": "#001f28",
+                "on-primary-container": "#007143",
+                "on-primary": "#00391f",
+                "inverse-on-surface": "#29332b",
+                "background": "#0c150f",
+                "on-tertiary-fixed": "#231b00",
+                "surface-variant": "#2d3730",
+                "primary-fixed": "#56ffa8",
+                "on-error": "#690005",
+                "tertiary": "#fffaff",
+                "secondary-fixed-dim": "#4cd6ff",
+                "error": "#ffb4ab",
+                "surface-container-lowest": "#07100a",
+                "primary": "#f4fff3",
+                "surface-container": "#18221b",
+                "secondary-fixed": "#b7eaff",
+                "on-tertiary": "#3b2f00",
+                "inverse-surface": "#dae5da",
+                "on-surface": "#dae5da"
+              },
+              "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+              },
+              "spacing": {
+                "margin-desktop": "64px",
+                "container-max": "1280px",
+                "unit": "4px",
+                "gutter": "24px",
+                "margin-mobile": "16px"
+              },
+              "fontFamily": {
+                "label-sm": ["Geist"],
+                "headline-md": ["Geist"],
+                "headline-lg": ["Geist"],
+                "label-md": ["Geist"],
+                "body-md": ["Inter"],
+                "body-sm": ["Inter"],
+                "body-lg": ["Inter"],
+                "headline-lg-mobile": ["Geist"],
+                "headline-xl": ["Geist"]
+              },
+              "fontSize": {
+                "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+              }
+            },
+          }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopNavBar -->
+<nav class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-desktop py-4 bg-surface/60 backdrop-blur-lg border-b border-white/10 shadow-sm max-w-container-max mx-auto left-1/2 -translate-x-1/2">
+<div class="font-headline-md text-headline-md font-bold text-primary-fixed-dim tracking-tight">CarbonIQ</div>
+<div class="hidden md:flex gap-8 items-center">
+<a class="font-label-md text-label-md text-primary-fixed-dim border-b-2 border-primary-fixed-dim pb-1" href="#">Platform</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">Verification</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">Marketplace</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">Enterprise</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">About</a>
+</div>
+<div class="flex gap-4 items-center">
+<button class="hidden lg:block font-label-md text-label-md text-on-surface hover:opacity-80 transition-opacity">Book Demo</button>
+<button class="bg-primary-container text-on-primary-container font-label-md text-label-md px-6 py-2.5 rounded-lg font-bold hover:opacity-90 active:scale-95 transition-all">Launch App</button>
+</div>
+</nav>
+<main class="pt-24">
+<!-- Hero Section -->
+<section class="relative min-h-[921px] flex items-center px-margin-desktop overflow-hidden mesh-grid">
+<div class="absolute inset-0 z-0">
+
+<div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary-container/10 to-transparent"></div>
+</div>
+<div class="relative z-10 max-w-3xl">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-container/10 border border-primary-container/20 text-primary-fixed-dim font-label-sm text-label-sm mb-6">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+                    Now LIVE: Enterprise Reporting v2.4
+                </div>
+<h1 class="font-headline-xl text-headline-xl mb-6 gradient-text leading-[1.1]">
+                    The Standard for Decentralized Environmental Integrity
+                </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-10 max-w-xl">
+                    Verify, attribute, and report carbon emissions with <span class="text-primary-fixed-dim font-bold">≥95% AI-driven accuracy</span> on an immutable ledger.
+                </p>
+<div class="flex flex-col sm:flex-row gap-4">
+<button class="bg-primary-container text-on-primary-container px-8 py-4 rounded-lg font-bold font-label-md text-label-md flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(0,255,157,0.4)] transition-all">
+                        Book an Enterprise Demo
+                        <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+<button class="bg-surface-variant border border-white/10 text-on-surface px-8 py-4 rounded-lg font-bold font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-surface-bright transition-colors">
+                        Launch Platform Explorer
+                    </button>
+</div>
+</div>
+<!-- Hero Visual Placeholder (Absolute positioned right) -->
+<div class="hidden xl:block absolute right-margin-desktop top-1/2 -translate-y-1/2 w-[500px] h-[500px]">
+<div class="relative w-full h-full mint-border-gradient rounded-full p-8 animate-pulse-slow">
+<div class="w-full h-full rounded-full bg-[placeholder] bg-cover bg-center overflow-hidden" data-alt="A high-fidelity abstract 3D visualization of a digital forest ecosystem. Glowing neon mint data points connect tree silhouettes in a futuristic grid layout. The aesthetic is professional and sleek, featuring dark charcoal backgrounds and electric cyan light trails representing carbon flows on a blockchain ledger." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCE8FVAJ_mibAZ6HjCM3-TzFxrpunTTH-Xca0dAXTE_dwz5ejGoyPdiAYfAP4B934XJcOF9mcaWjuHn_wBocwXBBL1kcWjy7mKcnGigQq7EJM4zlLTmfWC9efe61lsWywP5MbykyTfW0QbN_HF70M0iyGyDQnTUbWYlRmBdAMgrH9VG8HxBJmniMsW02nGIn6w0Aj2kMsgG8mD66yb-pdAe-IZEa8CNd1W-F8AT8vBNuDbQi3btmHAgxg512rKcWSZgT4j-x_0n2mws')">
+</div>
+</div>
+</div>
+</section>
+<!-- Social Proof Section -->
+<section class="py-16 bg-surface-container-lowest border-y border-white/5 px-margin-desktop">
+<p class="text-center font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mb-10">Trusted by leading climate-tech organizations</p>
+<div class="flex flex-wrap justify-center items-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-700">
+<div class="font-headline-md font-bold tracking-tighter text-on-surface-variant">CLIMATE ACTIVE</div>
+<div class="font-headline-md font-bold tracking-tighter text-on-surface-variant">GHG PROTOCOL</div>
+<div class="font-headline-md font-bold tracking-tighter text-on-surface-variant">ASRS REGISTRY</div>
+<div class="font-headline-md font-bold tracking-tighter text-on-surface-variant">VERRA CONNECT</div>
+<div class="font-headline-md font-bold tracking-tighter text-on-surface-variant">GOLD STANDARD</div>
+</div>
+</section>
+<!-- Core Capabilities Section -->
+<section class="py-32 px-margin-desktop">
+<div class="text-center max-w-2xl mx-auto mb-20">
+<h2 class="font-headline-lg text-headline-lg mb-4">Engineered for Radical Transparency</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Our decentralized architecture ensures that every metric is verifiable, searchable, and impossible to duplicate.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Capability 1 -->
+<div class="glass-card p-8 group hover:-translate-y-2 transition-transform duration-300">
+<div class="w-12 h-12 rounded-lg bg-primary-container/10 flex items-center justify-center text-primary-fixed-dim mb-6 group-hover:bg-primary-container group-hover:text-on-primary-container transition-colors">
+<span class="material-symbols-outlined">psychology</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-4">AI-Driven Ingestion</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                        Fill data gaps from utility bills and smart meters with temporal fusion transformers designed for emission prediction.
+                    </p>
+</div>
+<!-- Capability 2 -->
+<div class="glass-card p-8 group hover:-translate-y-2 transition-transform duration-300">
+<div class="w-12 h-12 rounded-lg bg-secondary-container/10 flex items-center justify-center text-secondary-fixed-dim mb-6 group-hover:bg-secondary-container group-hover:text-on-secondary-container transition-colors">
+<span class="material-symbols-outlined">security</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-4">Immutable Verification</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                        Lock every emission record and renewable attribution on a secure, audit-ready ledger with cryptographic proof of origin.
+                    </p>
+</div>
+<!-- Capability 3 -->
+<div class="glass-card p-8 group hover:-translate-y-2 transition-transform duration-300">
+<div class="w-12 h-12 rounded-lg bg-tertiary-fixed-dim/10 flex items-center justify-center text-tertiary-fixed-dim mb-6 group-hover:bg-tertiary-fixed-dim group-hover:text-on-tertiary transition-colors">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-4">Automated Reporting</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                        Generate Climate Active and ASRS-aligned reports with one-click certification using our regulatory mapping engine.
+                    </p>
+</div>
+</div>
+</section>
+<!-- Platform Preview Section -->
+<section class="py-32 px-margin-desktop bg-surface-container">
+<div class="max-w-container-max mx-auto">
+<div class="flex flex-col lg:flex-row gap-16 items-center">
+<div class="lg:w-1/2">
+<div class="inline-block px-3 py-1 rounded-full bg-secondary-container/10 border border-secondary-container/20 text-secondary-fixed-dim font-label-sm text-label-sm mb-6">
+                            ANALYTICS ENGINE
+                        </div>
+<h2 class="font-headline-lg text-headline-lg mb-6">High-Density Operational Intelligence</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-8">
+                            Experience a unified view of your environmental impact. Our dashboard provides granular insights from scope 1 through scope 3, with real-time anomaly detection and impact forecasting.
+                        </p>
+<ul class="space-y-4 mb-10">
+<li class="flex items-center gap-3 font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary-fixed-dim">check_circle</span>
+                                Real-time Grid Intensity Monitoring
+                            </li>
+<li class="flex items-center gap-3 font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary-fixed-dim">check_circle</span>
+                                Supply Chain Attribution Mapping
+                            </li>
+<li class="flex items-center gap-3 font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary-fixed-dim">check_circle</span>
+                                Multi-Standard Export Formats
+                            </li>
+</ul>
+</div>
+<div class="lg:w-1/2 relative">
+<div class="absolute -inset-4 bg-primary-container/10 blur-3xl rounded-full"></div>
+<div class="relative glass-card overflow-hidden p-2 rounded-xl shadow-2xl border-white/20">
+<img class="w-full rounded-lg" data-alt="A professional glassmorphic SaaS dashboard interface for CarbonIQ. The screen displays complex financial-style data visualizations, including a line graph with a mint-to-transparent gradient fill and a high-density table of carbon credits. The UI features dark mode with #0c150f base, 16px backdrop-blur on sidebars, and glowing neon mint status badges. The atmosphere is futuristic, clean, and data-rich." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfMOsjylf1OENXcGB6EnH1dsKbm6berrY44a8x79JeONOhGG3eSSmsenr-sSfGlbUgL98-lfbT-W7igZ3cgEpSNtEAF54x0R2LVZeMbzgIWPwgG_ildQsxQoQxNqLF4ZLabqDbXO5CZtmNRrHYBDn9B6YmD1OwUKfvOjx2P9IXu4yz6vnkdaHHHsoIJyG_USyNjfKXeLp056ZVQJ2ysA8Vsi2Y6WE0R_oi5NjSCgo2Y9o0AhKrGC19nSVXzsVsz17LeKQuzDDOHfvM"/>
+<!-- Overlaying element to simulate interactivity -->
+<div class="absolute bottom-8 right-8 glass-card p-4 mint-border-gradient flex items-center gap-4 animate-bounce">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined">verified</span>
+</div>
+<div>
+<p class="font-label-sm text-label-sm font-bold">Audit Verified</p>
+<p class="text-[10px] opacity-60">Verified via CarbonIQ-Node-42</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="py-32 px-margin-desktop text-center relative overflow-hidden">
+<div class="absolute inset-0 z-0 opacity-20">
+
+</div>
+<div class="relative z-10 max-w-3xl mx-auto">
+<h2 class="font-headline-xl text-headline-xl mb-6">Ready to scale your carbon compliance?</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-12">
+                    Join hundreds of forward-thinking enterprises using CarbonIQ to build a verifiable future.
+                </p>
+<button class="bg-primary-container text-on-primary-container px-12 py-5 rounded-lg font-bold font-headline-md text-headline-md hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary-container/20">
+                    Get Started with CarbonIQ
+                </button>
+<p class="mt-8 font-label-sm text-label-sm text-on-surface-variant">
+                    No commitment required. Custom enterprise pricing available.
+                </p>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-gutter bg-surface-container-lowest border-t border-white/5">
+<div class="flex flex-col items-center md:items-start gap-4">
+<div class="font-headline-md text-headline-md font-bold text-primary-fixed-dim">CarbonIQ</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">© 2024 CarbonIQ. Decentralized Environmental Integrity.</p>
+</div>
+<div class="flex flex-wrap justify-center gap-8">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">Privacy Policy</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">Terms of Service</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">Whitepaper</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">Documentation</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary-fixed-dim transition-colors" href="#">Contact</a>
+</div>
+<div class="flex gap-4">
+<div class="w-10 h-10 rounded-full glass-card flex items-center justify-center hover:text-primary-fixed-dim cursor-pointer transition-colors active:opacity-70">
+<span class="material-symbols-outlined text-[20px]">hub</span>
+</div>
+<div class="w-10 h-10 rounded-full glass-card flex items-center justify-center hover:text-primary-fixed-dim cursor-pointer transition-colors active:opacity-70">
+<span class="material-symbols-outlined text-[20px]">public</span>
+</div>
+</div>
+</footer>
+<script>
+        // Micro-interactions and simple effects
+        document.addEventListener('mousemove', (e) => {
+            const cards = document.querySelectorAll('.glass-card');
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                if (x > 0 && y > 0 && x < rect.width && y < rect.height) {
+                    card.style.setProperty('--mouse-x', `${x}px`);
+                    card.style.setProperty('--mouse-y', `${y}px`);
+                    card.style.borderColor = 'rgba(0, 255, 157, 0.3)';
+                } else {
+                    card.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                }
+            });
+        });
+
+        // Sticky nav transition
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('py-3', 'bg-surface/90');
+                nav.classList.remove('py-4', 'bg-surface/60');
+            } else {
+                nav.classList.add('py-4', 'bg-surface/60');
+                nav.classList.remove('py-3', 'bg-surface/90');
+            }
+        });
+    </script>
+</body></html>

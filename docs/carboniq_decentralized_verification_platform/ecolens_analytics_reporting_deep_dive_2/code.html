@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EcoLens | Deep Dive Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Geist:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            backdrop-filter: blur(16px);
+            background: rgba(6, 44, 34, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .active-glow {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0c150f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3730;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00e38b;
+        }
+        @keyframes stroke-draw {
+            from { stroke-dashoffset: 1000; }
+            to { stroke-dashoffset: 0; }
+        }
+        .animate-chart {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: stroke-draw 2s ease-out forwards;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-fixed-dim": "#00e38b",
+                      "on-primary-fixed-variant": "#00522f",
+                      "on-primary-fixed": "#002110",
+                      "surface-bright": "#323c34",
+                      "surface-container-highest": "#2d3730",
+                      "text-muted": "#B9CBBC",
+                      "surface-variant": "#2d3730",
+                      "on-secondary-container": "#00566b",
+                      "on-error-container": "#ffdad6",
+                      "on-surface-variant": "#b9cbbc",
+                      "on-tertiary": "#3b2f00",
+                      "surface-glass": "rgba(6, 44, 34, 0.6)",
+                      "on-background": "#dae5da",
+                      "background": "#0c150f",
+                      "tertiary-fixed-dim": "#e4c44f",
+                      "on-tertiary-container": "#766000",
+                      "secondary-container": "#14d1ff",
+                      "tertiary-fixed": "#ffe17a",
+                      "surface-tint": "#00e38b",
+                      "on-secondary-fixed-variant": "#004e60",
+                      "outline-variant": "#3b4a3f",
+                      "primary-container": "#00ff9d",
+                      "inverse-surface": "#dae5da",
+                      "surface-container-low": "#141e17",
+                      "tertiary": "#fffaff",
+                      "error": "#ffb4ab",
+                      "on-primary": "#00391f",
+                      "inverse-primary": "#006d40",
+                      "outline": "#849587",
+                      "on-tertiary-fixed": "#231b00",
+                      "secondary": "#a6e6ff",
+                      "surface": "#0c150f",
+                      "primary": "#f4fff3",
+                      "primary-fixed": "#56ffa8",
+                      "text-on-surface": "#DAE5DA",
+                      "surface-container-lowest": "#07100a",
+                      "background-deep": "#0C150F",
+                      "inverse-on-surface": "#29332b",
+                      "active-glow": "rgba(0, 255, 157, 0.15)",
+                      "surface-dim": "#0c150f",
+                      "error-accent": "#FFB4AB",
+                      "on-secondary-fixed": "#001f28",
+                      "on-surface": "#dae5da",
+                      "tertiary-container": "#ffdd65",
+                      "on-primary-container": "#007143",
+                      "surface-container": "#18221b",
+                      "surface-container-high": "#232c25",
+                      "border-low-opacity": "rgba(255, 255, 255, 0.1)",
+                      "on-error": "#690005",
+                      "on-secondary": "#003543",
+                      "on-tertiary-fixed-variant": "#554500",
+                      "secondary-fixed-dim": "#4cd6ff",
+                      "secondary-fixed": "#b7eaff",
+                      "error-container": "#93000a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-desktop": "64px",
+                      "margin-mobile": "16px",
+                      "gutter": "24px",
+                      "unit": "4px",
+                      "container-max": "1280px"
+              },
+              "fontFamily": {
+                      "label-sm": ["Geist"],
+                      "headline-lg-mobile": ["Geist"],
+                      "headline-md": ["Geist"],
+                      "headline-xl": ["Geist"],
+                      "body-lg": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "headline-lg": ["Geist"],
+                      "body-md": ["Inter"],
+                      "label-md": ["Geist"]
+              },
+              "fontSize": {
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
+<!-- SIDE NAVIGATION -->
+<aside class="w-64 fixed h-screen left-0 top-0 bg-surface-glass backdrop-blur-md border-r border-white/10 shadow-sm flex flex-col h-full py-8 px-4 z-50">
+<div class="mb-12 px-4">
+<h1 class="font-headline-md text-headline-md font-bold text-primary-fixed-dim tracking-tighter">EcoLens</h1>
+<p class="font-label-sm text-label-sm text-text-muted opacity-80">Precision Microservice</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-text-muted opacity-80 font-label-md text-label-md hover:bg-white/5 hover:text-primary-fixed-dim transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-active-glow text-primary-fixed-dim font-bold border-r-2 border-primary-fixed-dim font-label-md text-label-md hover:bg-white/5 transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                Analytics
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-text-muted opacity-80 font-label-md text-label-md hover:bg-white/5 hover:text-primary-fixed-dim transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">health_and_safety</span>
+                Data Health
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-text-muted opacity-80 font-label-md text-label-md hover:bg-white/5 hover:text-primary-fixed-dim transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">verified_user</span>
+                Compliance
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-text-muted opacity-80 font-label-md text-label-md hover:bg-white/5 hover:text-primary-fixed-dim transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</nav>
+<button class="mt-auto mx-4 bg-primary-fixed-dim text-on-primary font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">add</span>
+            New Analysis
+        </button>
+</aside>
+<!-- TOP BAR -->
+<header class="fixed top-0 right-0 w-[calc(100%-256px)] h-16 bg-surface-glass backdrop-blur-md border-b border-white/5 shadow-sm flex items-center justify-between px-margin-desktop ml-64 z-40">
+<div class="flex items-center gap-8">
+<span class="font-headline-md text-headline-md font-bold text-primary-fixed-dim">Analytics Deep-Dive</span>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-text-muted">search</span>
+<input class="bg-black/20 border-white/10 rounded-full pl-10 pr-4 py-1.5 text-label-sm font-label-sm focus:border-primary-fixed-dim focus:ring-0 w-64 transition-all" placeholder="Search systems..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<a class="text-primary-fixed-dim border-b-2 border-primary-fixed-dim font-label-sm text-label-sm py-5" href="#">Systems</a>
+<a class="text-text-muted hover:text-primary-fixed-dim transition-colors font-label-sm text-label-sm py-5" href="#">Protocols</a>
+</div>
+<div class="h-6 w-[1px] bg-white/10"></div>
+<div class="flex items-center gap-4">
+<button class="text-text-muted hover:text-primary-fixed-dim transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-text-muted hover:text-primary-fixed-dim transition-colors">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+<button class="bg-primary-fixed-dim text-on-primary text-label-sm font-bold px-4 py-1.5 rounded-lg active:opacity-80 transition-all">Sync Data</button>
+</div>
+</div>
+</header>
+<!-- MAIN CONTENT -->
+<main class="ml-64 pt-24 px-margin-desktop pb-20 max-w-container-max mx-auto">
+<!-- SECTION 1: SCOPES OVERVIEW -->
+<section class="mb-12">
+<div class="flex items-end justify-between mb-8">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-2">Emission Scopes</h2>
+<p class="text-text-muted font-body-md">High-resolution breakdown of ESG impact vectors.</p>
+</div>
+<div class="flex bg-surface-container-high p-1 rounded-lg">
+<button class="px-4 py-1.5 rounded text-label-sm font-label-sm bg-primary-fixed-dim text-on-primary">Q4 2024</button>
+<button class="px-4 py-1.5 rounded text-label-sm font-label-sm text-text-muted hover:text-on-surface">Annual</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Scope 1 -->
+<div class="glass-card p-8 rounded-xl relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
+<span class="material-symbols-outlined text-[120px]" style="font-variation-settings: 'FILL' 1;">factory</span>
+</div>
+<div class="flex items-center justify-between mb-4">
+<span class="bg-primary-container/20 text-primary-fixed-dim px-3 py-1 rounded-full text-label-sm font-label-sm border border-primary-fixed-dim/20">Scope 1</span>
+<span class="text-error-accent flex items-center gap-1 text-label-sm font-bold">
+<span class="material-symbols-outlined text-sm">trending_up</span> 4.2%
+                        </span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">Direct Ops</h3>
+<p class="text-text-muted text-body-sm mb-6">On-site combustion and fleet emissions.</p>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-bold font-headline-xl">842.1</span>
+<span class="text-text-muted text-label-md">tCO₂e</span>
+</div>
+<div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+<div>
+<p class="text-[10px] uppercase tracking-wider text-text-muted mb-1">Boilers</p>
+<p class="text-label-md font-bold">342 t</p>
+</div>
+<div>
+<p class="text-[10px] uppercase tracking-wider text-text-muted mb-1">Fleet</p>
+<p class="text-label-md font-bold">500.1 t</p>
+</div>
+</div>
+</div>
+<!-- Scope 2 -->
+<div class="glass-card p-8 rounded-xl relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
+<span class="material-symbols-outlined text-[120px]" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<div class="flex items-center justify-between mb-4">
+<span class="bg-secondary-container/20 text-secondary text-label-sm font-label-sm px-3 py-1 rounded-full border border-secondary/20">Scope 2</span>
+<span class="text-primary-fixed-dim flex items-center gap-1 text-label-sm font-bold">
+<span class="material-symbols-outlined text-sm">trending_down</span> 12.8%
+                        </span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">Indirect Energy</h3>
+<p class="text-text-muted text-body-sm mb-6">Purchased electricity and cooling systems.</p>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-bold font-headline-xl">1,204.5</span>
+<span class="text-text-muted text-label-md">tCO₂e</span>
+</div>
+<div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+<div>
+<p class="text-[10px] uppercase tracking-wider text-text-muted mb-1">Grid Mix</p>
+<p class="text-label-md font-bold">904 t</p>
+</div>
+<div>
+<p class="text-[10px] uppercase tracking-wider text-text-muted mb-1">Renewables</p>
+<p class="text-label-md font-bold">300.5 t</p>
+</div>
+</div>
+</div>
+<!-- Scope 3 -->
+<div class="glass-card p-8 rounded-xl relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
+<span class="material-symbols-outlined text-[120px]" style="font-variation-settings: 'FILL' 1;">lan</span>
+</div>
+<div class="flex items-center justify-between mb-4">
+<span class="bg-tertiary-container/20 text-tertiary-fixed-dim text-label-sm font-label-sm px-3 py-1 rounded-full border border-tertiary-fixed-dim/20">Scope 3</span>
+<span class="text-text-muted flex items-center gap-1 text-label-sm font-bold">
+<span class="material-symbols-outlined text-sm">horizontal_rule</span> 0.0%
+                        </span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">Value Chain</h3>
+<p class="text-text-muted text-body-sm mb-6">Upstream logistics and employee transit.</p>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-bold font-headline-xl">4,129.0</span>
+<span class="text-text-muted text-label-md">tCO₂e</span>
+</div>
+<div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+<div>
+<p class="text-[10px] uppercase tracking-wider text-text-muted mb-1">Suppliers</p>
+<p class="text-label-md font-bold">3.8k t</p>
+</div>
+<div>
+<p class="text-[10px] uppercase tracking-wider text-text-muted mb-1">Transit</p>
+<p class="text-label-md font-bold">329 t</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 2: TREND EXPLORER -->
+<section class="mb-12">
+<div class="glass-card rounded-xl overflow-hidden flex flex-col">
+<div class="p-8 flex items-center justify-between border-b border-white/5">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Trend Explorer</h2>
+<p class="text-text-muted text-body-sm">Cross-system temporal correlation analysis</p>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex bg-surface-container-high p-1 rounded-lg">
+<button class="px-4 py-1.5 rounded text-label-sm font-label-sm text-text-muted">Daily</button>
+<button class="px-4 py-1.5 rounded text-label-sm font-label-sm bg-primary-fixed-dim text-on-primary">Monthly</button>
+<button class="px-4 py-1.5 rounded text-label-sm font-label-sm text-text-muted">Yearly</button>
+</div>
+<button class="text-text-muted hover:text-on-surface flex items-center gap-2 px-3 py-1.5 rounded border border-white/10 text-label-sm font-label-sm transition-colors">
+<span class="material-symbols-outlined text-sm">filter_list</span> Filter Series
+                        </button>
+</div>
+</div>
+<!-- Main Chart Canvas -->
+<div class="relative h-[400px] w-full p-8">
+<!-- Grid Lines Mockup -->
+<div class="absolute inset-x-8 inset-y-8 flex flex-col justify-between opacity-10">
+<div class="w-full h-[1px] bg-white"></div>
+<div class="w-full h-[1px] bg-white"></div>
+<div class="w-full h-[1px] bg-white"></div>
+<div class="w-full h-[1px] bg-white"></div>
+<div class="w-full h-[1px] bg-white"></div>
+</div>
+<!-- SVGs for Data Points (Simplified paths for visual effect) -->
+<svg class="absolute inset-x-8 inset-y-8 h-[336px] w-[calc(100%-64px)] overflow-visible" viewbox="0 0 1000 400">
+<!-- Scope 2 Series (Primary Mint) -->
+<path class="animate-chart" d="M0,280 L100,260 L200,290 L300,180 L400,210 L500,140 L600,160 L700,90 L800,110 L900,60 L1000,80" fill="none" stroke="#00e38b" stroke-width="3"></path>
+<path d="M0,280 L100,260 L200,290 L300,180 L400,210 L500,140 L600,160 L700,90 L800,110 L900,60 L1000,80 V400 H0 Z" fill="url(#grad-mint)" opacity="0.1"></path>
+<!-- Scope 1 Series (Secondary Blue) -->
+<path class="animate-chart" d="M0,350 L100,320 L200,330 L300,310 L400,340 L500,300 L600,310 L700,290 L800,310 L900,280 L1000,290" fill="none" stroke="#4cd6ff" stroke-dasharray="8 4" stroke-width="2" style="animation-delay: 0.5s"></path>
+<!-- Event Overlay: Production Spike -->
+<line stroke="#ffb4ab" stroke-dasharray="4 4" stroke-width="1" x1="300" x2="300" y1="0" y2="400"></line>
+<rect fill="#93000a" height="24" rx="4" width="100" x="290" y="20"></rect>
+<text fill="#ffdad6" font-family="Geist" font-size="10" font-weight="bold" x="300" y="36">PRODUCTION SPIKE</text>
+<defs>
+<lineargradient id="grad-mint" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#00e38b"></stop>
+<stop offset="100%" stop-color="transparent"></stop>
+</lineargradient>
+</defs>
+</svg>
+<!-- X-Axis Labels -->
+<div class="absolute bottom-4 left-8 right-8 flex justify-between text-[10px] font-label-sm text-text-muted uppercase tracking-tighter">
+<span>Jan 24</span>
+<span>Feb 24</span>
+<span>Mar 24</span>
+<span>Apr 24</span>
+<span>May 24</span>
+<span>Jun 24</span>
+<span>Jul 24</span>
+<span>Aug 24</span>
+<span>Sep 24</span>
+<span>Oct 24</span>
+<span>Nov 24</span>
+</div>
+</div>
+<div class="p-8 bg-black/10 border-t border-white/5 flex flex-wrap gap-8">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-primary-fixed-dim"></div>
+<div>
+<p class="text-label-sm font-label-sm text-on-surface">Indirect Energy (S2)</p>
+<p class="text-[10px] text-text-muted">Real-time KWh conversion</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-secondary-fixed-dim"></div>
+<div>
+<p class="text-label-sm font-label-sm text-on-surface">Direct Emissions (S1)</p>
+<p class="text-[10px] text-text-muted">Metric tonnes aggregation</p>
+</div>
+</div>
+<div class="ml-auto flex items-center gap-4">
+<div class="text-right">
+<p class="text-[10px] text-text-muted uppercase tracking-widest">Confidence Score</p>
+<p class="text-label-md font-bold text-primary-fixed-dim">98.4%</p>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-primary-fixed-dim flex items-center justify-center p-1">
+<span class="material-symbols-outlined text-primary-fixed-dim text-sm">shield_lock</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 3: COMPARISON MODULE -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Benchmark Cards -->
+<div class="lg:col-span-4 space-y-6">
+<div class="glass-card p-8 rounded-xl">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-6">Historical Baseline</h3>
+<div class="space-y-6">
+<div class="flex items-center justify-between">
+<span class="text-text-muted text-label-md">2023 Average</span>
+<span class="font-bold">2.4k tCO₂e</span>
+</div>
+<div class="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+<div class="bg-primary-fixed-dim h-full w-3/4 rounded-full"></div>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-text-muted text-label-md">Current Deviation</span>
+<span class="text-primary-fixed-dim font-bold">-14.2%</span>
+</div>
+</div>
+<button class="w-full mt-8 border border-white/10 hover:border-primary-fixed-dim transition-colors py-3 rounded-lg text-label-sm font-label-sm">Download Report</button>
+</div>
+<div class="bg-surface-container-highest p-8 rounded-xl border border-white/5 relative overflow-hidden">
+<div class="relative z-10">
+<h3 class="text-label-md font-bold text-tertiary-fixed-dim mb-2 uppercase tracking-widest">Industry Benchmark</h3>
+<p class="text-headline-md font-headline-md text-on-surface mb-4">Top 5% Performer</p>
+<p class="text-text-muted text-body-sm leading-relaxed">Your current efficiency rating is 18 points above the ISO-14064 sector average.</p>
+</div>
+<span class="material-symbols-outlined absolute -bottom-4 -right-4 text-[80px] text-white opacity-5">award_star</span>
+</div>
+</div>
+<!-- Detailed Data Table / Comparative Matrix -->
+<div class="lg:col-span-8">
+<div class="glass-card rounded-xl overflow-hidden">
+<div class="p-8 border-b border-white/5">
+<h3 class="font-headline-md text-headline-md text-on-surface">Data Precision Matrix</h3>
+</div>
+<table class="w-full text-left">
+<thead class="bg-black/20">
+<tr>
+<th class="px-8 py-4 text-[10px] uppercase tracking-widest text-text-muted">Protocol Node</th>
+<th class="px-8 py-4 text-[10px] uppercase tracking-widest text-text-muted">Intensity</th>
+<th class="px-8 py-4 text-[10px] uppercase tracking-widest text-text-muted">Delta</th>
+<th class="px-8 py-4 text-[10px] uppercase tracking-widest text-text-muted">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/5">
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-8 py-5">
+<p class="text-label-md font-bold text-on-surface">C-Series Transformer B</p>
+<p class="text-[10px] text-text-muted">Node ID: #TRANS-902</p>
+</td>
+<td class="px-8 py-5 font-bold">1.22 kg/kWh</td>
+<td class="px-8 py-5 text-primary-fixed-dim font-bold">-0.05</td>
+<td class="px-8 py-5">
+<span class="bg-primary-fixed-dim/10 text-primary-fixed-dim px-2 py-0.5 rounded text-[10px] font-bold">STABLE</span>
+</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-8 py-5">
+<p class="text-label-md font-bold text-on-surface">HVAC Loop - Data Center</p>
+<p class="text-[10px] text-text-muted">Node ID: #COOL-441</p>
+</td>
+<td class="px-8 py-5 font-bold">0.89 kg/kWh</td>
+<td class="px-8 py-5 text-error-accent font-bold">+0.12</td>
+<td class="px-8 py-5">
+<span class="bg-error/10 text-error px-2 py-0.5 rounded text-[10px] font-bold">DEVIATION</span>
+</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-8 py-5">
+<p class="text-label-md font-bold text-on-surface">Main Logistics Hub</p>
+<p class="text-[10px] text-text-muted">Node ID: #LOG-HUB-2</p>
+</td>
+<td class="px-8 py-5 font-bold">4.50 kg/ton</td>
+<td class="px-8 py-5 text-text-muted font-bold">0.00</td>
+<td class="px-8 py-5">
+<span class="bg-white/5 text-text-muted px-2 py-0.5 rounded text-[10px] font-bold">NOMINAL</span>
+</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-8 py-5">
+<p class="text-label-md font-bold text-on-surface">Fleet EV Conversion</p>
+<p class="text-[10px] text-text-muted">Node ID: #AUTO-E1</p>
+</td>
+<td class="px-8 py-5 font-bold">0.04 kg/km</td>
+<td class="px-8 py-5 text-primary-fixed-dim font-bold">-0.32</td>
+<td class="px-8 py-5">
+<span class="bg-primary-fixed-dim/10 text-primary-fixed-dim px-2 py-0.5 rounded text-[10px] font-bold">OPTIMIZED</span>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="p-4 bg-black/10 text-center">
+<button class="text-label-sm font-label-sm text-primary-fixed-dim hover:underline transition-all">View All 152 Nodes</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- FOOTER -->
+<footer class="w-full py-4 ml-64 bg-background-deep dark:bg-background-deep border-t border-white/5 flex justify-between items-center px-margin-desktop max-w-container-max relative z-30">
+<p class="font-label-sm text-label-sm text-text-muted">© 2024 EcoLens Engineering. Protocol: V2.4 Stable.</p>
+<div class="flex gap-8">
+<a class="font-label-sm text-label-sm text-text-muted hover:text-white transition-colors" href="#">Documentation</a>
+<a class="font-label-sm text-label-sm text-text-muted hover:text-white transition-colors" href="#">API Status</a>
+<a class="font-label-sm text-label-sm text-text-muted hover:text-white transition-colors" href="#">Support</a>
+</div>
+</footer>
+<script>
+        // Micro-interaction for trend series hover (concept)
+        document.querySelector('.animate-chart').parentElement.addEventListener('mousemove', (e) => {
+            // Logic for a custom floating tooltip could go here
+        });
+    </script>
+</body></html>

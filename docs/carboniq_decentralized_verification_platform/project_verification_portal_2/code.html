@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CarbonIQ | Project Verification Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@100;300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glow-mint {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        .text-glow {
+            text-shadow: 0 0 12px rgba(0, 255, 157, 0.4);
+        }
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            overflow-x: hidden;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #07100a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3730;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface": "#dae5da",
+                    "surface-dim": "#0c150f",
+                    "tertiary": "#fffaff",
+                    "tertiary-fixed-dim": "#e4c44f",
+                    "secondary": "#a6e6ff",
+                    "primary": "#f4fff3",
+                    "secondary-fixed-dim": "#4cd6ff",
+                    "on-error": "#690005",
+                    "on-secondary-fixed": "#001f28",
+                    "surface-variant": "#2d3730",
+                    "on-secondary-container": "#00566b",
+                    "on-tertiary-fixed-variant": "#554500",
+                    "on-primary-fixed": "#002110",
+                    "on-background": "#dae5da",
+                    "on-secondary-fixed-variant": "#004e60",
+                    "surface-container-highest": "#2d3730",
+                    "tertiary-fixed": "#ffe17a",
+                    "outline-variant": "#3b4a3f",
+                    "inverse-on-surface": "#29332b",
+                    "primary-container": "#00ff9d",
+                    "surface-bright": "#323c34",
+                    "primary-fixed-dim": "#00e38b",
+                    "on-tertiary-fixed": "#231b00",
+                    "surface-container": "#18221b",
+                    "surface-container-low": "#141e17",
+                    "error-container": "#93000a",
+                    "surface-tint": "#00e38b",
+                    "on-secondary": "#003543",
+                    "primary-fixed": "#56ffa8",
+                    "surface": "#0c150f",
+                    "on-error-container": "#ffdad6",
+                    "on-primary-container": "#007143",
+                    "error": "#ffb4ab",
+                    "secondary-container": "#14d1ff",
+                    "inverse-primary": "#006d40",
+                    "outline": "#849587",
+                    "surface-container-lowest": "#07100a",
+                    "secondary-fixed": "#b7eaff",
+                    "on-tertiary": "#3b2f00",
+                    "tertiary-container": "#ffdd65",
+                    "on-primary-fixed-variant": "#00522f",
+                    "surface-container-high": "#232c25",
+                    "on-surface-variant": "#b9cbbc",
+                    "on-tertiary-container": "#766000",
+                    "on-primary": "#00391f",
+                    "inverse-surface": "#dae5da",
+                    "background": "#0c150f"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "unit": "4px",
+                    "container-max": "1280px",
+                    "margin-desktop": "64px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "body-sm": ["Inter"],
+                    "headline-lg-mobile": ["Geist"],
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Geist"],
+                    "headline-md": ["Geist"],
+                    "label-md": ["Geist"],
+                    "body-md": ["Inter"],
+                    "label-sm": ["Geist"],
+                    "headline-xl": ["Geist"]
+            },
+            "fontSize": {
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-body-md text-on-surface">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 flex items-center justify-between px-margin-desktop h-20 bg-surface/60 backdrop-blur-xl border-b border-white/10 shadow-[0_8px_32px_0_rgba(0,255,157,0.05)]">
+<div class="flex items-center gap-8">
+<span class="font-headline-lg text-headline-lg font-black text-primary tracking-tight">CarbonIQ</span>
+<nav class="hidden md:flex gap-6">
+<a class="text-on-surface-variant hover:text-on-surface transition-colors font-body-md text-body-md" href="#">Dashboard</a>
+<a class="text-primary border-b-2 border-primary pb-1 font-body-md text-body-md" href="#">Verification</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors font-body-md text-body-md" href="#">Explorer</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors font-body-md text-body-md" href="#">Impact</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">settings</button>
+<button class="bg-primary-container text-on-primary-container px-6 py-2 rounded-lg font-label-md text-label-md font-bold active:scale-95 duration-200 glow-mint">
+                Connect Wallet
+            </button>
+</div>
+</header>
+<!-- SideNavBar (Suppressed on small screens) -->
+<aside class="hidden lg:flex flex-col fixed left-0 top-0 h-full py-8 w-64 bg-surface-container/60 backdrop-blur-2xl border-r border-white/10 shadow-2xl z-40 mt-20">
+<div class="px-6 mb-10">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-primary/20">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a climate scientist with short dark hair, wearing a high-tech dark grey uniform, looking confidently at the camera. The background is a clean, dark laboratory with soft green ambient lighting, reflecting a professional and visionary environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpl74VoZSCUH1NetsOTGteuJdg5ZkwDQXFPAzNp9L5wjMSt00kPTwrQXjN7xgYQC1mKNQsVPgdFLABwCPa2E6JY_4j-dI7e8B6B6eFNDmnlRzno1caaKR7rPuQMYgfvs94tp4hAMp80VPxDE1FsORUShuIaVy7Cy-XDEBt6nJtV2Jb00vuKKoJ9OQm97nqEMCj5h9MIjzvtFzbN3Vicb24l2yuMJrPc-7aefjTnKauiLK67EPlAhUf1EX2JGhszyjiXZxuxu90uG7R"/>
+</div>
+<div>
+<p class="font-label-md text-label-md font-bold text-primary">Alex Chen</p>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant">Verified Protocol v2.1</p>
+</div>
+</div>
+<button class="w-full py-3 bg-primary/10 border border-primary/20 text-primary rounded-xl font-label-md text-label-md hover:bg-primary/20 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                New Project
+            </button>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 hover:text-on-surface rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">dashboard</span>
+<span class="font-label-md text-label-md">Overview</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary border-r-4 border-primary rounded-r-none rounded-l-xl transition-all" href="#">
+<span class="material-symbols-outlined">verified</span>
+<span class="font-label-md text-label-md">Verification</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 hover:text-on-surface rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">account_tree</span>
+<span class="font-label-md text-label-md">Explorer</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 hover:text-on-surface rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">account_balance_wallet</span>
+<span class="font-label-md text-label-md">Wallet</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 hover:text-on-surface rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">eco</span>
+<span class="font-label-md text-label-md">Impact</span>
+</a>
+</nav>
+<div class="px-4 mt-auto border-t border-white/5 pt-6">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Help Center</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-error transition-all" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="lg:ml-64 pt-24 min-h-screen px-margin-desktop pb-12 transition-all">
+<!-- Breadcrumbs & Header -->
+<div class="mb-10">
+<nav class="flex items-center gap-2 text-on-surface-variant mb-2">
+<span class="text-label-sm font-label-sm">Dashboard</span>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-label-sm font-label-sm text-primary">Active Verifications</span>
+</nav>
+<h1 class="font-headline-xl text-headline-xl text-primary tracking-tight">Project Verification Portal</h1>
+<p class="text-on-surface-variant font-body-lg text-body-lg max-w-2xl mt-2">Submit evidence for the Amazon Rainforest Reforestation initiative. All data is processed via AI validation and recorded on-chain.</p>
+</div>
+<!-- Layout Grid -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Left Column: Stepper & Evidence Form (8 cols) -->
+<div class="col-span-12 lg:col-span-8 space-y-8">
+<!-- 1. Progress Tracker -->
+<div class="glass-panel p-8 rounded-2xl flex justify-between relative overflow-hidden">
+<div class="absolute inset-0 opacity-10 pointer-events-none">
+
+</div>
+<div class="flex-1 flex flex-col items-center gap-4 relative z-10 opacity-60">
+<div class="w-12 h-12 rounded-full border border-primary flex items-center justify-center bg-surface-container font-bold text-primary">1</div>
+<span class="font-label-md text-label-md">Project Details</span>
+<div class="h-1 w-full absolute top-6 left-1/2 -translate-x-0 bg-primary/20"></div>
+</div>
+<div class="flex-1 flex flex-col items-center gap-4 relative z-10">
+<div class="w-12 h-12 rounded-full border-2 border-primary-container flex items-center justify-center bg-primary-container text-on-primary-container font-bold glow-mint">2</div>
+<span class="font-label-md text-label-md text-primary font-bold">Evidence Upload</span>
+<div class="h-1 w-full absolute top-6 left-1/2 -translate-x-0 bg-white/10"></div>
+</div>
+<div class="flex-1 flex flex-col items-center gap-4 relative z-10 opacity-40">
+<div class="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center bg-surface-container font-bold">3</div>
+<span class="font-label-md text-label-md">AI Verification</span>
+<div class="h-1 w-full absolute top-6 left-1/2 -translate-x-0 bg-white/10"></div>
+</div>
+<div class="flex-1 flex flex-col items-center gap-4 relative z-10 opacity-40">
+<div class="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center bg-surface-container font-bold">4</div>
+<span class="font-label-md text-label-md">Blockchain Registry</span>
+</div>
+</div>
+<!-- 2. Evidence Upload Section -->
+<div class="space-y-6">
+<h2 class="font-headline-md text-headline-md text-primary flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container">cloud_upload</span>
+                        Evidence Submissions
+                    </h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Satellite Imagery Drop Zone -->
+<div class="glass-panel p-6 rounded-2xl border-dashed border-2 border-primary/20 hover:border-primary/50 transition-all cursor-pointer group">
+<div class="flex justify-between items-start mb-6">
+<span class="font-label-md text-label-md text-primary bg-primary/10 px-3 py-1 rounded-full">Satellite Imagery</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">upload_file</span>
+</div>
+<div class="h-40 rounded-xl overflow-hidden relative mb-4">
+<img class="w-full h-full object-cover" data-alt="A top-down satellite view of a lush Amazon rainforest area, overlaid with a digital grid of glowing neon mint lines and data points. The aesthetic is futuristic and analytical, with sharp details of the canopy contrasting against the dark, technological overlay." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxFQI6cFRTECFoTR5BZUY8QI-9DOgx5aqhlLxYtzkqywJQaHaHKI4EmFHVj2-CsA3CH-oZEfU8ifK0A8YlM94bIRsVTMNEUkHHCTmBzMb17QEEOJOXZhSpaBVIgVQI7cD4x0Py7YwH8V6TD_GwMDbdzLhCKGCMDqiqPkKCfKP2E8Ag9DPKHg4JVWBq1BD16x6Ff9vvnksyGlBuQSkaZpXE8fSshhfhjB3O1C4E0F1PVoGdmq5UA1q_s4cg7rvoySjoJ_4SebhjqYzZ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent opacity-60"></div>
+<div class="absolute bottom-3 left-3 text-[10px] font-mono text-primary uppercase tracking-tighter">Sector 7G-Delta · Live Feed</div>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Drag and drop high-res TIFF or GeoJSON files containing multispectral canopy data.</p>
+</div>
+<!-- Sensor Data Drop Zone -->
+<div class="glass-panel p-6 rounded-2xl border-dashed border-2 border-secondary/20 hover:border-secondary/50 transition-all cursor-pointer group">
+<div class="flex justify-between items-start mb-6">
+<span class="font-label-md text-label-md text-secondary bg-secondary/10 px-3 py-1 rounded-full">IoT Sensor Data</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-secondary">query_stats</span>
+</div>
+<div class="h-40 rounded-xl bg-surface-container-low flex items-center justify-center overflow-hidden relative mb-4">
+<!-- Wave Simulation with SVG -->
+<svg class="w-full h-full opacity-40" viewbox="0 0 400 150">
+<path d="M0 75 C 50 10, 100 140, 150 75 S 250 10, 300 75 S 400 140, 450 75" fill="none" stroke="#a6e6ff" stroke-width="2">
+<animate attributename="d" dur="5s" repeatcount="indefinite" values="M0 75 C 50 10, 100 140, 150 75 S 250 10, 300 75 S 400 140, 450 75; M0 75 C 50 140, 100 10, 150 75 S 250 140, 300 75 S 400 10, 450 75; M0 75 C 50 10, 100 140, 150 75 S 250 10, 300 75 S 400 140, 450 75"></animate>
+</path>
+<path d="M0 85 C 50 20, 100 150, 150 85 S 250 20, 300 85 S 400 150, 450 85" fill="none" opacity="0.5" stroke="#00ff9d" stroke-width="1">
+<animate attributename="d" dur="7s" repeatcount="indefinite" values="M0 85 C 50 20, 100 150, 150 85 S 250 20, 300 85 S 400 150, 450 85; M0 85 C 50 150, 100 20, 150 85 S 250 150, 300 85 S 400 20, 450 85; M0 85 C 50 20, 100 150, 150 85 S 250 10, 300 85 S 400 150, 450 85"></animate>
+</path>
+</svg>
+<div class="absolute top-2 right-2 text-[10px] font-mono text-secondary">REAL-TIME TELEMETRY</div>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Connect your IoT hub or upload CSV telemetry from ground sensors for soil moisture and CO2 levels.</p>
+</div>
+</div>
+<!-- Legal Documents Drop Zone (Full Width) -->
+<div class="glass-panel p-6 rounded-2xl border-dashed border-2 border-white/10 hover:border-white/30 transition-all cursor-pointer group flex items-center gap-6">
+<div class="w-16 h-16 rounded-xl bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl text-on-surface-variant group-hover:text-primary transition-colors">description</span>
+</div>
+<div class="flex-1">
+<h3 class="font-label-md text-label-md font-bold text-primary mb-1">Legal &amp; Compliance Documents</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Upload land titles, local community agreements, and environmental permits (PDF, DOCX).</p>
+</div>
+<div class="hidden md:block">
+<button class="px-6 py-2 border border-white/10 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-white/5">Select Files</button>
+</div>
+</div>
+</div>
+<!-- Action Bar -->
+<div class="flex justify-between items-center pt-4">
+<button class="px-8 py-3 rounded-xl border border-white/10 text-on-surface-variant font-label-md hover:bg-white/5 transition-all">Save Draft</button>
+<div class="flex gap-4">
+<button class="px-8 py-3 rounded-xl border border-white/10 text-on-surface-variant font-label-md hover:bg-white/5 transition-all">Previous</button>
+<button class="px-10 py-3 rounded-xl bg-primary-container text-on-primary-container font-label-md font-bold glow-mint active:scale-95 transition-all">Initialize AI Scan</button>
+</div>
+</div>
+</div>
+<!-- Right Column: Verification Console (4 cols) -->
+<div class="col-span-12 lg:col-span-4 space-y-6">
+<!-- 3. Verification Console -->
+<div class="glass-panel rounded-2xl overflow-hidden flex flex-col h-full border-primary/20">
+<div class="p-6 border-b border-white/10 bg-white/5 flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">terminal</span>
+                            Console
+                        </h3>
+<span class="flex h-2 w-2 rounded-full bg-primary-container animate-pulse"></span>
+</div>
+<div class="p-6 space-y-8 flex-1">
+<!-- AI Confidence Score -->
+<div class="text-center space-y-2">
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-widest">AI Confidence Score</p>
+<div class="relative inline-flex items-center justify-center p-4">
+<svg class="w-32 h-32 transform -rotate-90">
+<circle class="text-white/5" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" stroke-width="8"></circle>
+</svg></div></div></div></div></div></div></main></body></html>

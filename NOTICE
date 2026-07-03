@@ -1,0 +1,8 @@
+Status: planned — not yet implemented.
+
+Will hold full third-party attributions for data and code dependencies, per the root README.md's "Third-party attributions" section:
+
+- OpenNEM / Open Electricity — emissions data, MIT (code) / CC BY-NC 4.0 (data)
+- DCCEEW NGA Factors — emission factors, CC BY 4.0
+- CER REC Registry — certificate data, Open Government License
+- AEMO — market data, per AEMO terms

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CarbonIQ | Marketplace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed": "#001f28",
+                    "on-error": "#690005",
+                    "on-primary": "#00391f",
+                    "surface-container-low": "#141e17",
+                    "surface-container-lowest": "#07100a",
+                    "tertiary-fixed-dim": "#e4c44f",
+                    "on-background": "#dae5da",
+                    "inverse-surface": "#dae5da",
+                    "surface-container-high": "#232c25",
+                    "surface-dim": "#0c150f",
+                    "secondary": "#a6e6ff",
+                    "on-secondary-container": "#00566b",
+                    "error-container": "#93000a",
+                    "primary-fixed": "#56ffa8",
+                    "primary-container": "#00ff9d",
+                    "on-tertiary-fixed-variant": "#554500",
+                    "primary-fixed-dim": "#00e38b",
+                    "on-error-container": "#ffdad6",
+                    "on-secondary": "#003543",
+                    "on-secondary-fixed-variant": "#004e60",
+                    "secondary-fixed": "#b7eaff",
+                    "on-surface-variant": "#b9cbbc",
+                    "on-tertiary-fixed": "#231b00",
+                    "secondary-fixed-dim": "#4cd6ff",
+                    "surface-tint": "#00e38b",
+                    "secondary-container": "#14d1ff",
+                    "on-tertiary-container": "#766000",
+                    "surface-container": "#18221b",
+                    "on-primary-container": "#007143",
+                    "inverse-primary": "#006d40",
+                    "on-surface": "#dae5da",
+                    "background": "#0c150f",
+                    "tertiary-container": "#ffdd65",
+                    "outline": "#849587",
+                    "tertiary": "#fffaff",
+                    "surface-variant": "#2d3730",
+                    "outline-variant": "#3b4a3f",
+                    "error": "#ffb4ab",
+                    "on-primary-fixed": "#002110",
+                    "surface": "#0c150f",
+                    "on-primary-fixed-variant": "#00522f",
+                    "inverse-on-surface": "#29332b",
+                    "primary": "#f4fff3",
+                    "tertiary-fixed": "#ffe17a",
+                    "surface-container-highest": "#2d3730",
+                    "surface-bright": "#323c34",
+                    "on-tertiary": "#3b2f00"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "4px",
+                    "margin-desktop": "64px",
+                    "margin-mobile": "16px",
+                    "gutter": "24px",
+                    "container-max": "1280px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Geist"],
+                    "headline-xl": ["Geist"],
+                    "headline-md": ["Geist"],
+                    "headline-lg-mobile": ["Geist"],
+                    "body-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-md": ["Geist"],
+                    "label-sm": ["Geist"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            -webkit-font-smoothing: antialiased;
+        }
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: #00ff9d;
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        .glow-accent {
+            filter: drop-shadow(0 0 8px rgba(0, 255, 157, 0.4));
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .active-glow {
+            box-shadow: inset 0 0 10px rgba(0, 255, 157, 0.2);
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-surface border-b border-outline-variant/30 backdrop-blur-xl shadow-sm">
+<div class="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
+<div class="flex items-center gap-8">
+<span class="font-headline-md text-headline-md font-bold text-primary-fixed">CarbonIQ</span>
+<nav class="hidden md:flex gap-6 items-center">
+<a class="font-label-md text-label-md text-primary-fixed border-b-2 border-primary-fixed pb-1" href="#">Marketplace</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" href="#">Methodology</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" href="#">Verify</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" href="#">About</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="bg-black/20 border border-outline-variant rounded-full py-2 pl-10 pr-4 text-body-sm focus:outline-none focus:border-primary-container transition-all w-64" placeholder="Search projects..." type="text"/>
+</div>
+<button class="bg-primary-container text-on-primary-container px-6 py-2 rounded-full font-label-md text-label-md font-bold hover:brightness-110 active:scale-95 duration-200 glow-accent">
+                    Connect Wallet
+                </button>
+</div>
+</div>
+</header>
+<div class="flex flex-1 pt-20 max-w-container-max mx-auto w-full">
+<!-- SideNavBar (Filter Panel) -->
+<aside class="hidden md:flex flex-col gap-unit p-4 h-[calc(100vh-80px)] overflow-y-auto w-64 left-0 sticky top-20 bg-surface-container-low border-r border-outline-variant/20 backdrop-blur-lg">
+<div class="mb-6">
+<h3 class="font-headline-sm text-headline-sm text-primary-fixed mb-1">Filters</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Refine your impact</p>
+</div>
+<div class="space-y-6">
+<!-- Project Categories -->
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant mb-3 block">Categories</span>
+<div class="flex flex-col gap-2">
+<button class="flex items-center gap-3 p-2 text-on-surface-variant hover:bg-surface-variant/40 rounded-lg transition-all active:translate-x-1">
+<span class="material-symbols-outlined text-body-md">filter_list</span>
+<span class="font-label-md text-label-md">All Credits</span>
+</button>
+<button class="flex items-center gap-3 p-2 bg-secondary-container text-on-secondary-container rounded-lg font-bold">
+<span class="material-symbols-outlined text-body-md">forest</span>
+<span class="font-label-md text-label-md">Nature Based</span>
+</button>
+<button class="flex items-center gap-3 p-2 text-on-surface-variant hover:bg-surface-variant/40 rounded-lg transition-all active:translate-x-1">
+<span class="material-symbols-outlined text-body-md">water</span>
+<span class="font-label-md text-label-md">Blue Carbon</span>
+</button>
+<button class="flex items-center gap-3 p-2 text-on-surface-variant hover:bg-surface-variant/40 rounded-lg transition-all active:translate-x-1">
+<span class="material-symbols-outlined text-body-md">bolt</span>
+<span class="font-label-md text-label-md">Energy</span>
+</button>
+<button class="flex items-center gap-3 p-2 text-on-surface-variant hover:bg-surface-variant/40 rounded-lg transition-all active:translate-x-1">
+<span class="material-symbols-outlined text-body-md">precision_manufacturing</span>
+<span class="font-label-md text-label-md">Tech Removal</span>
+</button>
+</div>
+</div>
+<!-- Price Range -->
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant mb-3 block">Price Range ($/ton)</span>
+<input class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary-container" type="range"/>
+<div class="flex justify-between mt-2 font-label-sm text-label-sm text-on-surface-variant">
+<span>$0</span>
+<span>$500+</span>
+</div>
+</div>
+<!-- Standards -->
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant mb-3 block">Verification Standard</span>
+<div class="space-y-2">
+<label class="flex items-center gap-2 font-label-md text-label-md cursor-pointer hover:text-on-surface">
+<input checked="" class="rounded border-outline-variant bg-transparent text-primary-container focus:ring-primary-container" type="checkbox"/>
+                            Verra (VCS)
+                        </label>
+<label class="flex items-center gap-2 font-label-md text-label-md cursor-pointer hover:text-on-surface">
+<input class="rounded border-outline-variant bg-transparent text-primary-container focus:ring-primary-container" type="checkbox"/>
+                            Gold Standard
+                        </label>
+<label class="flex items-center gap-2 font-label-md text-label-md cursor-pointer hover:text-on-surface">
+<input class="rounded border-outline-variant bg-transparent text-primary-container focus:ring-primary-container" type="checkbox"/>
+                            Puro.earth
+                        </label>
+</div>
+</div>
+<button class="w-full bg-surface-variant/50 text-on-surface border border-outline-variant/30 py-3 rounded-xl font-label-md text-label-md hover:bg-primary-container hover:text-on-primary-container transition-all">
+                    Apply Filters
+                </button>
+</div>
+<!-- Footer Tabs -->
+<div class="mt-auto pt-4 border-t border-outline-variant/20">
+<button class="flex items-center gap-3 p-2 w-full text-on-surface-variant hover:bg-surface-variant/40 rounded-lg mb-1">
+<span class="material-symbols-outlined text-body-md">bookmark</span>
+<span class="font-label-md text-label-md">Saved</span>
+</button>
+<button class="flex items-center gap-3 p-2 w-full text-on-surface-variant hover:bg-surface-variant/40 rounded-lg">
+<span class="material-symbols-outlined text-body-md">notifications</span>
+<span class="font-label-md text-label-md">Alerts</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 px-8 py-8 overflow-y-auto">
+<!-- Hero Header -->
+<div class="mb-10">
+<h1 class="font-headline-xl text-headline-xl text-on-surface mb-2">CarbonIQ Marketplace</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
+                    Access the world's most transparent registry of high-integrity carbon credits. Verified by real-time IoT monitoring and blockchain provenance.
+                </p>
+</div>
+<!-- Market Stats Bar -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+<div class="glass-card p-6 rounded-2xl flex flex-col justify-between">
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">Global Composite Index</span>
+<div class="flex items-end gap-3 mt-2">
+<span class="font-headline-md text-headline-md text-on-surface">$24.82</span>
+<span class="text-primary-container text-label-md font-bold mb-1">+4.2%</span>
+</div>
+</div>
+<div class="h-12 w-full mt-4">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 40">
+<path d="M0 35 Q 20 25, 40 30 T 80 10 T 100 5" fill="none" stroke="#00ff9d" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+<path d="M0 35 Q 20 25, 40 30 T 80 10 T 100 5 V 40 H 0 Z" fill="url(#gradient-mint)" opacity="0.1"></path>
+<defs>
+<lineargradient id="gradient-mint" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#00ff9d"></stop>
+<stop offset="100%" stop-color="transparent"></stop>
+</lineargradient>
+</defs>
+</svg>
+</div>
+</div>
+<div class="glass-card p-6 rounded-2xl flex flex-col justify-between">
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">Nature-Based Price</span>
+<div class="flex items-end gap-3 mt-2">
+<span class="font-headline-md text-headline-md text-on-surface">$18.45</span>
+<span class="text-primary-container text-label-md font-bold mb-1">+1.8%</span>
+</div>
+</div>
+<div class="h-12 w-full mt-4">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 40">
+<path d="M0 30 Q 30 35, 60 20 T 100 15" fill="none" stroke="#00ff9d" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+</svg>
+</div>
+</div>
+<div class="glass-card p-6 rounded-2xl flex flex-col justify-between">
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">Carbon Removal (Tech)</span>
+<div class="flex items-end gap-3 mt-2">
+<span class="font-headline-md text-headline-md text-on-surface">$142.10</span>
+<span class="text-secondary text-label-md font-bold mb-1">-0.4%</span>
+</div>
+</div>
+<div class="h-12 w-full mt-4">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 40">
+<path d="M0 10 Q 50 15, 100 20" fill="none" stroke="#4cd6ff" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+</svg>
+</div>
+</div>
+</div>
+<!-- Credit Listing Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-gutter">
+<!-- Project Card 1 -->
+<article class="glass-card rounded-2xl overflow-hidden group">
+<div class="relative h-48 w-full overflow-hidden">
+<div class="bg-cover bg-center w-full h-full group-hover:scale-105 transition-transform duration-500" data-alt="A cinematic, ultra-high-definition photograph of a lush tropical rainforest canopy at dawn. Soft morning mist clings to the giant ancient trees as golden sunlight pierces through the foliage. The image captures the dense, vibrant green biodiversity of the Amazon, evoking a sense of preservation and environmental majesty. The lighting is ethereal and atmospheric, consistent with a high-end ecological platform." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC9kljMqTHJ1Qrl9ilHYiZ3HzSDdpKd0cxHYp4qnwo67_bTP-_ONA4fORU79ddepoouMVKEZN4gjOILUEhnpPrjwY5aNtdj-i6pKYJleai-G99hVytlEViuHWYZ6Ul4J5NgyICxG7TFfHJ3VMvSinLobs4-d7pNgh4wSNNS4vjvwDs93ty8Z0nSzgjGcWnZHsSj86o6LHHnCkno9DWZzx5DIXWPMa2cVxR50kstfJroNBpE4DdqZ1lA2HDxIC0L7EplYvS9er6cTzcr')"></div>
+<div class="absolute top-4 left-4 flex gap-2">
+<span class="bg-primary-container/90 text-on-primary-container px-3 py-1 rounded-full font-label-sm text-label-sm font-bold flex items-center gap-1 shadow-lg">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+                                Verified
+                            </span>
+<span class="bg-black/40 backdrop-blur-md text-white px-3 py-1 rounded-full font-label-sm text-label-sm">Nature</span>
+</div>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Amazonia Reforestation</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+                                    Brazil, Mato Grosso
+                                </p>
+</div>
+<span class="font-label-sm text-label-sm font-bold text-on-surface-variant bg-surface-variant/50 px-2 py-1 rounded">2023 Vintage</span>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-6">
+<div class="bg-black/20 p-3 rounded-xl border border-white/5">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Available</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">12,450 <span class="text-body-sm font-normal">tCO2e</span></span>
+</div>
+<div class="bg-black/20 p-3 rounded-xl border border-white/5">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Price</span>
+<span class="font-headline-sm text-headline-sm text-primary-container">$22.50 <span class="text-body-sm font-normal text-on-surface">/ton</span></span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="bg-surface-variant/30 text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider">Biodiversity</span>
+<span class="bg-surface-variant/30 text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider">Water Security</span>
+<span class="bg-surface-variant/30 text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider">Verra ID: 1042</span>
+</div>
+<div class="flex gap-3">
+<button class="flex-1 bg-surface-variant/50 text-on-surface py-3 rounded-xl font-label-md text-label-md font-bold hover:bg-surface-variant transition-colors">
+                                View Details
+                            </button>
+<button class="flex-1 bg-primary-container text-on-primary-container py-3 rounded-xl font-label-md text-label-md font-bold glow-accent hover:brightness-110 active:scale-95 transition-all">
+                                Add to Registry
+                            </button>
+</div>
+</div>
+</article>
+<!-- Project Card 2 -->
+<article class="glass-card rounded-2xl overflow-hidden group">
+<div class="relative h-48 w-full overflow-hidden">
+<div class="bg-cover bg-center w-full h-full group-hover:scale-105 transition-transform duration-500" data-alt="A wide-angle aerial shot of a massive solar energy farm situated in a sun-drenched desert landscape. The symmetrical rows of deep blue photovoltaic panels create a futuristic, high-tech pattern against the golden sands. The lighting is bright and clear, emphasizing clean energy production and industrial precision. The overall aesthetic is professional, modern, and focused on sustainable technological innovation." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDn4o6NPhPSfFb2ku7aEBVLyMM_1xv4QXiy0PBSG0Q_ifqWiVRTcrpIq6os0Ikcp1jHj5-TfPJkup2ElTl9odG9-mo_jly_NyGd7CY6Ra2sMkDEng193b2EHDjyqDQsVoEZ3plDD4qSv_UvVq3Fjrhwxmoccy1uZFVYxV8ITS3WhXpDPinJcxrBhTbHLMAVd6t0GYkZfIjPnHJssdgXxPUqM9GhiBhKk4MCMl8WLqg8vq48j1GvOVzBLuyDtseHeGybIeEV7m1ParDp')"></div>
+<div class="absolute top-4 left-4 flex gap-2">
+<span class="bg-primary-container/90 text-on-primary-container px-3 py-1 rounded-full font-label-sm text-label-sm font-bold flex items-center gap-1 shadow-lg">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+                                Verified
+                            </span>
+<span class="bg-black/40 backdrop-blur-md text-white px-3 py-1 rounded-full font-label-sm text-label-sm">Energy</span>
+</div>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Sahara Solar Initiative</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+                                    Morocco, Ouarzazate
+                                </p>
+</div>
+<span class="font-label-sm text-label-sm font-bold text-on-surface-variant bg-surface-variant/50 px-2 py-1 rounded">2024 Vintage</span>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-6">
+<div class="bg-black/20 p-3 rounded-xl border border-white/5">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Available</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">85,200 <span class="text-body-sm font-normal">tCO2e</span></span>
+</div>
+<div class="bg-black/20 p-3 rounded-xl border border-white/5">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Price</span>
+<span class="font-headline-sm text-headline-sm text-primary-container">$12.10 <span class="text-body-sm font-normal text-on-surface">/ton</span></span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="bg-surface-variant/30 text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider">Renewable</span>
+<span class="bg-surface-variant/30 text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider">Grid Expansion</span>
+<span class="bg-surface-variant/30 text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider">Gold Standard</span>
+</div>
+<div class="flex gap-3">
+<button class="flex-1 bg-surface-variant/50 text-on-surface py-3 rounded-xl font-label-md text-label-md font-bold hover:bg-surface-variant transition-colors">
+                                View Details
+                            </button>
+<button class="flex-1 bg-primary-container text-on-primary-container py-3 rounded-xl font-label-md text-label-md font-bold glow-accent hover:brightness-110 active:scale-95 transition-all">
+                                Add to Registry
+                            </button>
+</div>
+</div>
+</article>
+<!-- Project Card 3 -->
+<article class="glass-card rounded-2xl overflow-hidden group">
+<div class="relative h-48 w-full overflow-hidden">
+<div class="bg-cover bg-center w-full h-full group-hover:scale-105 transition-transform duration-500" data-alt="A professional architectural photograph of a sleek, carbon capture and storage (CCS) facility at dusk. The industrial plant features clean, metallic surfaces and glowing accent lights, looking like a scientific laboratory of the future. The sky is a deep indigo, providing a striking contrast to the warm interior lights of the facility. The style is minimalist and futuristic, emphasizing the cutting-edge technology behind carbon removal." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD4Nsryopg08bQMFaDvjXq3uB2kK6ky99aglncb_ttfFT8YYZVOjJpNYggGJJQ5M9D9OvaKupUtKqs8oGcTfv1F7a6QoDsO67h_aIqCRZ-iVm1Xxl88Oxzy5HSCNdL2GRuj3r-7JVRe3sqCux0jYFy6yARsQGcXUASMpRBbl57tmrlDxrSq5b-PRjPouSmxAEjOOE1839QKThRNSfGwoR1adnCFyVAM9EkHwoPlP51KiCgqCLwwJiXoGdn89KZG0D-MpxyKk3jVp3pN')"></div>
+<div class="absolute top-4 left-4 flex gap-2">
+<span class="bg-primary-container/90 text-on-primary-container px-3 py-1 rounded-full font-label-sm text-label-sm font-bold flex items-center gap-1 shadow-lg">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+                                Verified
+                            </span>
+<span class="bg-black/40 backdrop-blur-md text-white px-3 py-1 rounded-full font-label-sm text-label-sm">Tech Removal</span>
+</div>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Direct Air Capture II</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+                                    Iceland, Hellisheiði
+                                </p>
+</div>
+<span class="font-label-sm text-label-sm font-bold text-on-surface-variant bg-surface-variant/50 px-2 py-1 rounded">2024 Vintage</span>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-6">
+<div class="bg-black/20 p-3 rounded-xl border border-white/5">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Available</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">1,200 <span class="text-body-sm font-normal">tCO2e</span></span>
+</div>
+<div class="bg-black/20 p-3 rounded-xl border border-white/5">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Price</span>
+<span class="font-headline-sm text-headline-sm text-primary-container">$480.00 <span class="text-body-sm font-normal text-on-surface">/ton</span></span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="bg-surface-variant/30 text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider">Permanent Storage</span>
+<span class="bg-surface-variant/30 text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider">High Integrity</span>
+<span class="bg-surface-variant/30 text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider">Puro Standard</span>
+</div>
+<div class="flex gap-3">
+<button class="flex-1 bg-surface-variant/50 text-on-surface py-3 rounded-xl font-label-md text-label-md font-bold hover:bg-surface-variant transition-colors">
+                                View Details
+                            </button>
+<button class="flex-1 bg-primary-container text-on-primary-container py-3 rounded-xl font-label-md text-label-md font-bold glow-accent hover:brightness-110 active:scale-95 transition-all">
+                                Add to Registry
+                            </button>
+</div>
+</div>
+</article>
+<!-- Project Card 4 -->
+<article class="glass-card rounded-2xl overflow-hidden group">
+<div class="relative h-48 w-full overflow-hidden">
+<div class="bg-cover bg-center w-full h-full group-hover:scale-105 transition-transform duration-500" data-alt="A tranquil and artistic photograph of a dense mangrove forest at high tide. The twisted, complex roots are partially submerged in crystal-clear blue water, reflecting a brilliant sky. The scene is calm and serene, capturing the unique beauty and vital carbon-storing power of coastal 'blue carbon' ecosystems. The colors are rich and saturated, emphasizing the deep blues and vibrant greens of the coastal landscape." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC3AemmXAtKsn1ZyPwOWwVjHuXzCLx7XVCz1XhrLV1YQMKbP7ne_z3adbPJX4DVMbKIvXjpUD07-68igSpHm0PFHfoBldlvdWvbjAZU1ykZ0pSu9qDWp07k4g6o35kng-baiABAYhBI6MMI1V2cYlR_sI9pCS2i7OTiPZknGaBtbjUagJNQcVpKTXfCFRYgd6k3TMZd5Xd8Ej0wc2q6FX5foihNIFc5FUliisq-qswA9pGWpy1n_YjRCcJkUlVlcwWM1jvlVn5-_P_t')"></div>
+<div class="absolute top-4 left-4 flex gap-2">
+<span class="bg-primary-container/90 text-on-primary-container px-3 py-1 rounded-full font-label-sm text-label-sm font-bold flex items-center gap-1 shadow-lg">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+                                Verified
+                            </span>
+<span class="bg-black/40 backdrop-blur-md text-white px-3 py-1 rounded-full font-label-sm text-label-sm">Blue Carbon</span>
+</div>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Blue Mangrove Restoration</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+                                    Indonesia, North Sumatra
+                                </p>
+</div>
+<span class="font-label-sm text-label-sm font-bold text-on-surface-variant bg-surface-variant/50 px-2 py-1 rounded">2022 Vintage</span>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-6">
+<div class="bg-black/20 p-3 rounded-xl border border-white/5">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Available</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">5,300 <span class="text-body-sm font-normal">tCO2e</span></span>
+</div>
+<div class="bg-black/20 p-3 rounded-xl border border-white/5">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Price</span>
+<span class="font-headline-sm text-headline-sm text-primary-container">$34.00 <span class="text-body-sm font-normal text-on-surface">/ton</span></span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="bg-surface-variant/30 text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider">Coastal Protection</span>
+<span class="bg-surface-variant/30 text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider">High Sequestration</span>
+<span class="bg-surface-variant/30 text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider">Verra ID: 3110</span>
+</div>
+<div class="flex gap-3">
+<button class="flex-1 bg-surface-variant/50 text-on-surface py-3 rounded-xl font-label-md text-label-md font-bold hover:bg-surface-variant transition-colors">
+                                View Details
+                            </button>
+<button class="flex-1 bg-primary-container text-on-primary-container py-3 rounded-xl font-label-md text-label-md font-bold glow-accent hover:brightness-110 active:scale-95 transition-all">
+                                Add to Registry
+                            </button>
+</div>
+</div>
+</article>
+</div>
+</main>
+</div>
+<!-- Footer -->
+<footer class="w-full mt-auto bg-surface-container-lowest border-t border-outline-variant/30">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop py-8 w-full max-w-container-max mx-auto">
+<div class="mb-6 md:mb-0">
+<span class="font-headline-sm text-headline-sm text-on-surface block mb-2">CarbonIQ</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">© 2024 CarbonIQ. High-integrity climate transparency.</p>
+</div>
+<div class="flex flex-wrap gap-x-8 gap-y-4 justify-center">
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary-fixed transition-colors" href="#">Privacy Policy</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary-fixed transition-colors" href="#">Terms of Service</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary-fixed transition-colors" href="#">Registry</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary-fixed transition-colors" href="#">Contact Support</a>
+</div>
+</div>
+</footer>
+<!-- Interactive Layer: Simple Mouse Glow Effect -->
+<script>
+        document.addEventListener('mousemove', (e) => {
+            const glow = document.getElementById('mouse-glow');
+            if (glow) {
+                glow.style.left = e.clientX + 'px';
+                glow.style.top = e.clientY + 'px';
+            }
+        });
+    </script>
+<div class="pointer-events-none fixed -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-container/5 rounded-full blur-[120px] z-[-1]" id="mouse-glow"></div>
+</body></html>

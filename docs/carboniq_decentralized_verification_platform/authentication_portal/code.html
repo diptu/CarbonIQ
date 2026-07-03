@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CarbonIQ | Secure Access</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary": "#a6e6ff",
+                        "on-primary-fixed-variant": "#00522f",
+                        "on-primary": "#00391f",
+                        "surface-container-high": "#232c25",
+                        "surface-container": "#18221b",
+                        "inverse-on-surface": "#29332b",
+                        "secondary-fixed-dim": "#4cd6ff",
+                        "on-secondary-fixed-variant": "#004e60",
+                        "tertiary-container": "#ffdd65",
+                        "on-error": "#690005",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-highest": "#2d3730",
+                        "primary-container": "#00ff9d",
+                        "on-primary-container": "#007143",
+                        "error": "#ffb4ab",
+                        "surface-container-lowest": "#07100a",
+                        "primary": "#f4fff3",
+                        "outline-variant": "#3b4a3f",
+                        "tertiary-fixed": "#ffe17a",
+                        "secondary-fixed": "#b7eaff",
+                        "background": "#0c150f",
+                        "on-background": "#dae5da",
+                        "surface-container-low": "#141e17",
+                        "surface-dim": "#0c150f",
+                        "secondary-container": "#14d1ff",
+                        "on-tertiary-container": "#766000",
+                        "tertiary-fixed-dim": "#e4c44f",
+                        "on-secondary-container": "#00566b",
+                        "on-tertiary-fixed-variant": "#554500",
+                        "surface-bright": "#323c34",
+                        "on-primary-fixed": "#002110",
+                        "inverse-primary": "#006d40",
+                        "primary-fixed-dim": "#00e38b",
+                        "on-tertiary": "#3b2f00",
+                        "on-secondary-fixed": "#001f28",
+                        "error-container": "#93000a",
+                        "surface-variant": "#2d3730",
+                        "primary-fixed": "#56ffa8",
+                        "on-secondary": "#003543",
+                        "on-surface": "#dae5da",
+                        "surface-tint": "#00e38b",
+                        "inverse-surface": "#dae5da",
+                        "tertiary": "#fffaff",
+                        "on-tertiary-fixed": "#231b00",
+                        "on-surface-variant": "#b9cbbc",
+                        "surface": "#0c150f",
+                        "outline": "#849587"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "container-max": "1280px",
+                        "margin-desktop": "64px",
+                        "unit": "4px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-xl": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "label-md": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "body-md": ["Inter"],
+                        "headline-lg-mobile": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            overflow-x: hidden;
+        }
+
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            padding: 1px;
+            border-radius: inherit;
+            background: linear-gradient(to bottom right, rgba(0, 255, 157, 0.2), transparent, rgba(0, 209, 255, 0.1));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .glow-button {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .glow-button:hover {
+            box-shadow: 0 0 30px rgba(0, 255, 157, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .carbon-grid {
+            background-image: linear-gradient(rgba(0, 255, 157, 0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0, 255, 157, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            perspective: 1000px;
+            transform: rotateX(60deg) translateY(-200px);
+            opacity: 0.3;
+        }
+
+        .animated-blob {
+            filter: blur(80px);
+            animation: float 20s infinite alternate;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(50px, 100px) scale(1.2); }
+        }
+
+        .tab-active::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 2px;
+            background: #00ff9d;
+            border-radius: 99px;
+            box-shadow: 0 0 8px #00ff9d;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-body-md">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-transparent">
+<nav class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-6 max-w-container-max mx-auto">
+<div class="flex items-center gap-3">
+<img alt="CarbonIQ" class="w-8 h-8 object-contain" src="https://lh3.googleusercontent.com/aida/AP1WRLuuxNqu3ovn8D60Ya_H8ad5aFny5Ol27-1-EFpKWRsmyt06iBps8znE4LjuJnn4OC3qLla2S-JUq5Kd1Ef9Yel-aVvovL_d9My7mQ6dllEA4rUJ--bvv0FgrWZKqZB1rwMWdQ5MpiRMaZGAQWWySF6hSqweZFMnW-mCpR4tIPN8dYNykfYXCRBBWbjfkJDFNQhkmQVNX4og_SAbM8-CdXMOlR_34aRB4VIVAGLTyUwceeQ7cguaUSDXl5E0"/>
+<span class="font-headline-md text-headline-md font-bold text-primary">CarbonIQ</span>
+</div>
+<div class="flex items-center gap-6">
+<a class="hidden md:block text-on-surface-variant hover:text-primary transition-colors font-label-md text-label-md" href="#">Platform</a>
+<a class="hidden md:block text-on-surface-variant hover:text-primary transition-colors font-label-md text-label-md" href="#">Research</a>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">help_outline</button>
+</div>
+</nav>
+</header>
+<!-- Main Content -->
+<main class="relative flex-grow flex items-center justify-center pt-24 pb-12 px-margin-mobile overflow-hidden">
+<!-- Background Elements -->
+<div class="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-container/10 rounded-full animated-blob"></div>
+<div class="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-secondary-container/5 rounded-full animated-blob" style="animation-delay: -5s;"></div>
+<div class="absolute inset-0 carbon-grid"></div>
+</div>
+<div class="relative z-10 w-full max-w-md">
+<!-- Glassmorphic Auth Card -->
+<div class="glass-card rounded-xl p-8 shadow-2xl">
+<!-- Branding Header -->
+<div class="flex flex-col items-center mb-8">
+<div class="w-16 h-16 mb-4 relative">
+<img alt="CarbonIQ Logo" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida/AP1WRLuuxNqu3ovn8D60Ya_H8ad5aFny5Ol27-1-EFpKWRsmyt06iBps8znE4LjuJnn4OC3qLla2S-JUq5Kd1Ef9Yel-aVvovL_d9My7mQ6dllEA4rUJ--bvv0FgrWZKqZB1rwMWdQ5MpiRMaZGAQWWySF6hSqweZFMnW-mCpR4tIPN8dYNykfYXCRBBWbjfkJDFNQhkmQVNX4og_SAbM8-CdXMOlR_34aRB4VIVAGLTyUwceeQ7cguaUSDXl5E0"/>
+<div class="absolute inset-0 bg-primary-container/20 blur-xl -z-10 rounded-full"></div>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-primary text-center">Verified Access</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-center mt-2">Connecting to environmental intelligence</p>
+</div>
+<!-- Tabs -->
+<div class="flex border-b border-outline-variant/30 mb-8 relative">
+<button class="flex-1 pb-2 font-label-md text-label-md text-primary relative transition-all tab-active" id="signInTab" onclick="switchTab('signin')">Sign In</button>
+<button class="flex-1 pb-2 font-label-md text-label-md text-on-surface-variant relative transition-all" id="signUpTab" onclick="switchTab('signup')">Sign Up</button>
+</div>
+<!-- Sign In Form -->
+<form class="space-y-6" id="authForm" onsubmit="event.preventDefault();">
+<div class="space-y-4">
+<div class="relative">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1 ml-1">Email Address</label>
+<input class="w-full bg-black/20 border border-white/10 rounded-lg py-3 px-4 text-primary focus:ring-0 focus:border-primary-container transition-all placeholder:text-outline/50 font-body-md text-body-md" placeholder="name@company.com" type="email"/>
+</div>
+<div class="relative">
+<div class="flex justify-between items-center mb-1">
+<label class="block font-label-sm text-label-sm text-on-surface-variant ml-1">Password</label>
+<a class="text-primary-fixed-dim hover:text-primary-container font-label-sm text-label-sm transition-colors" href="#">Forgot?</a>
+</div>
+<input class="w-full bg-black/20 border border-white/10 rounded-lg py-3 px-4 text-primary focus:ring-0 focus:border-primary-container transition-all placeholder:text-outline/50 font-body-md text-body-md" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<button class="w-full bg-primary-container hover:bg-primary-fixed-dim text-on-primary-fixed font-bold py-3.5 rounded-lg glow-button transition-all flex items-center justify-center gap-2 group" type="submit">
+<span>Continue to Terminal</span>
+<span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</form>
+<!-- SSO Section -->
+<div class="mt-8">
+<div class="flex items-center gap-4 mb-6">
+<div class="h-px bg-outline-variant/30 flex-grow"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant shrink-0">Or continue with</span>
+<div class="h-px bg-outline-variant/30 flex-grow"></div>
+</div>
+<div class="grid grid-cols-3 gap-3">
+<button class="flex items-center justify-center py-2.5 px-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors group">
+<img class="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity" data-alt="The minimalist, high-resolution logo of Microsoft Azure Active Directory presented as a flat vector icon. The style is professional and clean, fitting a high-end enterprise software ecosystem. The lighting is neutral, highlighting the geometric precision of the logo mark against a dark background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZxJWCmqb56njfkqPnRsU4B5IqDgUZczICKHo8o9fziS4f_plfz4MO0yAjKwhqD9dGRMPBf4u6qzMRFsrYTTaqgw1hPE_FX8ikwbwvh-qdSJ0RVbgXHu_4wjgV_RJA8PztntfCKgQE8Q-hDGo-wH4u1uIoYe1uX4sHx1x4MGRz8fKPX7RO_m7oa8V3J47rSMH_wsimZFjKAVyYXJLja_zuTZWdbvteNdJbEsrUtc4JMwuesT3_9dIeHhFPji-kX6_vLboulh0vgndG"/>
+</button>
+<button class="flex items-center justify-center py-2.5 px-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors group">
+<img class="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity" data-alt="The distinctive colorful 'G' logo of Google, rendered with crisp, clean lines in a high-fidelity vector format. The logo follows modern design standards, appearing bright and authoritative for a secure login interface. It is set against a dark, professional backdrop that emphasizes its vibrant primary colors." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2u6FOsPAqFuDfH8dhNOYswrOBpsOrF--rXob6iPzn0NYoCeXMkWIXMIR7Ks1UhzMABaX1IEJAvI7dWCakVdaWRig2Xx3_T2RaR4d0V7KsAA3CKdnqvEMZMzmMqWrXEdpym95CNm485LoW00mCLZu2oCiQj8UXVmGAoavSIc3JFQlfFDGAdR14OrZl_xX4OWqi7pQ0aAvo7NEwGTm-RK273BlGoj3Ma2mvEEKxYGFxFeuCOdt9pnMFiiE87-DWD3RTX1W-PkFo5_Se"/>
+</button>
+<button class="flex items-center justify-center py-2.5 px-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors group">
+<img class="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity" data-alt="The modern Okta corporate logo featuring its signature circular blue icon. The style is sleek and technological, emphasizing trust and identity security. The icon is rendered with high contrast to remain legible and professional within a dark climate-tech UI environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPJLjLrHkIZsQNBNAESKlHgrrVZ7XsTBW7DXz-JhReAtOyb6U9Mn_M8AWoDPDeHrppRjda-w8VKH5RUI02AYjNFvBK2CdMRmfZRRNDh5K-k_Behj-m3OTH_7An2grwuRypPsDwN-wWs5AsGY2bqH1wXTJEha6goBX1tSZCUNYhPC4YsqREVhA6Y_rxYEX0nWF8yeM36BWYkobALmthU-YjzF80qPwGbG5bwyWy8DUxHBXG8geGuzlscGrhohdin_yKCFtEh7ai_-gt"/>
+</button>
+</div>
+</div>
+<!-- Security Badge -->
+<div class="mt-8 flex justify-center">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-primary-container/5 border border-primary-container/20 rounded-full">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1; font-size: 14px;">verified_user</span>
+<span class="font-label-sm text-[10px] uppercase tracking-widest text-primary-container/80">Secured by Verified Protocol v2.1</span>
+</div>
+</div>
+</div>
+<!-- Contextual Note -->
+<p class="text-center mt-6 font-body-sm text-body-sm text-on-surface-variant/60">
+                Authorized access only. All sessions are monitored for environmental compliance and ledger integrity.
+            </p>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-transparent mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-8 max-w-container-max mx-auto gap-4">
+<div class="flex flex-col md:flex-row items-center gap-4">
+<span class="font-label-md text-label-md text-on-surface-variant">© 2024 CarbonIQ. Verified Environmental Intelligence.</span>
+</div>
+<div class="flex items-center gap-6">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Security</a>
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 bg-primary-container rounded-full animate-pulse shadow-[0_0_8px_#00ff9d]"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Status</span>
+</div>
+</div>
+</div>
+</footer>
+<script>
+        function switchTab(tab) {
+            const signInTab = document.getElementById('signInTab');
+            const signUpTab = document.getElementById('signUpTab');
+            const submitBtn = document.querySelector('button[type="submit"] span');
+
+            if (tab === 'signin') {
+                signInTab.classList.add('tab-active', 'text-primary');
+                signInTab.classList.remove('text-on-surface-variant');
+                signUpTab.classList.remove('tab-active', 'text-primary');
+                signUpTab.classList.add('text-on-surface-variant');
+                submitBtn.innerText = 'Continue to Terminal';
+            } else {
+                signUpTab.classList.add('tab-active', 'text-primary');
+                signUpTab.classList.remove('text-on-surface-variant');
+                signInTab.classList.remove('tab-active', 'text-primary');
+                signInTab.classList.add('text-on-surface-variant');
+                submitBtn.innerText = 'Initialize Account';
+            }
+        }
+
+        // Mouse hover parallax for the grid
+        document.addEventListener('mousemove', (e) => {
+            const grid = document.querySelector('.carbon-grid');
+            const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
+            const moveY = (e.clientY - window.innerHeight / 2) * 0.01;
+            grid.style.transform = `rotateX(60deg) translateY(-200px) translate(${moveX}px, ${moveY}px)`;
+        });
+    </script>
+</body></html>

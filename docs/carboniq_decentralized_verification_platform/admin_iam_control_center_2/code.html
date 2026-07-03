@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CarbonIQ | Admin &amp; IAM Control Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            background-color: #0c150f;
+            color: #dae5da;
+            -webkit-font-smoothing: antialiased;
+        }
+        .glass-card {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-card-verified {
+            border: 1px solid transparent;
+            border-image: linear-gradient(to right, #00FF9D, transparent) 1;
+        }
+        .glow-mint {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-container": "#14d1ff",
+                    "on-secondary-container": "#00566b",
+                    "on-error-container": "#ffdad6",
+                    "primary-container": "#00ff9d",
+                    "tertiary": "#fffaff",
+                    "inverse-on-surface": "#29332b",
+                    "error": "#ffb4ab",
+                    "on-tertiary-fixed-variant": "#554500",
+                    "on-tertiary-fixed": "#231b00",
+                    "on-secondary-fixed": "#001f28",
+                    "error-container": "#93000a",
+                    "on-secondary-fixed-variant": "#004e60",
+                    "secondary-fixed": "#b7eaff",
+                    "surface-container": "#18221b",
+                    "secondary-fixed-dim": "#4cd6ff",
+                    "on-tertiary-container": "#766000",
+                    "surface-container-low": "#141e17",
+                    "outline-variant": "#3b4a3f",
+                    "secondary": "#a6e6ff",
+                    "on-surface": "#dae5da",
+                    "on-primary": "#00391f",
+                    "surface-dim": "#0c150f",
+                    "surface-container-lowest": "#07100a",
+                    "on-primary-fixed-variant": "#00522f",
+                    "tertiary-fixed": "#ffe17a",
+                    "on-error": "#690005",
+                    "primary-fixed": "#56ffa8",
+                    "surface-tint": "#00e38b",
+                    "inverse-primary": "#006d40",
+                    "on-primary-container": "#007143",
+                    "outline": "#849587",
+                    "on-background": "#dae5da",
+                    "tertiary-fixed-dim": "#e4c44f",
+                    "surface-container-highest": "#2d3730",
+                    "surface-bright": "#323c34",
+                    "on-tertiary": "#3b2f00",
+                    "on-primary-fixed": "#002110",
+                    "primary": "#f4fff3",
+                    "primary-fixed-dim": "#00e38b",
+                    "background": "#0c150f",
+                    "surface-container-high": "#232c25",
+                    "surface": "#0c150f",
+                    "on-secondary": "#003543",
+                    "on-surface-variant": "#b9cbbc",
+                    "surface-variant": "#2d3730",
+                    "inverse-surface": "#dae5da",
+                    "tertiary-container": "#ffdd65"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "8px",
+                    "xl": "12px",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "4px",
+                    "margin-desktop": "64px",
+                    "margin-mobile": "16px",
+                    "gutter": "24px",
+                    "container-max": "1280px"
+            },
+            "fontFamily": {
+                    "headline-xl": ["Geist"],
+                    "body-lg": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "headline-md": ["Geist"],
+                    "headline-lg": ["Geist"],
+                    "headline-lg-mobile": ["Geist"],
+                    "label-sm": ["Geist"],
+                    "label-md": ["Geist"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="overflow-x-hidden">
+<!-- TopNavBar -->
+<header class="w-full sticky top-0 z-50 bg-background/80 dark:bg-background/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm flex items-center justify-between px-margin-desktop h-16">
+<div class="flex items-center gap-8">
+<span class="font-headline-md text-headline-md font-bold text-primary-fixed dark:text-primary-fixed tracking-tight">CarbonIQ</span>
+<div class="hidden md:flex items-center gap-6">
+<nav class="flex items-center gap-6">
+<a class="font-label-md text-label-md text-primary-fixed border-b-2 border-primary-fixed py-2 transition-colors duration-200" href="#">IAM Center</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-highest transition-colors duration-200 px-3 py-1 rounded-lg" href="#">Assets</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-highest transition-colors duration-200 px-3 py-1 rounded-lg" href="#">Analytics</a>
+</nav>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center bg-surface-container px-3 py-1.5 rounded-lg border border-outline-variant/30">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-sm font-body-sm placeholder:text-on-surface-variant/50 w-48" placeholder="Search tenants..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-highest p-2 rounded-full transition-all">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-highest p-2 rounded-full transition-all">settings</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-highest p-2 rounded-full transition-all">help</button>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center border border-primary-fixed/30 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a female technology administrator in her early 40s, with a neutral and confident expression. The lighting is crisp and studio-quality with soft teal and mint rim lighting that matches the CarbonIQ dashboard's deep green and neon mint aesthetic. She wears minimalist dark business attire." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD38WLYNXu2V81n852iAo2885EIEmraVHw9i5ROXkX4pXyVHx0iVVuZwhJnZP_Cd6rBGXtykp5Vb-Xib86Y_B1jm0VhLeCRYPM3-_zojZS0eMrC-8qZON_QYD3Nd5IAaGAtgJ9MAUVtxmrgmhDXzQ5RKm636RKmP6dyEXYpNG1EigWAKQ13Qc29pjTsE5Kz2sYgRk2DO0kQUfdVB4UNE4zW1L4gzrTG4LFdv8PD1DeWM5VB5_qFWZ-g2j4h4FFSrqFhgGKkw_TpJ1ON"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 z-40 bg-surface-container dark:bg-surface-container backdrop-blur-xl border-r border-outline-variant/20 flex flex-col h-full py-8 px-4 mt-16">
+<div class="mb-8 px-2">
+<div class="flex items-center gap-3 p-3 bg-surface-container-high rounded-xl border border-outline-variant/10">
+<div class="w-10 h-10 bg-primary-fixed-dim rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-fixed" style="font-variation-settings: 'FILL' 1;">corporate_fare</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-[16px] text-primary-fixed font-bold leading-tight">Global Admin</h3>
+<p class="font-label-sm text-[12px] text-on-surface-variant">Enterprise Tier</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high hover:translate-x-1 transition-all duration-150 rounded-lg" href="#">
+<span class="material-symbols-outlined">corporate_fare</span>
+<span class="font-label-md text-label-md">Organization</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-primary-fixed bg-primary-container/10 border-r-4 border-primary-fixed font-bold hover:translate-x-1 transition-all duration-150 rounded-lg" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-label-md text-label-md">Users &amp; Roles</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high hover:translate-x-1 transition-all duration-150 rounded-lg" href="#">
+<span class="material-symbols-outlined">vpn_key</span>
+<span class="font-label-md text-label-md">API &amp; Security</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high hover:translate-x-1 transition-all duration-150 rounded-lg" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-md text-label-md">Audit Logs</span>
+</a>
+</nav>
+<div class="mt-auto space-y-2 pt-8 border-t border-outline-variant/10">
+<button class="w-full bg-primary-container text-on-primary-container font-label-md text-label-md py-3 rounded-lg font-bold glow-mint active:scale-95 transition-transform mb-6">
+                Deploy New Node
+            </button>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:text-on-surface transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">support_agent</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:text-on-surface transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">menu_book</span>
+<span class="font-label-md text-label-md">Documentation</span>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="ml-64 p-margin-desktop bg-background min-h-screen">
+<div class="max-w-container-max mx-auto space-y-gutter">
+<!-- Page Header -->
+<div class="flex justify-between items-end mb-8">
+<div>
+<h1 class="font-headline-xl text-headline-xl text-on-background mb-2">IAM Control Center</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Manage organizational hierarchy, enforce security protocols, and govern global access across the CarbonIQ ecosystem.</p>
+</div>
+<div class="flex gap-4">
+<div class="glass-card px-4 py-2 rounded-lg flex items-center gap-3 border-primary-container/20">
+<div class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></div>
+<span class="font-label-md text-label-md text-primary-container">System Status: Operational</span>
+</div>
+</div>
+</div>
+<!-- Organization Hierarchy & Tenant Isolation (Bento Style) -->
+<section class="grid grid-cols-12 gap-gutter">
+<div class="col-span-12 lg:col-span-8 space-y-4">
+<h2 class="font-headline-md text-headline-md flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-fixed">account_tree</span>
+                        Tenant Infrastructure
+                    </h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Tenant Card 1 -->
+<div class="glass-card p-6 rounded-xl hover:bg-surface-container-high transition-all group">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-secondary-container/20 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary-fixed">factory</span>
+</div>
+<span class="px-3 py-1 bg-primary-container/10 text-primary-container text-label-sm rounded-full border border-primary-container/20">Active</span>
+</div>
+<h3 class="font-headline-sm text-[20px] mb-1">Global Manufacturing Ltd.</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-6">UID: 0x82...f92c</p>
+<div class="flex justify-between items-center text-label-sm font-label-sm text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">public</span>
+                                    AWS Sydney (ap-southeast-2)
+                                </div>
+<span class="text-primary-fixed">84 Assets</span>
+</div>
+</div>
+<!-- Tenant Card 2 -->
+<div class="glass-card p-6 rounded-xl hover:bg-surface-container-high transition-all group">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-secondary-container/20 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary-fixed">energy_savings_leaf</span>
+</div>
+<span class="px-3 py-1 bg-error-container/20 text-error text-label-sm rounded-full border border-error/20">Isolated</span>
+</div>
+<h3 class="font-headline-sm text-[20px] mb-1">EcoGrid Solutions</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-6">UID: 0x4a...d3e1</p>
+<div class="flex justify-between items-center text-label-sm font-label-sm text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">public</span>
+                                    Azure Frankfurt (germanywestcentral)
+                                </div>
+<span class="text-on-surface-variant">Maintenance</span>
+</div>
+</div>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-4 space-y-4">
+<h2 class="font-headline-md text-headline-md flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-fixed">security</span>
+                        Security Health
+                    </h2>
+<div class="glass-card p-6 rounded-xl flex flex-col h-[calc(100%-40px)]">
+<div class="space-y-6 mb-auto">
+<div class="flex items-center justify-between">
+<span class="font-body-md text-on-surface-variant">MFA Enforcement</span>
+<span class="text-primary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="w-full h-full bg-primary-container glow-mint"></div>
+</div>
+<div class="flex items-center justify-between mt-4">
+<span class="font-body-md text-on-surface-variant">JWT Secret Rotation</span>
+<span class="text-tertiary-fixed font-bold">12 days left</span>
+</div>
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="w-3/4 h-full bg-tertiary-fixed"></div>
+</div>
+</div>
+<div class="mt-8 p-4 bg-surface-container-low rounded-lg border border-outline-variant/20">
+<p class="font-label-sm text-on-surface-variant mb-2">LAST VULNERABILITY SCAN</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container">check_circle</span>
+<span class="font-headline-sm text-[18px]">Zero Critical Issues</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Identity & RBAC Matrix -->
+<section class="grid grid-cols-12 gap-gutter">
+<!-- User Management Table -->
+<div class="col-span-12 lg:col-span-7 glass-card p-6 rounded-xl">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline-md text-headline-md">Identity Management</h2>
+<button class="flex items-center gap-2 bg-primary-fixed text-on-primary-fixed font-label-md px-4 py-2 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+                            Add User
+                        </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="border-b border-outline-variant/30">
+<tr>
+<th class="py-4 font-label-md text-on-surface-variant">User</th>
+<th class="py-4 font-label-md text-on-surface-variant">Role</th>
+<th class="py-4 font-label-md text-on-surface-variant">MFA/JWT</th>
+<th class="py-4 font-label-md text-on-surface-variant">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr class="group hover:bg-surface-container-highest/50 transition-colors">
+<td class="py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center text-label-sm">JD</div>
+<div>
+<div class="font-label-md text-on-surface">Julian Drach</div>
+<div class="text-[12px] text-on-surface-variant">j.drach@carboniq.io</div>
+</div>
+</div>
+</td>
+<td class="py-4">
+<span class="px-2 py-1 bg-secondary-container/10 text-secondary-fixed text-label-sm rounded border border-secondary-fixed/20">Admin</span>
+</td>
+<td class="py-4">
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-primary-container text-[18px]" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="material-symbols-outlined text-primary-container text-[18px]">key</span>
+</div>
+</td>
+<td class="py-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">more_vert</button>
+</td>
+</tr>
+<tr class="group hover:bg-surface-container-highest/50 transition-colors">
+<td class="py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center text-label-sm">SR</div>
+<div>
+<div class="font-label-md text-on-surface">Sarah Rehn</div>
+<div class="text-[12px] text-on-surface-variant">s.rehn@carboniq.io</div>
+</div>
+</div>
+</td>
+<td class="py-4">
+<span class="px-2 py-1 bg-surface-container-highest text-on-surface-variant text-label-sm rounded border border-outline-variant/30">Auditor</span>
+</td>
+<td class="py-4">
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-primary-container text-[18px]" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="material-symbols-outlined text-outline text-[18px]">key</span>
+</div>
+</td>
+<td class="py-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">more_vert</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- RBAC Configurator Matrix -->
+<div class="col-span-12 lg:col-span-5 glass-card p-6 rounded-xl">
+<h2 class="font-headline-md text-headline-md mb-6">RBAC Configuration</h2>
+<div class="space-y-4">
+<div class="grid grid-cols-4 border-b border-outline-variant/30 pb-2">
+<div class="col-span-1 font-label-sm text-on-surface-variant">Module</div>
+<div class="text-center font-label-sm text-on-surface-variant">Read</div>
+<div class="text-center font-label-sm text-on-surface-variant">Write</div>
+<div class="text-center font-label-sm text-on-surface-variant">Admin</div>
+</div>
+<div class="grid grid-cols-4 items-center py-2">
+<div class="font-label-md">Ingestion</div>
+<div class="flex justify-center"><input checked="" class="rounded bg-background border-outline text-primary-fixed focus:ring-primary-fixed" type="checkbox"/></div>
+<div class="flex justify-center"><input checked="" class="rounded bg-background border-outline text-primary-fixed focus:ring-primary-fixed" type="checkbox"/></div>
+<div class="flex justify-center"><input class="rounded bg-background border-outline text-primary-fixed focus:ring-primary-fixed" type="checkbox"/></div>
+</div>
+<div class="grid grid-cols-4 items-center py-2">
+<div class="font-label-md">Attribution</div>
+<div class="flex justify-center"><input checked="" class="rounded bg-background border-outline text-primary-fixed focus:ring-primary-fixed" type="checkbox"/></div>
+<div class="flex justify-center"><input class="rounded bg-background border-outline text-primary-fixed focus:ring-primary-fixed" type="checkbox"/></div>
+<div class="flex justify-center"><input class="rounded bg-background border-outline text-primary-fixed focus:ring-primary-fixed" type="checkbox"/></div>
+</div>
+<div class="grid grid-cols-4 items-center py-2">
+<div class="font-label-md">Reporting</div>
+<div class="flex justify-center"><input checked="" class="rounded bg-background border-outline text-primary-fixed focus:ring-primary-fixed" type="checkbox"/></div>
+<div class="flex justify-center"><input checked="" class="rounded bg-background border-outline text-primary-fixed focus:ring-primary-fixed" type="checkbox"/></div>
+<div class="flex justify-center"><input checked="" class="rounded bg-background border-outline text-primary-fixed focus:ring-primary-fixed" type="checkbox"/></div>
+</div>
+<button class="w-full mt-4 py-2 border border-primary-fixed/30 text-primary-fixed font-label-md rounded-lg hover:bg-primary-container/10 transition-colors">
+                            Apply Changes
+                        </button>
+</div>
+</div>
+</section>
+<!-- Bottom Row: API Keys & Audit Trail -->
+<section class="grid grid-cols-12 gap-gutter">
+<!-- API Keys Panel -->
+<div class="col-span-12 lg:col-span-8 glass-card p-6 rounded-xl">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline-md text-headline-md">API Access Control</h2>
+<button class="text-secondary-fixed flex items-center gap-2 hover:bg-secondary-container/10 px-3 py-1 rounded transition-colors font-label-md">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+                            Rotate All Keys
+                        </button>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/10">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded bg-tertiary-container/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary-fixed">token</span>
+</div>
+<div>
+<div class="font-label-md text-on-surface">Production Analytics Key</div>
+<div class="text-[12px] font-mono text-on-surface-variant">ciq_live_88x...22kL</div>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="text-right">
+<div class="text-[12px] text-on-surface-variant">SCOPES</div>
+<div class="text-label-sm font-label-sm">Read:Analytics, Write:Logs</div>
+</div>
+<button class="bg-surface-container-highest px-4 py-2 rounded-lg font-label-md hover:bg-outline-variant/30 transition-colors">Rotate</button>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/10">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded bg-tertiary-container/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary-fixed">token</span>
+</div>
+<div>
+<div class="font-label-md text-on-surface">External Auditor Access</div>
+<div class="text-[12px] font-mono text-on-surface-variant">ciq_ext_11m...99pQ</div>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="text-right">
+<div class="text-[12px] text-on-surface-variant">SCOPES</div>
+<div class="text-label-sm font-label-sm">Read:All, Verify:Proofs</div>
+</div>
+<button class="bg-surface-container-highest px-4 py-2 rounded-lg font-label-md hover:bg-outline-variant/30 transition-colors">Rotate</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Audit Trail Preview -->
+<div class="col-span-12 lg:col-span-4 glass-card p-6 rounded-xl">
+<h2 class="font-headline-md text-headline-md mb-6">Live Audit Trail</h2>
+<div class="space-y-4">
+<div class="flex gap-4">
+<div class="min-w-[4px] h-10 bg-primary-fixed rounded-full"></div>
+<div>
+<p class="text-body-sm font-body-sm text-on-surface">User <span class="text-primary-fixed">j.drach</span> modified IAM roles for 'Global Mfg'</p>
+<span class="text-[12px] text-on-surface-variant">2 mins ago • 192.168.1.1</span>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="min-w-[4px] h-10 bg-error rounded-full"></div>
+<div>
+<p class="text-body-sm font-body-sm text-on-surface">Tenant <span class="text-error">EcoGrid</span> isolated by System Automator</p>
+<span class="text-[12px] text-on-surface-variant">45 mins ago • Policy Violation</span>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="min-w-[4px] h-10 bg-secondary-fixed rounded-full"></div>
+<div>
+<p class="text-body-sm font-body-sm text-on-surface">New API Key generated for auditor Sarah Rehn</p>
+<span class="text-[12px] text-on-surface-variant">3 hours ago • Console Action</span>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="min-w-[4px] h-10 bg-primary-fixed rounded-full"></div>
+<div>
+<p class="text-body-sm font-body-sm text-on-surface">MFA challenge successfully verified for 12 nodes</p>
+<span class="text-[12px] text-on-surface-variant">5 hours ago • System Log</span>
+</div>
+</div>
+<button class="w-full text-on-surface-variant text-label-sm font-label-sm mt-4 hover:text-on-surface transition-colors flex items-center justify-center gap-2">
+                            View Full Logs
+                            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<script>
+        // Micro-interaction for cards
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+                card.style.transition = 'all 0.3s ease';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0px)';
+            });
+        });
+    </script>
+</body></html>

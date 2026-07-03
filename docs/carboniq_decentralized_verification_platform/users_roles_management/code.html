@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EcoAdmin | Users & Roles</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Geist:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-panel {
+            background: rgba(6, 44, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .neon-glow {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+        .active-border-gradient {
+            border: 1px solid transparent;
+            background: linear-gradient(to right, #0c150f, #0c150f) padding-box,
+                        linear-gradient(to bottom right, #00FF9D, transparent) border-box;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0c150f; }
+        ::-webkit-scrollbar-thumb { background: #3b4a3f; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ff9d; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#3b2f00",
+                        "surface": "#0c150f",
+                        "on-primary-fixed": "#002110",
+                        "on-primary": "#00391f",
+                        "surface-container-lowest": "#07100a",
+                        "surface-bright": "#323c34",
+                        "on-background": "#dae5da",
+                        "outline": "#849587",
+                        "secondary-fixed-dim": "#4cd6ff",
+                        "on-surface": "#dae5da",
+                        "on-secondary": "#003543",
+                        "secondary-fixed": "#b7eaff",
+                        "on-error": "#690005",
+                        "error": "#ffb4ab",
+                        "surface-container-highest": "#2d3730",
+                        "outline-variant": "#3b4a3f",
+                        "primary": "#f4fff3",
+                        "on-tertiary-fixed": "#231b00",
+                        "surface-tint": "#00e38b",
+                        "surface-container": "#18221b",
+                        "secondary": "#a6e6ff",
+                        "on-surface-variant": "#b9cbbc",
+                        "tertiary-fixed": "#ffe17a",
+                        "tertiary-container": "#ffdd65",
+                        "primary-container": "#00ff9d",
+                        "inverse-on-surface": "#29332b",
+                        "background": "#0c150f",
+                        "primary-fixed-dim": "#00e38b",
+                        "tertiary-fixed-dim": "#e4c44f",
+                        "secondary-container": "#14d1ff",
+                        "on-tertiary-container": "#766000",
+                        "surface-container-high": "#232c25",
+                        "on-tertiary-fixed-variant": "#554500",
+                        "on-primary-fixed-variant": "#00522f",
+                        "error-container": "#93000a",
+                        "inverse-surface": "#dae5da",
+                        "surface-variant": "#2d3730",
+                        "surface-dim": "#0c150f",
+                        "surface-container-low": "#141e17",
+                        "on-secondary-fixed": "#001f28",
+                        "primary-fixed": "#56ffa8",
+                        "on-error-container": "#ffdad6",
+                        "tertiary": "#fffaff",
+                        "inverse-primary": "#006d40",
+                        "on-secondary-container": "#00566b",
+                        "on-secondary-fixed-variant": "#004e60",
+                        "on-primary-container": "#007143"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "64px",
+                        "margin-mobile": "16px",
+                        "gutter": "24px",
+                        "unit": "4px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Inter"],
+                        "headline-lg-mobile": ["Geist"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["Geist"],
+                        "headline-xl": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "label-md": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+<!-- Shared SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-outline-variant backdrop-blur-xl bg-surface/60 flex flex-col h-full py-64 z-50">
+<div class="px-6 mb-10">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">EcoAdmin</h1>
+<p class="font-body-md text-body-md opacity-60">Enterprise Terminal</p>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant opacity-70 hover:bg-surface-container-highest transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">corporate_fare</span>
+<span class="font-body-md text-body-md">Organization</span>
+</a>
+<!-- Users is ACTIVE -->
+<a class="flex items-center gap-3 px-4 py-3 text-primary font-bold border-r-2 border-primary-container bg-surface-container-highest rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-body-md text-body-md">Users</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant opacity-70 hover:bg-surface-container-highest transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">security</span>
+<span class="font-body-md text-body-md">Security</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant opacity-70 hover:bg-surface-container-highest transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-body-md text-body-md">Logs</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<button class="w-full py-3 px-4 bg-surface-container-high border border-outline-variant rounded-lg font-label-md text-label-md hover:bg-surface-container-highest transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+                View Audit Trail
+            </button>
+<div class="mt-6 flex items-center gap-3 border-t border-outline-variant pt-6">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 border border-primary-container/40 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a system administrator in a high-tech environment, lit by soft green and teal ambient light from monitor screens, wearing modern professional attire, conveying expertise and authority." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZmT80d2mrgLzFpI17hnfDoaq-pXKOSvPynxbrW105nTXd7mVP9Mr7K1lTgWAQh25UMMkLbivnC7o8Yjt2eC58xrz2902CncXsjd1TyFXvOB6ZQd1CLCbfP03CEW8ZSLTtntmzDlAMNzj6AK4iYE00B7aGnqkVYXJosPypxVeJC2KvR5h_RB0-gbD2dTwqT5ikh6fQS4mLoknz-2eDB6vvOjMXWWkO54OFMs2a8JLqve3FOVgtEvt1iLHVLjV5bDgEqh18Oa3sirlo"/>
+</div>
+<div>
+<p class="font-label-md text-label-md font-bold">Admin User</p>
+<p class="text-[10px] uppercase tracking-wider text-primary">Super User</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Shared TopAppBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 border-b border-outline-variant bg-surface/80 backdrop-blur-md flex justify-between items-center px-margin-desktop z-40">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-full py-2 pl-10 pr-4 font-body-sm text-body-sm focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all outline-none" placeholder="Search directory..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-opacity active:opacity-80">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-opacity active:opacity-80">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-opacity active:opacity-80">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+<div class="h-8 w-[1px] bg-outline-variant"></div>
+<h2 class="font-headline-md text-headline-md font-extrabold text-primary">EcoAdmin Console</h2>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 pb-16 px-margin-desktop min-h-screen">
+<!-- Header Actions Area -->
+<div class="flex flex-col md:flex-row justify-between items-end mb-10 gap-6">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tight mb-2">Users & Permissions</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">Manage enterprise access levels, define specific auditor scopes, and oversee user activity across the CarbonIQ network ledger.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-6 py-3 bg-transparent border border-outline-variant rounded-lg font-label-md text-label-md text-on-surface hover:bg-surface-container transition-all">
+<span class="material-symbols-outlined">download</span>
+                    Bulk Export
+                </button>
+<button class="flex items-center gap-2 px-6 py-3 bg-primary-container text-on-primary-container rounded-lg font-label-md text-label-md font-bold neon-glow hover:brightness-110 active:scale-95 transition-all">
+<span class="material-symbols-outlined">person_add</span>
+                    Invite New User
+                </button>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-gutter">
+<!-- User Directory Table (Bento Primary) -->
+<div class="col-span-12 lg:col-span-9 glass-panel rounded-xl overflow-hidden active-border-gradient shadow-2xl">
+<div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center bg-surface-container/30">
+<div class="flex items-center gap-4">
+<span class="font-label-md text-label-md font-bold uppercase tracking-widest text-primary-container">Live Directory</span>
+<div class="flex items-center gap-1.5 px-3 py-1 bg-primary-container/10 rounded-full border border-primary-container/20">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
+<span class="text-[10px] text-primary-container font-bold">142 USERS ONLINE</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-1.5 hover:bg-surface-container rounded-md transition-colors"><span class="material-symbols-outlined text-[20px]">filter_list</span></button>
+<button class="p-1.5 hover:bg-surface-container rounded-md transition-colors"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/50">
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">User</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Role</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Status</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Last Activity</th>
+<th class="px-6 py-4"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/30">
+<!-- User Row 1 -->
+<tr class="hover:bg-primary-container/5 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest border border-outline-variant overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A portrait of a professional female environmental analyst, cinematic lighting with neon mint highlights, sharp focus on facial features, digital aesthetic, dark professional background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDR0omcwWTqfKGwLf7lold372Djg6sWtAmP1XE9VVy9H5nuOqWjZTSOVHrWBBmQiEJJrw9gWxpQTsdg7-jtwXez43aPAns6dSU17DphorAvqfYqEv7xjf2JpltLHShkZyj4SZcGSyB3upPxysCdQf-PGefXkQdL15WS4xjvxMjCtVtN_QJM3lNeTgi4WC31sW_hUH4RnkoecqwjqunCHiiuYu4O2wkj7gDDBiQuEUhwAselR-PeE0VfbprxX0DzRpR17wb4lcWY3Jlf"/>
+</div>
+<div>
+<div class="font-label-md text-label-md font-bold group-hover:text-primary-container transition-colors">Dr. Sarah Jenkins</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">s.jenkins@carboniq.io</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-secondary-container/10 border border-secondary-container/30 text-secondary-container text-[11px] font-bold uppercase tracking-wider">Auditor</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary-container shadow-[0_0_8px_#00FF9D]"></span>
+<span class="font-body-sm text-body-sm font-medium">Active</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="font-body-sm text-body-sm">2 mins ago</div>
+<div class="text-[10px] text-on-surface-variant uppercase tracking-tighter">IP: 192.168.1.1</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-on-surface-variant hover:text-primary-container transition-colors"><span class="material-symbols-outlined">edit</span></button>
+</td>
+</tr>
+<!-- User Row 2 -->
+<tr class="hover:bg-primary-container/5 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest border border-outline-variant overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A portrait of a male data scientist, tech-focused aesthetic with deep teal and black palette, neon glow effects reflecting on glasses, highly detailed 8k render, professional atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiY-yZAiLD1kLclGQf6xFg4ymtgMUHoWHv02_wJ9G-9AkjOZOEhu8PK8PB3sndhBxNOtlCkBKu0dHiU3PPIj-fWmYD6sOUjW2k2jp_NN9onm7ORDZ0cwUtpwfv7tWZl9ig_eJUtVVfeLfM8gjwzh7-DPUlDE9xIS9nORhYeXPg8Z-GAlHtYAb7Svup01FMbuv-hgdbLCGLCe8krOpKX5iOFPbtL9wMQ4x76MVIIRY2dpszF5lnEqD4are58VUPOfwydHoJ4WRz5SgT"/>
+</div>
+<div>
+<div class="font-label-md text-label-md font-bold group-hover:text-primary-container transition-colors">Marcus Thorne</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">m.thorne@carboniq.io</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-primary-container/10 border border-primary-container/30 text-primary-container text-[11px] font-bold uppercase tracking-wider">Admin</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary-container shadow-[0_0_8px_#00FF9D]"></span>
+<span class="font-body-sm text-body-sm font-medium">Active</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="font-body-sm text-body-sm">14 mins ago</div>
+<div class="text-[10px] text-on-surface-variant uppercase tracking-tighter">IP: 104.22.7.42</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-on-surface-variant hover:text-primary-container transition-colors"><span class="material-symbols-outlined">edit</span></button>
+</td>
+</tr>
+<!-- User Row 3 -->
+<tr class="hover:bg-primary-container/5 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest border border-outline-variant overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Close-up profile of a software engineer, dark mode UI lighting, subtle neon green accents, sleek tech background, 4k digital art, serene and focused expression." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfXIqz7QCpdqXnHEAs9BMxCB7cN9Uwyyv4esyjuihscBfS1AgaSTRmIUi9sTC__Bt9XRCbxXh6q6nVGZtERWIOqPTaRTizd0UY6QtY4RQMsv_b_q58Lo00YNC6RTs1rO3ThU0J_r9qWGr3oODH0UPQouubdjIKb1KNK2TluyWhdV5V10wKI01uAteXWGMPbKvgG1cISlKOh8LAbImfcXMGgH7RtvKWPh4Ng1XmjBYFzlhxlOlaPl9klVBryo8YwX6XnvOpb2PUCLsy"/>
+</div>
+<div>
+<div class="font-label-md text-label-md font-bold group-hover:text-primary-container transition-colors">Elena Rodriguez</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">e.rod@carboniq.io</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-on-surface-variant/10 border border-on-surface-variant/30 text-on-surface-variant text-[11px] font-bold uppercase tracking-wider">Analyst</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 opacity-50">
+<span class="w-2 h-2 rounded-full bg-tertiary-fixed-dim"></span>
+<span class="font-body-sm text-body-sm font-medium">Pending</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="font-body-sm text-body-sm">Never</div>
+<div class="text-[10px] text-on-surface-variant uppercase tracking-tighter">INVITATION SENT</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-on-surface-variant hover:text-primary-container transition-colors"><span class="material-symbols-outlined">edit</span></button>
+</td>
+</tr>
+<!-- User Row 4 -->
+<tr class="hover:bg-primary-container/5 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest border border-outline-variant overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A portrait of a security consultant in a high-security environment, digital matrix overlay, neon green and black lighting, sharp architectural lines in background, professional sci-fi vibe." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNqX_qPZ0NWoDmP6gU0ls4o3HqCZY8LnlSkSq8So0XzjqQsxrj0oFwpPR-JT52Nyn9OcnHwq7ZEMJi3f18apKDGuVvYW7iEKZy1CMDSJVNvG-SyT3xVuSqpcfTTNaC-8rUEfZm4DHSF65AMh0gUjGe2qEhpXdhR6ksse2y1WFbZocLkwEiPkHjqPwmqzP8SKZVFYaH2CBYmsTnoES8guttAWrcg2ZyF3akO8uxIhxMUJKIlKv4Rm3qvf89xZiiTukyBtNumHF-fi5j"/>
+</div>
+<div>
+<div class="font-label-md text-label-md font-bold group-hover:text-primary-container transition-colors">Thomas Wu</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">t.wu@carboniq.io</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-secondary/10 border border-secondary/30 text-secondary text-[11px] font-bold uppercase tracking-wider">Viewer</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-error shadow-[0_0_8px_#ffb4ab]"></span>
+<span class="font-body-sm text-body-sm font-medium">Suspended</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="font-body-sm text-body-sm">3 days ago</div>
+<div class="text-[10px] text-on-surface-variant uppercase tracking-tighter">SEC_FLAG_REVOKED</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-on-surface-variant hover:text-primary-container transition-colors"><span class="material-symbols-outlined">edit</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-6 py-4 border-t border-outline-variant flex justify-between items-center bg-surface-container/10">
+<div class="font-body-sm text-body-sm text-on-surface-variant">Showing 1 to 4 of 28 users</div>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-surface-container rounded-lg transition-colors border border-outline-variant"><span class="material-symbols-outlined">chevron_left</span></button>
+<button class="p-2 hover:bg-surface-container rounded-lg transition-colors border border-outline-variant"><span class="material-symbols-outlined">chevron_right</span></button>
+</div>
+</div>
+</div>
+<!-- Role Definitions Section (Sidebar Bento) -->
+<div class="col-span-12 lg:col-span-3 space-y-gutter">
+<div class="glass-panel rounded-xl p-6 relative overflow-hidden">
+<div class="absolute -right-4 -top-4 opacity-10">
+<span class="material-symbols-outlined text-[120px]">admin_panel_settings</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-primary mb-4">Role Access</h3>
+<div class="space-y-6">
+<!-- Admin -->
+<div class="relative pl-4 border-l-2 border-primary-container">
+<div class="font-label-md text-label-md font-bold text-primary mb-1">Administrator</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Full system oversight, terminal configuration, and user lifecycle management.</p>
+</div>
+<!-- Auditor -->
+<div class="relative pl-4 border-l-2 border-secondary-container">
+<div class="font-label-md text-label-md font-bold text-primary mb-1">Auditor</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Read-only evidence access with specialized sign-off privileges for carbon credits.</p>
+</div>
+<!-- Analyst -->
+<div class="relative pl-4 border-l-2 border-outline">
+<div class="font-label-md text-label-md font-bold text-primary mb-1">Analyst</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Data ingestion and visualization tools. Limited to project-specific reporting metrics.</p>
+</div>
+<!-- Viewer -->
+<div class="relative pl-4 border-l-2 border-outline-variant">
+<div class="font-label-md text-label-md font-bold text-primary mb-1">Viewer</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Dashboard visibility only. No transactional or configuration permissions enabled.</p>
+</div>
+</div>
+<button class="mt-8 w-full py-3 border border-primary-container/30 text-primary-container font-label-md text-label-md hover:bg-primary-container/10 transition-colors rounded-lg">
+                        Manage Permissions Matrix
+                    </button>
+</div>
+<!-- Verified Status Stats -->
+<div class="glass-panel rounded-xl p-6 active-border-gradient">
+<h4 class="font-label-md text-label-md font-bold uppercase tracking-widest text-on-surface-variant mb-4">Integrity Status</h4>
+<div class="flex items-center gap-4 mb-4">
+<div class="p-3 bg-primary-container/10 rounded-full">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<div>
+<div class="text-2xl font-bold text-primary">98.2%</div>
+<div class="text-[10px] text-on-surface-variant">IDENTITY VERIFIED</div>
+</div>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full overflow-hidden">
+<div class="bg-primary-container h-full w-[98%] shadow-[0_0_10px_#00FF9D]"></div>
+</div>
+<p class="mt-4 font-body-sm text-body-sm text-on-surface-variant italic leading-tight">Biometric and Web3 wallet-based identity verification is active for all Admin roles.</p>
+</div>
+</div>
+<!-- Bottom Data Insights Section -->
+<div class="col-span-12 grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/30 flex flex-col justify-center">
+<p class="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest mb-1">Average Session</p>
+<div class="text-3xl font-headline-md font-bold text-primary">42m 12s</div>
+</div>
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/30 flex flex-col justify-center">
+<p class="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest mb-1">Access Geographies</p>
+<div class="text-3xl font-headline-md font-bold text-primary">14 Regions</div>
+</div>
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/30 flex flex-col justify-center">
+<p class="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest mb-1">Critical Warnings</p>
+<div class="text-3xl font-headline-md font-bold text-error">02</div>
+</div>
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/30 flex flex-col justify-center">
+<p class="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest mb-1">New Invites</p>
+<div class="text-3xl font-headline-md font-bold text-secondary-container">11</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Simple micro-interaction for rows
+        document.querySelectorAll('tr').forEach(row => {
+            row.addEventListener('click', () => {
+                row.classList.add('scale-[0.99]', 'duration-75');
+                setTimeout(() => row.classList.remove('scale-[0.99]'), 75);
+            });
+        });
+
+        // Search highlight effect
+        const searchInput = document.querySelector('input[type="text"]');
+        searchInput.addEventListener('focus', () => {
+            searchInput.parentElement.classList.add('neon-glow');
+        });
+        searchInput.addEventListener('blur', () => {
+            searchInput.parentElement.classList.remove('neon-glow');
+        });
+    </script>
+</body></html>
